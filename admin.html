@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VAL EDU - Bảng Điều Khiển Quản Trị</title>
+    <link rel="stylesheet" href="admin.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>    <header class="header">
+        <img src="images/logo.png" class="logo">
+        <h1>Bảng Điều Khiển Quản Trị</h1>
+        <div class="admin-info">
+            <i class="fas fa-user-shield"></i>
+            <span>Chào mừng, Quản trị viên</span>
+            <button class="logout-btn"><i class="fas fa-sign-out-alt"></i> Đăng xuất</button>
+        </div>
+    </header>    <nav class="navbar" id="navbar">
+        <button class="navbar-toggle" id="navbarToggle">
+            <i class="fas fa-chevron-left"></i>
+        </button>
+        <ul>
+            <li><a href="#overview" class="nav-link active"><i class="fas fa-globe"></i> <span>Tổng Quan</span></a></li>
+            <li><a href="#manage_students" class="nav-link"><i class="fas fa-users"></i> <span>Quản Lý Học Viên</span></a></li>
+            <li><a href="#manage_teachers" class="nav-link"><i class="fas fa-chalkboard-teacher"></i> <span>Quản Lý Giáo Viên</span></a></li>
+            <li><a href="#manage_courses" class="nav-link"><i class="fas fa-book-open"></i> <span>Quản Lý Khóa Học</span></a></li>
+            <li><a href="#view_reports" class="nav-link"><i class="fas fa-chart-bar"></i> <span>Báo Cáo</span></a></li>
+            <li><a href="#settings" class="nav-link"><i class="fas fa-cog"></i> <span>Cài Đặt</span></a></li>
+        </ul>
+    </nav>
+
+    <main class="main-content">        <!-- Overview Section -->
+        <section id="overview" class="content-section active">
+            <h2>Tổng Quan Bảng Điều Khiển</h2>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3>245</h3>
+                        <p>Tổng Số Học Viên</p>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-chalkboard-teacher"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3>18</h3>
+                        <p>Giáo Viên Đang Hoạt Động</p>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-book-open"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3>12</h3>
+                        <p>Cấp Độ Khóa Học</p>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-dollar-sign"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3>$28,450</h3>
+                        <p>Doanh Thu Tháng</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="charts-grid">
+                <div class="chart-card">
+                    <h3>Xu Hướng Đăng Ký Học Viên</h3>
+                    <div class="chart-placeholder">
+                        <i class="fas fa-chart-line"></i>
+                        <p>Biểu đồ sẽ hiển thị ở đây</p>
+                    </div>
+                </div>
+                
+                <div class="chart-card">
+                    <h3>Hiệu Suất Khóa Học</h3>
+                    <div class="chart-placeholder">
+                        <i class="fas fa-chart-pie"></i>
+                        <p>Biểu đồ sẽ hiển thị ở đây</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="recent-activities">
+                <h3>Hoạt Động Gần Đây</h3>
+                <div class="activity-list">
+                    <div class="activity-item">
+                        <i class="fas fa-user-plus"></i>
+                        <span>Đăng ký học viên mới: Sarah Johnson</span>
+                        <small>2 giờ trước</small>
+                    </div>
+                    <div class="activity-item">
+                        <i class="fas fa-graduation-cap"></i>
+                        <span>Hoàn thành khóa học: Tiếng Anh Trung Cấp - John Doe</span>
+                        <small>5 giờ trước</small>
+                    </div>
+                    <div class="activity-item">
+                        <i class="fas fa-calendar-plus"></i>
+                        <span>Lớp học mới được lên lịch: Hội Thoại Nâng Cao</span>
+                        <small>1 ngày trước</small>
+                    </div>
+                </div>
+            </div>
+        </section>        <!-- Manage Students Section -->
+        <section id="manage_students" class="content-section">
+            <h2>Quản Lý Học Viên</h2>
+            
+            <div class="section-header">
+                <div class="search-bar">
+                    <i class="fas fa-search"></i>
+                    <input type="text" placeholder="Tìm kiếm học viên...">
+                </div>
+                <button class="btn-primary"><i class="fas fa-plus"></i> Thêm Học Viên Mới</button>
+            </div>
+
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Mã</th>
+                            <th>Họ Tên</th>
+                            <th>Email</th>
+                            <th>Cấp Độ Khóa Học</th>
+                            <th>Ngày Đăng Ký</th>
+                            <th>Trạng Thái</th>
+                            <th>Thao Tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>001</td>
+                            <td>Sarah Johnson</td>
+                            <td>sarah.j@email.com</td>
+                            <td>Trung Cấp</td>
+                            <td>15/01/2024</td>
+                            <td><span class="status active">Hoạt Động</span></td>
+                            <td>
+                                <button class="btn-edit"><i class="fas fa-edit"></i></button>
+                                <button class="btn-delete"><i class="fas fa-trash"></i></button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>002</td>
+                            <td>John Doe</td>
+                            <td>john.d@email.com</td>
+                            <td>Nâng Cao</td>
+                            <td>20/02/2024</td>
+                            <td><span class="status active">Hoạt Động</span></td>
+                            <td>
+                                <button class="btn-edit"><i class="fas fa-edit"></i></button>
+                                <button class="btn-delete"><i class="fas fa-trash"></i></button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>        <!-- Manage Teachers Section -->
+        <section id="manage_teachers" class="content-section">
+            <h2>Quản Lý Giáo Viên</h2>
+            
+            <div class="section-header">
+                <div class="search-bar">
+                    <i class="fas fa-search"></i>
+                    <input type="text" placeholder="Tìm kiếm giáo viên...">
+                </div>
+                <button class="btn-primary"><i class="fas fa-plus"></i> Thêm Giáo Viên Mới</button>
+            </div>
+
+            <div class="teachers-grid">
+                <div class="teacher-card">
+                    <div class="teacher-avatar">
+                        <i class="fas fa-user-tie"></i>
+                    </div>
+                    <h4>Emma Watson</h4>
+                    <p>Giáo Viên Tiếng Anh Chính</p>
+                    <div class="teacher-stats">
+                        <span><i class="fas fa-users"></i> 25 Học Viên</span>
+                        <span><i class="fas fa-star"></i> 4.9 Đánh Giá</span>
+                    </div>
+                    <div class="teacher-actions">
+                        <button class="btn-edit">Chỉnh Sửa</button>
+                        <button class="btn-view">Xem Hồ Sơ</button>
+                    </div>
+                </div>
+                
+                <div class="teacher-card">
+                    <div class="teacher-avatar">
+                        <i class="fas fa-user-tie"></i>
+                    </div>
+                    <h4>David Smith</h4>
+                    <p>Chuyên Gia Hội Thoại</p>
+                    <div class="teacher-stats">
+                        <span><i class="fas fa-users"></i> 18 Học Viên</span>
+                        <span><i class="fas fa-star"></i> 4.7 Đánh Giá</span>
+                    </div>
+                    <div class="teacher-actions">
+                        <button class="btn-edit">Chỉnh Sửa</button>
+                        <button class="btn-view">Xem Hồ Sơ</button>
+                    </div>
+                </div>
+            </div>
+        </section>        <!-- Manage Courses Section -->
+        <section id="manage_courses" class="content-section">
+            <h2>Quản Lý Khóa Học</h2>
+            
+            <div class="section-header">
+                <button class="btn-primary"><i class="fas fa-plus"></i> Tạo Khóa Học Mới</button>
+            </div>
+
+            <div class="courses-grid">
+                <div class="course-card">
+                    <div class="course-header">
+                        <h4>Tiếng Anh Cơ Bản</h4>
+                        <span class="course-level beginner">Cơ Bản</span>
+                    </div>
+                    <p>Khóa học nền tảng về các kiến thức cơ bản tiếng Anh</p>
+                    <div class="course-stats">
+                        <span><i class="fas fa-users"></i> 45 Học Viên</span>
+                        <span><i class="fas fa-clock"></i> 8 Tuần</span>
+                        <span><i class="fas fa-dollar-sign"></i> $200</span>
+                    </div>
+                    <div class="course-actions">
+                        <button class="btn-edit">Chỉnh Sửa</button>
+                        <button class="btn-view">Xem Chi Tiết</button>
+                    </div>
+                </div>
+                
+                <div class="course-card">
+                    <div class="course-header">
+                        <h4>Tiếng Anh Trung Cấp</h4>
+                        <span class="course-level intermediate">Trung Cấp</span>
+                    </div>
+                    <p>Phát triển kỹ năng hội thoại và ngữ pháp</p>
+                    <div class="course-stats">
+                        <span><i class="fas fa-users"></i> 32 Học Viên</span>
+                        <span><i class="fas fa-clock"></i> 10 Tuần</span>
+                        <span><i class="fas fa-dollar-sign"></i> $300</span>
+                    </div>
+                    <div class="course-actions">
+                        <button class="btn-edit">Chỉnh Sửa</button>
+                        <button class="btn-view">Xem Chi Tiết</button>
+                    </div>
+                </div>
+                
+                <div class="course-card">
+                    <div class="course-header">
+                        <h4>Tiếng Anh Nâng Cao</h4>
+                        <span class="course-level advanced">Nâng Cao</span>
+                    </div>
+                    <p>Tiếng Anh chuyên nghiệp và học thuật</p>
+                    <div class="course-stats">
+                        <span><i class="fas fa-users"></i> 18 Học Viên</span>
+                        <span><i class="fas fa-clock"></i> 12 Tuần</span>
+                        <span><i class="fas fa-dollar-sign"></i> $450</span>
+                    </div>
+                    <div class="course-actions">
+                        <button class="btn-edit">Chỉnh Sửa</button>
+                        <button class="btn-view">Xem Chi Tiết</button>
+                    </div>
+                </div>
+            </div>
+        </section>        <!-- Reports Section -->
+        <section id="view_reports" class="content-section">
+            <h2>Báo Cáo & Phân Tích</h2>
+            
+            <div class="reports-grid">
+                <div class="report-card">
+                    <h4>Báo Cáo Tiến Độ Học Viên</h4>
+                    <p>Theo dõi hiệu suất cá nhân và lớp học</p>
+                    <button class="btn-primary">Tạo Báo Cáo</button>
+                </div>
+                
+                <div class="report-card">
+                    <h4>Báo Cáo Tài Chính</h4>
+                    <p>Phân tích doanh thu, chi phí và lợi nhuận</p>
+                    <button class="btn-primary">Tạo Báo Cáo</button>
+                </div>
+                
+                <div class="report-card">
+                    <h4>Hiệu Suất Giáo Viên</h4>
+                    <p>Hiệu quả giảng dạy và phản hồi học viên</p>
+                    <button class="btn-primary">Tạo Báo Cáo</button>
+                </div>
+                
+                <div class="report-card">
+                    <h4>Đăng Ký Khóa Học</h4>
+                    <p>Xu hướng phổ biến và đăng ký khóa học</p>
+                    <button class="btn-primary">Tạo Báo Cáo</button>
+                </div>
+            </div>
+        </section>        <!-- Settings Section -->
+        <section id="settings" class="content-section">
+            <h2>Cài Đặt Hệ Thống</h2>
+            
+            <div class="settings-grid">
+                <div class="settings-card">
+                    <h4>Cài Đặt Chung</h4>
+                    <div class="setting-item">
+                        <label>Tên Trung Tâm:</label>
+                        <input type="text" value="Trung Tâm Tiếng Anh VAL EDU">
+                    </div>
+                    <div class="setting-item">
+                        <label>Năm Học:</label>
+                        <select>
+                            <option>2024-2025</option>
+                            <option>2025-2026</option>
+                        </select>
+                    </div>
+                    <button class="btn-primary">Lưu Thay Đổi</button>
+                </div>
+                
+                <div class="settings-card">
+                    <h4>Cài Đặt Khóa Học</h4>
+                    <div class="setting-item">
+                        <label>Thời Lượng Khóa Học Mặc Định:</label>
+                        <select>
+                            <option>8 tuần</option>
+                            <option>10 tuần</option>
+                            <option>12 tuần</option>
+                        </select>
+                    </div>
+                    <div class="setting-item">
+                        <label>Số Lượng Học Viên Tối Đa:</label>
+                        <input type="number" value="15">
+                    </div>
+                    <button class="btn-primary">Lưu Thay Đổi</button>
+                </div>
+            </div>
+        </section>
+    </main>    <script>
+        // Navigation functionality
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                // Remove active class from all nav links and sections
+                document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+                document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
+                
+                // Add active class to clicked nav link
+                this.classList.add('active');
+                
+                // Show corresponding section
+                const targetId = this.getAttribute('href').substring(1);
+                document.getElementById(targetId).classList.add('active');
+            });
+        });        // Navbar toggle functionality
+        document.getElementById('navbarToggle').addEventListener('click', function() {
+            // Check if we're on mobile (768px or less)
+            if (window.innerWidth <= 768) {
+                return; // Don't toggle on mobile
+            }
+            
+            const navbar = document.getElementById('navbar');
+            const mainContent = document.querySelector('.main-content');
+            const toggleIcon = this.querySelector('i');
+            const toggleButton = this;
+            
+            navbar.classList.toggle('collapsed');
+              if (navbar.classList.contains('collapsed')) {
+                // Navbar is collapsed
+                toggleIcon.classList.remove('fa-chevron-left');
+                toggleIcon.classList.add('fa-chevron-right');
+                mainContent.style.marginLeft = '95px'; // 60px (collapsed navbar) + 30px (toggle button) + 5px (gap)
+                toggleButton.style.left = '60px';
+            } else {
+                // Navbar is expanded
+                toggleIcon.classList.remove('fa-chevron-right');
+                toggleIcon.classList.add('fa-chevron-left');
+                mainContent.style.marginLeft = '285px'; // 250px (expanded navbar) + 30px (toggle button) + 5px (gap)
+                toggleButton.style.left = '250px';
+            }
+        });
+        
+        // Handle window resize to reset mobile layout
+        window.addEventListener('resize', function() {
+            const navbar = document.getElementById('navbar');
+            const mainContent = document.querySelector('.main-content');
+            const toggleButton = document.getElementById('navbarToggle');
+            
+            if (window.innerWidth <= 768) {
+                // Mobile layout - reset any desktop toggle states
+                navbar.classList.remove('collapsed');
+                mainContent.style.marginLeft = '';
+                toggleButton.style.left = '';
+            } else {
+                // Desktop layout - restore proper margins based on navbar state
+                if (navbar.classList.contains('collapsed')) {
+                    mainContent.style.marginLeft = '95px';
+                    toggleButton.style.left = '60px';
+                } else {
+                    mainContent.style.marginLeft = '285px';
+                    toggleButton.style.left = '250px';
+                }
+            }
+        });
+    </script>
+</body>
+</html>
