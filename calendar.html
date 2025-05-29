@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="vi">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>Lịch học</title>
+  <link rel="stylesheet" href="/style/buttons.css">
+  <link rel="stylesheet" href="/style/month.css">
+  <link rel="stylesheet" href="/style/week.css">
+  <link rel="stylesheet" href="/style/day.css">
+  <link rel="stylesheet" href="/style/style_homepage.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+  <script src="/js/calendar.js" defer></script>
+</head>
+
+<body class="calendar-page">
+  <header class="main-header">
+    <div class="header-container">
+      <div class="logo">
+        <a href="homepage.html"> <img src="images/logo_transparent.png" alt="VAL Edu Logo"></a>
+        <div class="logo-text">
+          <strong>VAL Edu</strong>
+          <span>English Center For Everyone</span>
+        </div>
+      </div>
+      <nav class="nav-menu">
+        <ul>
+          <li><a class="active" href="#">Trang chủ</a></li>
+
+          <li class="dropdown">
+            <a href="#">Giới thiệu</a>
+            <ul class="dropdown-content">
+              <li><a href="#">Hall Of Fame</a></li>
+              <li><a href="#">Đội ngũ giáo viên tại VAL Edu</a></li>
+              <li><a href="#">Liên hệ</a></li>
+              <li><a href="#">Tuyển dụng</a></li>
+              <li><a href="#">Câu hỏi thường gặp (FAQ)</a></li>
+            </ul>
+          </li>
+
+          <li class="dropdown">
+            <a href="#">Khóa Học</a>
+            <ul class="dropdown-content">
+              <li><a href="#">KHÓA HỌC IELTS CƠ BẢN</a></li>
+              <li><a href="#">KHÓA HỌC IELTS CẤP TỐC</a></li>
+              <li><a href="#">KHÓA HỌC TOEIC</a></li>
+              <li><a href="#">KHÓA HỌC TIẾNG ANH TIỂU HỌC</a></li>
+              <li><a href="#">KHÓA HỌC TIẾNG ANH THCS</a></li>
+              <li><a href="#">KHÓA HỌC TIẾNG ANH THPT</a></li>
+            </ul>
+          </li>
+
+          <li><a href="#">Lịch Khai giảng</a></li>
+
+          <li class="dropdown">
+            <a href="#">Thư viện</a>
+            <ul class="dropdown-content">
+              <li><a href="#">IELTS</a></li>
+              <li><a href="#">TOEIC</a></li>
+              <li><a href="#">Tiếng Anh giao tiếp</a></li>
+            </ul>
+          </li>
+
+          <li><a href="#">Tin tức</a></li>
+          
+          <li class="dropdown">
+            <div class="logo">
+              <a href="homepage.html"> <img src="images/logo_transparent.png" alt="User Logo"></a>
+              <div class="logo-text">
+                <strong>User_name</strong>
+              </div>
+            </div>
+            <ul class="dropdown-content">
+              <li><a href="#"><i class="fas fa-user"></i> Thông tin tài khoản</a></li>
+              <li><a href="#"><i class="fas fa-calendar"></i> Lịch học</a></li>
+              <li><a href="#"><i class="fas fa-edit"></i> Đăng ký lịch học</a></li>
+              <li><a href="#"><i class="fas fa-sign-out-alt"></i> Đăng xuất</a></li>
+            </ul>
+          </li>
+        </ul>
+      </nav>
+
+    </div>
+  </header>
+
+  <div class="buttons">
+    <div class="left-buttons">
+      <button class="monthbtn">month</button>
+      <button class="weekbtn">week</button>
+      <button class="daybtn">day</button>
+    </div>
+    <div class="currentmonth">October 2023</div>
+    <div class="right-buttons">
+      <button class="todaybtn">Today</button>
+      <button class="prevyearbtn">&lt;&lt;</button>
+      <button class="prevmonthbtn">&lt;</button>
+      <button class="nextmonthbtn">&gt;</button>
+      <button class="nextyearbtn">&gt;&gt;</button>
+    </div>
+  </div>
+  <br>
+  <div class="calendar">
+    <table class="monthcalendar">
+      <thead>
+        <tr class="monthM">
+          <th class="dayM">Sun</th>
+          <th class="dayM">Mon</th>
+          <th class="dayM">Tue</th>
+          <th class="dayM">Wed</th>
+          <th class="dayM">Thu</th>
+          <th class="dayM">Fri</th>
+          <th class="dayM">Sat</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Rows for each week will be dynamically generated here -->
+        <tr class="weekM">
+          <td class="dayM">27</td>
+          <td class="dayM">28</td>
+          <td class="dayM">29</td>
+          <td class="dayM">30</td>
+          <td class="dayM">1</td>
+          <td class="dayM">2</td>
+          <td class="dayM">3</td>
+        </tr>
+        <tr class="weekM">
+          <td class="dayM">4</td>
+          <td class="dayM">5</td>
+          <td class="dayM">6</td>
+          <td class="dayM">7</td>
+          <td class="dayM">8</td>
+          <td class="dayM">9</td>
+          <td class="dayM">10</td>
+        </tr>
+        <tr class="weekM">
+          <td class="dayM">11</td>
+          <td class="dayM">12</td>
+          <td class="dayM">13</td>
+          <td class="dayM">14</td>
+          <td class="dayM">15</td>
+          <td class="dayM">16</td>
+          <td class="dayM">17</td>
+        </tr>
+        <tr class="weekM">
+          <td class="dayM">18</td>
+          <td class="dayM">19</td>
+          <td class="dayM">20</td>
+          <td class="dayM">21</td>
+          <td class="dayM">22</td>
+          <td class="dayM">23</td>
+          <td class="dayM">24</td>
+        </tr>
+        <tr class="weekM">
+          <td class="dayM">25</td>
+          <td class="dayM">26</td>
+          <td class="dayM">27</td>
+          <td class="dayM">28</td>
+          <td class="dayM">29</td>
+          <td class="dayM">30</td>
+          <td class="dayM">31</td>
+        </tr>
+        <tr class="weekM">
+          <td class="dayM">1</td>
+          <td class="dayM">2</td>
+          <td class="dayM">3</td>
+          <td class="dayM">4</td>
+          <td class="dayM">5</td>
+          <td class="dayM">6</td>
+          <td class="dayM">7</td>
+        </tr>
+      </tbody>
+    </table>
+    <table class="weekcalendar">
+      <thead>
+        <tr class="weekW">
+          <th class="dayW">
+            <div class="TimesD">Days</div>
+            <div class="TimesT">Times</div>
+          </th>
+          <th class="dayW">Sun</th>
+          <th class="dayW">Mon</th>
+          <th class="dayW">Tue</th>
+          <th class="dayW">Wed</th>
+          <th class="dayW">Thu</th>
+          <th class="dayW">Fri</th>
+          <th class="dayW">Sat</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Rows for each day will be dynamically generated here -->
+        <tr class="dayW">
+          <td class="TimesW">All-day</td>
+          <td class="dayW"></td>
+          <td class="dayW"></td>
+          <td class="dayW"></td>
+          <td class="dayW"></td>
+          <td class="dayW"></td>
+          <td class="dayW"></td>
+          <td class="dayW"></td>
+        <tr class="dayW">
+          <td class="TimesW">8:00 AM</td>
+          <td class="dayW"></td>
+          <td class="dayW"></td>
+          <td class="dayW"></td>
+          <td class="dayW"></td>
+          <td class="dayW"></td>
+          <td class="dayW"></td>
+          <td class="dayW"></td>
+        </tr>
+        <tr class="dayW">
+          <td class="TimesW">9:00 AM</td>
+          <td class="dayW"></td>
+          <td class="dayW"></td>
+          <td class="dayW"></td>
+          <td class="dayW"></td>
+          <td class="dayW"></td>
+          <td class="dayW"></td>
+          <td class="dayW"></td>
+        </tr>
+        <tr class="dayW">
+          <td class="TimesW">10:00 AM</td>
+          <td class="dayW"></td>
+          <td class="dayW"></td>
+          <td class="dayW"></td>
+          <td class="dayW"></td>
+          <td class="dayW"></td>
+          <td class="dayW"></td>
+          <td class="dayW"></td>
+        </tr>
+        <tr class="dayW">
+          <td class="TimesW">11:00 AM</td>
+          <td class="dayW"></td>
+          <td class="dayW"></td>
+          <td class="dayW"></td>
+          <td class="dayW"></td>
+          <td class="dayW"></td>
+          <td class="dayW"></td>
+          <td class="dayW"></td>
+        </tr>
+        <tr class="dayW">
+          <td class="TimesW">12:00 PM</td>
+          <td class="dayW"></td>
+          <td class="dayW"></td>
+          <td class="dayW"></td>
+          <td class="dayW"></td>
+          <td class="dayW"></td>
+          <td class="dayW"></td>
+          <td class="dayW"></td>
+        </tr>
+        <tr class="dayW">
+          <td class="TimesW">1:00 PM</td>
+          <td class="dayW"></td>
+          <td class="dayW"></td>
+          <td class="dayW"></td>
+          <td class="dayW"></td>
+          <td class="dayW"></td>
+          <td class="dayW"></td>
+          <td class="dayW"></td>
+        </tr>
+        <tr class="dayW">
+          <td class="TimesW">2:00 PM</td>
+          <td class="dayW"></td>
+          <td class="dayW"></td>
+          <td class="dayW"></td>
+          <td class="dayW"></td>
+          <td class="dayW"></td>
+          <td class="dayW"></td>
+          <td class="dayW"></td>
+        </tr>
+        <tr class="dayW">
+          <td class="TimesW">3:00 PM</td>
+          <td class="dayW"></td>
+          <td class="dayW"></td>
+          <td class="dayW"></td>
+          <td class="dayW"></td>
+          <td class="dayW"></td>
+          <td class="dayW"></td>
+          <td class="dayW"></td>
+        </tr>
+        <tr class="dayW">
+          <td class="TimesW">4:00 PM</td>
+          <td class="dayW"></td>
+          <td class="dayW"></td>
+          <td class="dayW"></td>
+          <td class="dayW"></td>
+          <td class="dayW"></td>
+          <td class="dayW"></td>
+          <td class="dayW"></td>
+        </tr>
+      </tbody>
+    </table>
+    <table class="daycalendar">
+      <thead>
+        <tr class="dayD">
+          <th class="TimeD">Times</th>
+          <th class="dayD">Wed</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Rows for each time slot will be dynamically generated here -->
+        <tr class="timeD">
+          <td class="TimeD">All-day</td>
+          <td class="dayD"></td>
+        </tr>
+        <tr class="timeD">
+          <td class="TimeD">8:00 AM</td>
+          <td class="dayD"></td>
+        </tr>
+        <tr class="timeD">
+          <td class="TimeD">9:00 AM</td>
+          <td class="dayD"></td>
+        </tr>
+        <tr class="timeD">
+          <td class="TimeD">10:00 AM</td>
+          <td class="dayD"></td>
+        </tr>
+        <tr class="timeD">
+          <td class="TimeD">11:00 AM</td>
+          <td class="dayD"></td>
+        </tr>
+        <tr class="timeD">
+          <td class="TimeD">12:00 PM</td>
+          <td class="dayD"></td>
+        </tr>
+        <tr class="timeD">
+          <td class="TimeD">1:00 PM</td>
+          <td class="dayD"></td>
+        </tr>
+        <tr class="timeD">
+          <td class="TimeD">2:00 PM</td>
+          <td class="dayD"></td>
+        </tr>
+        <tr class="timeD">
+          <td class="TimeD">3:00 PM</td>
+          <td class="dayD"></td>
+        </tr>
+        <tr class="timeD">
+          <td class="TimeD">4:00 PM</td>
+          <td class="dayD"></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</body>
+
+</html>

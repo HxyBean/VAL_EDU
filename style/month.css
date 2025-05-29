@@ -1,0 +1,65 @@
+body {
+  margin: 0;
+  font-family: 'Roboto', sans-serif;
+  background: white;
+}
+
+/* Container chính cho lịch */
+.monthcalendar {
+  display: table;
+  width: calc(100% - 100px);  /* Trừ đi tổng margin trái phải */
+  table-layout: fixed;      
+  border: 1px solid #ddd;      
+  margin-left: 50px;    
+  margin-right: 50px;    
+  background: white;
+  position: relative;
+  z-index: 1;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* Cài đặt cho bảng */
+table {
+  width: 100%;
+  border-collapse: collapse;   
+  z-index: 1001; 
+}
+
+/* Kiểu dáng cho ô tiêu đề và ô dữ liệu */
+.dayM {
+  width: calc(100% / 7);   /* Chia đều 7 cột */
+  border: 1px solid #ddd;     /* Viền màu xám nhạt cho các ô */
+  padding: 8px;               /* Khoảng cách bên trong ô */
+  text-align: center;         /* Căn giữa nội dung */
+}
+
+/* Kiểu dáng riêng cho ô tiêu đề */
+.monthcalendar th.dayM,
+.weekcalendar th.dayW,
+.daycalendar th.TimeD,
+.daycalendar th.dayD {
+    background-color: #06D7A0;
+    padding: 15px;
+    color: white; /* Thêm màu chữ trắng để dễ đọc trên nền xanh */
+}
+
+.weekM {
+  height: 120px;               /* Chiều cao của mỗi hàng */
+}
+
+.weekM .dayM {
+  position: relative;          /* Để có thể định vị số ngày bên trong */
+  vertical-align: top;         /* Căn trên cho nội dung */
+  text-align: right;          /* Căn phải cho số ngày */
+  padding: 8px 12px;          /* Khoảng cách lề trên và phải */
+  font-size: 14px;            /* Kích thước chữ */
+}
+
+.monthM th,
+.monthM td,
+.weekM td {
+    background: white;
+    border: 1px solid #ddd;
+}

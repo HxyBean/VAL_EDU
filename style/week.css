@@ -1,0 +1,61 @@
+.weekcalendar {
+  display: none;
+  width: calc(100% - 100px);
+  table-layout: fixed;      
+  border: 1px solid #ddd;      
+  margin-left: 50px;     
+  margin-right: 50px; 
+  background: white;
+  position: relative;
+  z-index: 1;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* Style cho header của bảng */
+th.TimesW {
+  text-align: center;         
+  vertical-align: middle;     
+  width: calc(100% / 8);     
+  height: 40px;              
+  padding: 8px;              
+  border: 1px solid #ddd;    
+  background: white;
+}
+
+/* Style cho các ô ngày */
+.dayW {
+  width: calc(100% / 8);   
+  height: 120px;           
+  border: 1px solid #ddd;  
+  padding: 8px;           
+  text-align: center;     
+}
+
+/* Style cho thời gian */
+.TimesT {
+  vertical-align: bottom;
+  text-align: left;    
+  padding: 8px 12px;   
+  font-size: 14px; 
+}
+
+.TimesD {
+  vertical-align: top;
+  text-align: right;   
+  padding: 8px 12px;   
+  font-size: 14px; 
+}
+
+.weekW th {
+  background: white;
+  padding: 15px;
+}
+
+.weekW th,
+.weekW td,
+.dayW td {
+    background: white;
+    border: 1px solid #ddd;
+}

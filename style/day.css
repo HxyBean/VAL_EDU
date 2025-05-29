@@ -1,0 +1,46 @@
+.daycalendar {
+    display: none;
+    width: calc(100% - 100px);
+    table-layout: fixed;      
+    border: 1px solid #ddd;      
+    margin-left: 50px;     
+    margin-right: 50px;
+    background: white;
+    position: relative;
+    z-index: 1;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+/* Điều chỉnh độ rộng cột */
+.TimeD {
+    width: 10%;              /* Cột thời gian chiếm 25% */
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: center;
+    background: white;
+}
+
+.dayD {
+    width: 90%;              /* Cột ngày chiếm 75% */
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: center;
+}
+
+.timeD {
+    height: 100px;
+}
+
+.dayD th {
+    background: white;
+    padding: 15px;
+}
+
+.dayD th,
+.dayD td,
+.timeD td {
+    background: white;
+    border: 1px solid #ddd;
+}
