@@ -8,7 +8,7 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>    <header class="header">
-        <img src="images/logo.png" class="logo">
+        <img src="../images/logo_transparent.png" class="logo" alt="logo">
         <h1>Bảng Điều Khiển Quản Trị</h1>
         <div class="admin-info">
             <i class="fas fa-user-shield"></i>
@@ -29,7 +29,8 @@
         </ul>
     </nav>
 
-    <main class="main-content">        <!-- Overview Section -->
+    <main class="main-content">        
+        <!-- Overview Section -->
         <section id="overview" class="content-section active">
             <h2>Tổng Quan Bảng Điều Khiển</h2>
             
@@ -60,7 +61,7 @@
                     </div>
                     <div class="stat-info">
                         <h3>12</h3>
-                        <p>Cấp Độ Khóa Học</p>
+                        <p>Lớp Học Đang Hoạt Động</p>
                     </div>
                 </div>
                 
@@ -69,7 +70,7 @@
                         <i class="fas fa-dollar-sign"></i>
                     </div>
                     <div class="stat-info">
-                        <h3>$28,450</h3>
+                        <h3>100m</h3>
                         <p>Doanh Thu Tháng</p>
                     </div>
                 </div>
@@ -113,7 +114,9 @@
                     </div>
                 </div>
             </div>
-        </section>        <!-- Manage Students Section -->
+        </section>        
+        
+        <!-- Manage Students Section -->
         <section id="manage_students" class="content-section">
             <h2>Quản Lý Học Viên</h2>
             
@@ -339,73 +342,7 @@
                 </div>
             </div>
         </section>
-    </main>    <script>
-        // Navigation functionality
-        document.querySelectorAll('.nav-link').forEach(link => {
-            link.addEventListener('click', function(e) {
-                e.preventDefault();
-                
-                // Remove active class from all nav links and sections
-                document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-                document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
-                
-                // Add active class to clicked nav link
-                this.classList.add('active');
-                
-                // Show corresponding section
-                const targetId = this.getAttribute('href').substring(1);
-                document.getElementById(targetId).classList.add('active');
-            });
-        });        // Navbar toggle functionality
-        document.getElementById('navbarToggle').addEventListener('click', function() {
-            // Check if we're on mobile (768px or less)
-            if (window.innerWidth <= 768) {
-                return; // Don't toggle on mobile
-            }
-            
-            const navbar = document.getElementById('navbar');
-            const mainContent = document.querySelector('.main-content');
-            const toggleIcon = this.querySelector('i');
-            const toggleButton = this;
-            
-            navbar.classList.toggle('collapsed');
-              if (navbar.classList.contains('collapsed')) {
-                // Navbar is collapsed
-                toggleIcon.classList.remove('fa-chevron-left');
-                toggleIcon.classList.add('fa-chevron-right');
-                mainContent.style.marginLeft = '95px'; // 60px (collapsed navbar) + 30px (toggle button) + 5px (gap)
-                toggleButton.style.left = '60px';
-            } else {
-                // Navbar is expanded
-                toggleIcon.classList.remove('fa-chevron-right');
-                toggleIcon.classList.add('fa-chevron-left');
-                mainContent.style.marginLeft = '285px'; // 250px (expanded navbar) + 30px (toggle button) + 5px (gap)
-                toggleButton.style.left = '250px';
-            }
-        });
-        
-        // Handle window resize to reset mobile layout
-        window.addEventListener('resize', function() {
-            const navbar = document.getElementById('navbar');
-            const mainContent = document.querySelector('.main-content');
-            const toggleButton = document.getElementById('navbarToggle');
-            
-            if (window.innerWidth <= 768) {
-                // Mobile layout - reset any desktop toggle states
-                navbar.classList.remove('collapsed');
-                mainContent.style.marginLeft = '';
-                toggleButton.style.left = '';
-            } else {
-                // Desktop layout - restore proper margins based on navbar state
-                if (navbar.classList.contains('collapsed')) {
-                    mainContent.style.marginLeft = '95px';
-                    toggleButton.style.left = '60px';
-                } else {
-                    mainContent.style.marginLeft = '285px';
-                    toggleButton.style.left = '250px';
-                }
-            }
-        });
-    </script>
+    </main> 
+    <script src="admin.js"></script>
 </body>
 </html>
