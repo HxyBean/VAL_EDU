@@ -1,17 +1,20 @@
 <!DOCTYPE html>
 <html lang="vi">
+
 <head>
   <meta charset="UTF-8">
-  <title>Quên mật khẩu</title>
-  <link rel="stylesheet" href="style/style_register&sign_in.css">
+  <title>VAL Edu - Trung tâm Tiếng Anh</title>
+  <link rel="stylesheet" href="homepage.css">
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
-  <link rel="icon" type="image/png" href="images/logo_transparent.png">
+  <link rel="icon" type="image/png" href="../images/logo_transparent.png">
 </head>
+
 <body>
-    <header class="main-header">
+  <!--tạo header -->
+  <header class="main-header">
     <div class="header-container">
       <div class="logo">
-        <a href="homepage.html"> <img src="images/logo_transparent.png" alt="VAL Edu Logo"></a>
+        <a href="homepage.html"> <img src="../images/logo_transparent.png" alt="VAL Edu Logo"></a>
         <div class="logo-text">
           <strong>VAL Edu</strong>
           <span>English Center For Everyone</span>
@@ -54,30 +57,46 @@
         </ul>
       </nav>
       <div class="cta-button">
-        <a href="sign_in.html" class="sign-in-btn">Đăng nhập</a>
-        <a href="register.html" class="register-btn">Đăng ký</a>
+        <a href="/register-login/login.html" class="sign-in-btn">Đăng nhập</a>
+        <a href="/register-login/register.html" class="register-btn">Đăng ký</a>
       </div>
     </div>
   </header>
-  <div class="container">
-    <div class="left">
-      <img src="images/sign_in_image.jpg" alt="Nhóm học sinh">
-    </div>
-    <div class="right">
-      <h2>Lấy lại mật khẩu</h2>
-      <form id="registerForm">
 
-        <label for="email">Nhập email của bạn *</label>
-        <input type="email" id="email" placeholder="Nhập Email của bạn" required>
-        
-        <button type="submit">Lấy lại mật khẩu</button>
-      </form>
-    </div>
-  </div>
+  <!-- Nội dung khác -->
+  <main>
+    <section class="hero-section">
+      <div class="hero-container">
+        <!-- Bên trái -->
+        <div class="hero-left">
+          <p class="sub-heading">VAL CAM KẾT ĐẦU RA CÁC KHÓA HỌC</p>
+          <h1>Đạt aim TOEIC – IELTS sau 1 lộ trình</h1>
+          <p class="description">
+            VAL ENGLISH tự hào khi có tới hơn 1500+ học viên đạt 8.0+ IELTS & SAT 1500+ overall<br>
+            Tất cả là nhờ: 🌼 Phương pháp giảng dạy của VAL do đội ngũ giảng viên
+          </p>
+          <div class="hero-buttons">
+            <a href="#" class="btn-outline">Nhận tư vấn ngay</a>
+            <a href="#" class="btn-solid">Đăng ký thi chứng chỉ</a>
+          </div>
+          <div class="hero-tags">
+            <a href="#" class="tag yellow">🎯 Lựa chọn độ tuổi</a>
+            <a href="#" class="tag orange">📚 Chương trình học</a>
+          </div>
+        </div>
 
-    <footer class="footer">
-        <p>&copy; 2025 VAL Edu. All rights reserved.</p>
-    </footer>
+        <!-- Bên phải -->
+        <div class="hero-right">
+          <img src="your-banner.png" alt="Tư duy ngôn ngữ toàn diện">
+        </div>
+      </div>
+    </section>
 
+  </main>
+
+  <footer class="footer">
+    <p>&copy; 2025 VAL Edu. All rights reserved.</p>
+  </footer>
 </body>
+
 </html>
