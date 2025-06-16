@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Giao Diện Giáo Viên - VAL EDU</title>
+    <link rel="stylesheet" href="tutor.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+
+<body>
+    <header class="header">
+        <img src="../images/logo_transparent.png" class="logo" />
+        <h1>Bảng Điều Khiển Giáo Viên</h1>
+        <div class="tutor-info">
+            <i class="fas fa-user-tie"></i>
+            <span>Chào mừng, Cô Hoa</span>
+            <button class="logout-btn">
+                <i class="fas fa-sign-out-alt"></i> Đăng xuất
+            </button>
+        </div>
+    </header>
+
+    <nav class="navbar" id="navbar">
+        <button class="navbar-toggle" id="navbarToggle">
+            <i class="fas fa-chevron-left"></i>
+        </button>
+        <ul>
+            <li><a href="#overview" class="nav-link active"><i class="fas fa-globe"></i> <span>Tổng Quan</span></a></li>
+            <li><a href="#settings" class="nav-link"><i class="fas fa-cog"></i> <span>Cài Đặt</span></a></li>
+        </ul>
+    </nav>
+
+    <main class="main-content">
+        <section id="overview" class="content-section active">
+            <h2>Lớp Giáo Viên Đang Dạy</h2>
+            <div class="cards-container">
+                <div class="class-card">
+                    <h3>Lớp A1</h3>
+                    <p>Tổng buổi: 20</p>
+                    <p>Đã dạy: 8</p>
+                    <button class="open-attendance" data-class="A1">Vào Lớp</button>
+                </div>
+                <div class="class-card">
+                    <h3>Lớp B2</h3>
+                    <p>Tổng buổi: 24</p>
+                    <p>Đã dạy: 15</p>
+                    <button class="open-attendance" data-class="B2">Vào Lớp</button>
+                </div>
+                <div class="class-card">
+                    <h3>Lớp B2</h3>
+                    <p>Tổng buổi: 24</p>
+                    <p>Đã dạy: 15</p>
+                    <button class="open-attendance" data-class="B3">Vào Lớp</button>
+                </div>
+                <div class="class-card">
+                    <h3>Lớp B2</h3>
+                    <p>Tổng buổi: 24</p>
+                    <p>Đã dạy: 15</p>
+                    <button class="open-attendance" data-class="C2">Vào Lớp</button>
+                </div>
+                <div class="class-card">
+                    <h3>Lớp B2</h3>
+                    <p>Tổng buổi: 24</p>
+                    <p>Đã dạy: 15</p>
+                    <button class="open-attendance" data-class="B2">Vào Lớp</button>
+                </div>
+                <div class="class-card">
+                    <h3>Lớp B2</h3>
+                    <p>Tổng buổi: 24</p>
+                    <p>Đã dạy: 15</p>
+                    <button class="open-attendance" data-class="B3">Vào Lớp</button>
+                </div>
+                <div class="class-card">
+                    <h3>Lớp B2</h3>
+                    <p>Tổng buổi: 24</p>
+                    <p>Đã dạy: 15</p>
+                    <button class="open-attendance" data-class="C2">Vào Lớp</button>
+                </div>
+            </div>
+        </section>
+
+        <section id="attendance" class="content-section">
+            <h2>Điểm Danh - <span id="class-name">Lớp</span></h2>
+            <div class="attendance-list">
+                <div class="attendance-item">
+                    <label>Buổi 1</label>
+                    <input type="checkbox" checked>
+                </div>
+                <div class="attendance-item">
+                    <label>Buổi 2</label>
+                    <input type="checkbox">
+                </div>
+                <div class="attendance-item">
+                    <label>Buổi 3</label>
+                    <input type="checkbox">
+                </div>
+                <!-- ... -->
+            </div>
+            <button onclick="goBack()">Quay lại</button>
+        </section>
+
+        <!-- Setting-->
+        <section id="settings" class="content-section">
+            ...
+        </section>
+    </main>
+
+    <script src="tutor.js"></script>
+    <script>
+        // SPA navigation
+        document.querySelectorAll('.nav-item a').forEach(link => {
+            link.addEventListener('click', e => {
+                e.preventDefault();
+                const target = link.dataset.target;
+                document.querySelectorAll('.content-section').forEach(sec => sec.classList.remove('active'));
+                document.getElementById(target).classList.add('active');
+            });
+        });
+
+        // Mở lớp điểm danh
+        document.querySelectorAll('.open-attendance').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const className = btn.dataset.class;
+                document.getElementById('class-name').innerText = className;
+                document.querySelectorAll('.content-section').forEach(sec => sec.classList.remove('active'));
+                document.getElementById('attendance').classList.add('active');
+            });
+        });
+
+        function goBack() {
+            document.getElementById('attendance').classList.remove('active');
+            document.getElementById('classes').classList.add('active');
+        }
+    </script>
+</body>
+
+</html>

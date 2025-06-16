@@ -1,0 +1,279 @@
+:root {
+    --bg-color: white;
+    --text-color: black;
+}
+
+.dark-mode {
+    --bg-color: #181a1a;
+    --text-color: #ffffff;
+}
+
+/* Reset and base styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f5f5f5;
+    color: #333;
+    line-height: 1.6;
+}
+
+/*Header Styles*/
+.header {
+    background: #ffffff;
+    color: #073A4B;
+    padding: 1rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 101;
+    height: 80px;
+    border-bottom: 2px solid #108AB1;
+}
+
+.logo {
+    height: 50px;
+    border-radius: 8px;
+}
+
+.header h1 {
+    font-size: 1.8rem;
+    margin: 0;
+}
+
+.tutor-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.tutor-info i {
+    font-size: 1.2rem;
+}
+
+.logout-btn {
+    background: #108AB1;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.logout-btn:hover {
+    background: #073A4B;
+}
+
+/*Nav bar styles*/
+.navbar {
+    background-color: #073A4B;
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 250px;
+    height: 100vh;
+    z-index: 100;
+    overflow-y: auto;
+    padding-top: 100px;
+    /* Space for header */
+    transition: width 0.3s ease;
+}
+
+.navbar.collapsed {
+    width: 60px;
+}
+
+.navbar.collapsed .navbar-toggle {
+    left: 60px;
+    /* Adjusts position when navbar is collapsed */
+}
+
+.navbar-toggle {
+    position: fixed;
+    top: 110px;
+    left: 250px;
+    /* Start from the right edge of the navbar */
+    background: #073A4B;
+    /* Same as navbar background */
+    color: white;
+    border: none;
+    width: 30px;
+    height: 40px;
+    border-radius: 0 8px 8px 0;
+    /* Square with rounded right corners only */
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    z-index: 103;
+    /* Higher z-index to be in front of everything */
+}
+
+
+
+.navbar-toggle:hover i {
+    transform: scale(1.3);
+}
+
+.navbar-toggle i {
+    font-size: 0.9rem;
+    transition: transform 0.3s ease;
+}
+
+.navbar ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    margin: 0;
+}
+
+.navbar li {
+    margin: 0;
+    width: 100%;
+}
+
+.navbar a {
+    display: block;
+    color: #ecf0f1;
+    text-decoration: none;
+    padding: 1rem 1.5rem;
+    transition: all 0.3s ease;
+    border-left: 4px solid transparent;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.navbar.collapsed a {
+    padding: 1rem 0.75rem;
+    text-align: center;
+}
+
+.navbar.collapsed a span {
+    display: none;
+}
+
+.navbar a:hover,
+.navbar a.active {
+    background-color: #108AB1;
+    border-left-color: #108AB1;
+    color: #fff;
+    padding-left: 2rem;
+    margin-right: 1rem;
+    border-radius: 0 20px 20px 0;
+}
+
+.navbar.collapsed a:hover,
+.navbar.collapsed a.active {
+    padding-left: 0.75rem;
+    margin-right: 0.5rem;
+    border-radius: 0 15px 15px 0;
+}
+
+.navbar a i {
+    margin-right: 0.75rem;
+    width: 20px;
+    text-align: center;
+}
+
+.navbar.collapsed a i {
+    margin-right: 0;
+}
+
+/*Main content*/
+
+.main-content {
+    padding: 2rem;
+    max-width: 1200px;
+    margin-left: 285px;
+    margin-top: 80px;
+    min-height: calc(100vh - 80px);
+}
+
+
+.content-section {
+    display: none;
+    padding: 2rem;
+}
+
+.content-section.active {
+    display: block;
+}
+
+.cards-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+}
+
+.class-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease;
+}
+
+.class-card:hover {
+    transform: translateY(-5px);
+}
+
+.class-card button {
+    margin-top: 1rem;
+    padding: 0.5rem 1rem;
+    background-color: #108AB1;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.class-card button:hover {
+    background-color: #073A4B;
+}
+
+.attendance-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.attendance-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+button {
+    font-family: inherit;
+}
+
+
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+    .cards-container {
+        grid-template-columns: 1fr;
+    }
+
+    .nav-list {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .header h1 {
+        font-size: 1.3rem;
+    }
+}
