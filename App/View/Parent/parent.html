@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Giao Diện Phụ Huynh - VAL EDU</title>
+    <link rel="stylesheet" href="parent.css">
+
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+
+<body>
+    <header class="header">
+        <div class="logo"><img src="../images/logo_transparent.png" class="logo" /></div>
+        <h1>Phụ Huynh</h1>
+        <div class="parent-info">
+            <i class="fas fa-users"></i>
+            <span>Chào mừng, Lan</span>
+            <button class="logout-btn" onclick="showLogoutModal()">
+                <i class="fas fa-sign-out-alt"></i> Đăng xuất
+            </button>
+        </div>
+    </header>
+
+    <nav class="navbar" id="navbar">
+        <button class="navbar-toggle" id="navbarToggle">
+            <i class="fas fa-chevron-left"></i>
+        </button>
+        <ul>
+            <li><a href="#overview" class="nav-link active"><i class="fas fa-globe"></i> <span>Tổng Quan</span></a></li>
+            <li><a href="#financial" class="nav-link"><i class="fas fa-money-bill-wave"></i> <span>Tài Chính</span></a>
+            </li>
+            <li><a href="#settings" class="nav-link"><i class="fas fa-cog"></i> <span>Cài Đặt</span></a></li>
+        </ul>
+    </nav>
+
+    <!-- Logout Confirmation Modal -->
+    <div id="logout-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-sign-out-alt"></i> Xác nhận đăng xuất</h3>
+            </div>
+            <div class="modal-body">
+                <p>Bạn có chắc chắn muốn đăng xuất?</p>
+            </div>
+            <div class="modal-footer">
+                <button class="cancel-btn" onclick="closeLogoutModal()">
+                    <i class="fas fa-times"></i> Hủy
+                </button>
+                <button class="logout-confirm-btn" onclick="confirmLogout()">
+                    <i class="fas fa-sign-out-alt"></i> Đăng xuất
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <main class="main-content" id="mainContent">
+        <!-- Tổng Quan Section -->
+        <section id="overview" class="content-section active">
+            <h2>Con Em Đang Học</h2>
+            <div class="children-container">
+                <div class="child-card" onclick="showChildDetail('child1')">
+                    <div class="child-header">
+                        <div class="child-avatar">H</div>
+                        <h3 class="child-name">Nguyễn Minh Hiếu</h3>
+                    </div>
+                    <div class="financial-summary">
+                        <h5><i class="fas fa-exclamation-triangle"></i> Học phí chưa đóng</h5>
+                        <p>Tháng 12/2024: <span class="amount">1.200.000 VNĐ</span></p>
+                        <p>Tháng 01/2025: <span class="amount">1.200.000 VNĐ</span></p>
+                        <p><strong>Tổng: <span class="amount">2.400.000 VNĐ</span></strong></p>
+                    </div>
+                    <button>Xem Chi Tiết</button>
+                </div>
+
+                <div class="child-card" onclick="showChildDetail('child2')">
+                    <div class="child-header">
+                        <div class="child-avatar">A</div>
+                        <h3 class="child-name">Nguyễn Minh Anh</h3>
+                    </div>
+                    <div class="financial-summary paid">
+                        <h5><i class="fas fa-check-circle"></i> Học phí đã thanh toán</h5>
+                        <p>Đã đóng đến: <span class="amount positive">Tháng 01/2025</span></p>
+                        <p><strong>Trạng thái: <span class="amount positive">Đã thanh toán</span></strong></p>
+                    </div>
+                    <button>Xem Chi Tiết</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Child Detail Section -->
+        <section id="child-detail" class="content-section">
+            <div class="detail-container">
+                <div class="detail-header">
+                    <h2 class="detail-title">
+                        <div class="child-avatar" id="detail-avatar">H</div>
+                        <span id="detail-child-name">Nguyễn Minh Hiếu</span>
+                    </h2>
+                    <button class="back-btn" onclick="goBack()">
+                        <i class="fas fa-arrow-left"></i> Quay lại
+                    </button>
+                </div>
+
+                <h3 style="color: #073A4B; margin-bottom: 1rem;">
+                    <i class="fas fa-graduation-cap"></i> Các lớp đang học
+                </h3>
+                <div class="classes-container" id="classes-container">
+                    <!-- Classes will be populated here -->
+                </div>
+
+                <!-- Class Attendance Detail Modal -->
+                <div id="attendance-modal" class="modal">
+                    <div class="modal-content" style="max-width: 800px; margin: 5% auto;">
+                        <div class="modal-header">
+                            <h3><i class="fas fa-calendar-check"></i> <span id="modal-class-name">Chi tiết điểm
+                                    danh</span></h3>
+                        </div>
+                        <div class="modal-body" style="text-align: left; max-height: 60vh; overflow-y: auto;">
+                            <div class="attendance-stats" style="display: flex; gap: 1rem; margin-bottom: 2rem;">
+                                <div class="stat-item">
+                                    <div class="stat-number" id="modal-total-sessions">0</div>
+                                    <div class="stat-label">Tổng buổi học</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-number" id="modal-attended">0</div>
+                                    <div class="stat-label">Đã tham gia</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-number" id="modal-absent">0</div>
+                                    <div class="stat-label">Vắng mặt</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-number" id="modal-percentage">0%</div>
+                                    <div class="stat-label">Tỷ lệ tham gia</div>
+                                </div>
+                            </div>
+
+                            <h4 style="color: #073A4B; margin-bottom: 1rem;">
+                                <i class="fas fa-list"></i> Lịch sử điểm danh chi tiết
+                            </h4>
+                            <table class="financial-table" style="margin-top: 0;">
+                                <thead>
+                                    <tr>
+                                        <th>Buổi</th>
+                                        <th>Ngày</th>
+                                        <th>Thời gian</th>
+                                        <th>Trạng thái</th>
+                                        <th>Ghi chú</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="modal-attendance-history">
+                                    <!-- Attendance history will be populated here -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="cancel-btn" onclick="closeAttendanceModal()">
+                                <i class="fas fa-times"></i> Đóng
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <h3 style="color: #073A4B; margin-bottom: 1rem;">
+                    <i class="fas fa-money-bill-wave"></i> Chi tiết học phí từng lớp
+                </h3>
+                <div class="class-fees" id="class-fees">
+                    <!-- Class fees will be populated here -->
+                </div>
+
+                <div class="detail-container">
+                    <h4><i class="fas fa-history"></i> Lịch sử thanh toán chi tiết</h4>
+                    <table class="financial-table">
+                        <thead>
+                            <tr>
+                                <th>Tháng</th>
+                                <th>Lớp</th>
+                                <th>Học phí</th>
+                                <th>Giảm giá</th>
+                                <th>Thành tiền</th>
+                                <th>Trạng thái</th>
+                            </tr>
+                        </thead>
+                        <tbody id="payment-history">
+                            <!-- Payment history will be populated here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Financial Section -->
+        <section id="financial" class="content-section">
+            <div class="detail-container">
+                <h2>Tình Hình Tài Chính</h2>
+
+                <div class="financial-cards">
+                    <div class="financial-card total">
+                        <h4>Tổng Học Phí Các Con</h4>
+                        <div class="financial-amount total">4.800.000 VNĐ</div>
+                        <p>Trước khi giảm giá</p>
+                    </div>
+                    <div class="financial-card discount">
+                        <h4>Tổng Tiền Giảm</h4>
+                        <div class="financial-amount discount">480.000 VNĐ</div>
+                        <p>Mã giảm giá (10%)</p>
+                    </div>
+                    <div class="financial-card unpaid">
+                        <h4>Tổng Còn Phải Đóng</h4>
+                        <div class="financial-amount unpaid">2.160.000 VNĐ</div>
+                        <p>Cần thanh toán</p>
+                    </div>
+                </div>
+
+                <div class="detail-container">
+                    <h4><i class="fas fa-history"></i> Lịch sử thanh toán tổng hợp</h4>
+                    <table class="financial-table">
+                        <thead>
+                            <tr>
+                                <th>Tháng</th>
+                                <th>Học sinh</th>
+                                <th>Lớp</th>
+                                <th>Học phí</th>
+                                <th>Giảm giá</th>
+                                <th>Thành tiền</th>
+                                <th>Trạng thái</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>12/2024</td>
+                                <td>Nguyễn Minh Hiếu</td>
+                                <td>A1 - Tiếng Anh Cơ Bản</td>
+                                <td>1.200.000 VNĐ</td>
+                                <td>120.000 VNĐ (10%)</td>
+                                <td>1.080.000 VNĐ</td>
+                                <td><span class="status-unpaid">Chưa đóng</span></td>
+                            </tr>
+                            <tr>
+                                <td>01/2025</td>
+                                <td>Nguyễn Minh Hiếu</td>
+                                <td>A1 - Tiếng Anh Cơ Bản</td>
+                                <td>1.200.000 VNĐ</td>
+                                <td>120.000 VNĐ (10%)</td>
+                                <td>1.080.000 VNĐ</td>
+                                <td><span class="status-unpaid">Chưa đóng</span></td>
+                            </tr>
+                            <tr>
+                                <td>12/2024</td>
+                                <td>Nguyễn Minh Anh</td>
+                                <td>B2 - Tiếng Anh Nâng Cao</td>
+                                <td>1.200.000 VNĐ</td>
+                                <td>120.000 VNĐ (10%)</td>
+                                <td>1.080.000 VNĐ</td>
+                                <td><span class="status-paid">Đã đóng</span></td>
+                            </tr>
+                            <tr>
+                                <td>01/2025</td>
+                                <td>Nguyễn Minh Anh</td>
+                                <td>B2 - Tiếng Anh Nâng Cao</td>
+                                <td>1.200.000 VNĐ</td>
+                                <td>120.000 VNĐ (10%)</td>
+                                <td>1.080.000 VNĐ</td>
+                                <td><span class="status-paid">Đã đóng</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Settings Section -->
+        <section id="settings" class="content-section">
+            <div class="settings-container">
+                <!-- Personal Information Form -->
+                <div class="settings-card">
+                    <h4><i class="fas fa-user-cog"></i> Thông tin cá nhân</h4>
+                    <form id="personal-info-form">
+                        <div class="form-group">
+                            <label for="fullname"><i class="fas fa-user"></i> Họ và tên:</label>
+                            <input type="text" id="fullname" name="fullname" value="Trần Thị Lan">
+                        </div>
+                        <div class="form-group">
+                            <label for="email"><i class="fas fa-envelope"></i> Địa chỉ email:</label>
+                            <input type="email" id="email" name="email" value="lan.tran@parent.valedu.com">
+                        </div>
+                        <div class="form-group">
+                            <label for="phone"><i class="fas fa-phone"></i> Số điện thoại:</label>
+                            <input type="tel" id="phone" name="phone" value="0987654321">
+                        </div>
+                        <div class="form-group">
+                            <label for="address"><i class="fas fa-map-marker-alt"></i> Địa chỉ:</label>
+                            <input type="text" id="address" name="address" value="123 Đường ABC, Quận 1, TP.HCM">
+                        </div>
+                        <div class="form-actions">
+                            <button type="button" class="change-password-btn" onclick="showChangePassword()">
+                                <i class="fas fa-key"></i> Đổi mật khẩu
+                            </button>
+                            <button type="button" class="save-btn" onclick="savePersonalInfo()">
+                                <i class="fas fa-save"></i> Lưu thông tin
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Change Password Section -->
+                <div class="settings-card" id="change-password-section" style="display: none;">
+                    <h4><i class="fas fa-key"></i> Đổi mật khẩu</h4>
+                    <form id="change-password-form">
+                        <div class="form-group">
+                            <label for="current-password"><i class="fas fa-lock"></i> Mật khẩu hiện tại:</label>
+                            <div class="password-input-group">
+                                <input type="password" id="current-password" name="current-password" required>
+                                <button type="button" class="toggle-password"
+                                    onclick="togglePassword('current-password')">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="new-password"><i class="fas fa-lock"></i> Mật khẩu mới:</label>
+                            <div class="password-input-group">
+                                <input type="password" id="new-password" name="new-password" required>
+                                <button type="button" class="toggle-password" onclick="togglePassword('new-password')">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                            <div class="password-requirements">
+                                <small>Mật khẩu phải có ít nhất 6 ký tự</small>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="confirm-password"><i class="fas fa-lock"></i> Xác nhận mật khẩu mới:</label>
+                            <div class="password-input-group">
+                                <input type="password" id="confirm-password" name="confirm-password" required>
+                                <button type="button" class="toggle-password"
+                                    onclick="togglePassword('confirm-password')">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="form-actions">
+                            <button type="button" class="cancel-btn" onclick="hideChangePassword()">
+                                <i class="fas fa-times"></i> Hủy
+                            </button>
+                            <button type="button" class="save-btn" onclick="changePassword()">
+                                <i class="fas fa-check"></i> Đổi mật khẩu
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Notification Settings -->
+                <div class="settings-card">
+                    <h4><i class="fas fa-bell"></i> Cài đặt thông báo</h4>
+                    <div class="notification-settings">
+                        <div class="setting-item">
+                            <label class="switch">
+                                <input type="checkbox" id="email-notifications" checked>
+                                <span class="slider"></span>
+                            </label>
+                            <div class="setting-info">
+                                <span class="setting-title">Thông báo qua email</span>
+                                <span class="setting-description">Nhận thông báo về học phí và điểm danh của con</span>
+                            </div>
+                        </div>
+                        <div class="setting-item">
+                            <label class="switch">
+                                <input type="checkbox" id="payment-reminders" checked>
+                                <span class="slider"></span>
+                            </label>
+                            <div class="setting-info">
+                                <span class="setting-title">Nhắc nhở thanh toán</span>
+                                <span class="setting-description">Nhận nhắc nhở khi đến hạn thanh toán học phí</span>
+                            </div>
+                        </div>
+                        <div class="setting-item">
+                            <label class="switch">
+                                <input type="checkbox" id="attendance-alerts" checked>
+                                <span class="slider"></span>
+                            </label>
+                            <div class="setting-info">
+                                <span class="setting-title">Thông báo điểm danh</span>
+                                <span class="setting-description">Nhận thông báo khi con vắng mặt hoặc đi học</span>
+                            </div>
+                        </div>
+                        <div class="setting-item">
+                            <label class="switch">
+                                <input type="checkbox" id="sms-notifications">
+                                <span class="slider"></span>
+                            </label>
+                            <div class="setting-info">
+                                <span class="setting-title">Thông báo qua SMS</span>
+                                <span class="setting-description">Nhận thông báo khẩn cấp qua tin nhắn</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+
+</body>
+<script src="parent.js" defer></script>
+
+</html>
