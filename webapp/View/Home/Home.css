@@ -1,0 +1,169 @@
+
+.hero-section {
+  background-color: #e6f2ff;
+  padding: 60px 20px;
+}
+
+.hero-container {
+  max-width: 1200px;
+  margin: auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 40px;
+}
+
+.hero-left {
+  flex: 1;
+  min-width: 320px;
+}
+
+.sub-heading {
+  color: #0070C0;
+  font-weight: bold;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.hero-left h1 {
+  font-size: 36px;
+  color: #002147;
+  margin: 10px 0;
+}
+
+.hero-left .description {
+  font-size: 16px;
+  margin: 20px 0;
+  line-height: 1.6;
+}
+
+.hero-buttons {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.btn-outline, .btn-solid {
+  padding: 10px 20px;
+  border-radius: 30px;
+  font-weight: bold;
+  text-decoration: none;
+  display: inline-block;
+  transition: all 0.3s;
+}
+
+.btn-outline {
+  border: 2px solid #002F6C;
+  color: #002F6C;
+  background: white;
+}
+
+.btn-outline:hover {
+  background-color: #002F6C;
+  color: white;
+}
+
+.btn-solid {
+  background-color: #002F6C;
+  color: white;
+  border: 2px solid #002F6C;
+}
+
+.btn-solid:hover {
+  background-color: white;
+  color: #002F6C;
+}
+
+.hero-tags {
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
+.tag {
+  padding: 10px 15px;
+  border-radius: 20px;
+  font-weight: bold;
+  text-decoration: none;
+  color: white;
+  transition: all 0.3s;
+}
+
+.tag.yellow {
+  background-color: #FFD600;
+  color: #002147;
+}
+
+.tag.yellow:hover {
+  background-color: #002147;
+  color: #FFD600;
+}
+
+.tag.orange {
+  background-color: #FFA500;
+  color: #002147;
+}
+
+.tag.orange:hover {
+  background-color: #002147;
+  color: #FFA500;
+}
+
+.hero-right {
+  flex: 1;
+  text-align: center;
+  min-width: 300px;
+}
+
+.hero-right img {
+  max-width: 400px;
+  width: 100%;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+  border-radius: 10px;
+}
+
+/* Responsive Design for Hero Section */
+@media (max-width: 768px) {
+  .hero-container {
+    flex-direction: column;
+    text-align: center;
+    gap: 30px;
+  }
+  
+  .hero-left h1 {
+    font-size: 28px;
+  }
+  
+  .hero-buttons {
+    justify-content: center;
+  }
+  
+  .hero-tags {
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .hero-section {
+    padding: 40px 15px;
+  }
+  
+  .hero-left h1 {
+    font-size: 24px;
+  }
+  
+  .hero-buttons {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .btn-outline, .btn-solid {
+    width: 200px;
+    text-align: center;
+  }
+}

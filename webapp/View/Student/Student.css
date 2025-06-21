@@ -1,0 +1,784 @@
+ :root {
+     --bg-color: white;
+     --text-color: black;
+ }
+
+ .dark-mode {
+     --bg-color: #181a1a;
+     --text-color: #ffffff;
+ }
+
+ /* Reset and base styles */
+ * {
+     margin: 0;
+     padding: 0;
+     box-sizing: border-box;
+ }
+
+ body {
+     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+     background-color: #f5f5f5;
+     color: #333;
+     line-height: 1.6;
+ }
+
+ /*Header Styles*/
+ .header {
+     background: #ffffff;
+     color: #073A4B;
+     padding: 1rem 2rem;
+     display: flex;
+     justify-content: space-between;
+     align-items: center;
+     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+     position: fixed;
+     top: 0;
+     left: 0;
+     right: 0;
+     z-index: 101;
+     height: 80px;
+     border-bottom: 2px solid #108AB1;
+ }
+
+ .logo {
+     height: 50px;
+     border-radius: 8px;
+     background: #ffffff;
+     color: white;
+     display: flex;
+     align-items: center;
+     justify-content: center;
+     font-weight: bold;
+ }
+
+ .header h1 {
+     font-size: 1.8rem;
+     margin: 0;
+ }
+
+ .tutor-info {
+     display: flex;
+     align-items: center;
+     gap: 1rem;
+ }
+
+ .tutor-info i {
+     font-size: 1.2rem;
+ }
+
+ .logout-btn {
+     background: #108AB1;
+     color: white;
+     border: none;
+     padding: 0.5rem 1rem;
+     border-radius: 5px;
+     cursor: pointer;
+     transition: background-color 0.3s;
+ }
+
+ .logout-btn:hover {
+     background: #073A4B;
+ }
+
+ /*Nav bar styles*/
+ .navbar {
+     background-color: #073A4B;
+     box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+     position: fixed;
+     top: 0;
+     left: 0;
+     width: 250px;
+     height: 100vh;
+     z-index: 100;
+     overflow-y: auto;
+     padding-top: 100px;
+     transition: width 0.3s ease;
+ }
+
+ .navbar.collapsed {
+     width: 60px;
+ }
+
+ .navbar.collapsed .navbar-toggle {
+     left: 60px;
+ }
+
+ .navbar-toggle {
+     position: fixed;
+     top: 110px;
+     left: 250px;
+     background: #073A4B;
+     color: white;
+     border: none;
+     width: 30px;
+     height: 40px;
+     border-radius: 0 8px 8px 0;
+     cursor: pointer;
+     display: flex;
+     align-items: center;
+     justify-content: center;
+     transition: all 0.3s ease;
+     z-index: 103;
+ }
+
+ .navbar-toggle:hover i {
+     transform: scale(1.3);
+ }
+
+ .navbar-toggle i {
+     font-size: 0.9rem;
+     transition: transform 0.3s ease;
+ }
+
+ .navbar ul {
+     list-style: none;
+     display: flex;
+     flex-direction: column;
+     padding: 0;
+     margin: 0;
+ }
+
+ .navbar li {
+     margin: 0;
+     width: 100%;
+ }
+
+ .navbar a {
+     display: block;
+     color: #ecf0f1;
+     text-decoration: none;
+     padding: 1rem 1.5rem;
+     transition: all 0.3s ease;
+     border-left: 4px solid transparent;
+     white-space: nowrap;
+     overflow: hidden;
+ }
+
+ .navbar.collapsed a {
+     padding: 1rem 0.75rem;
+     text-align: center;
+ }
+
+ .navbar.collapsed a span {
+     display: none;
+ }
+
+ .navbar a:hover,
+ .navbar a.active {
+     background-color: #108AB1;
+     border-left-color: #108AB1;
+     color: #fff;
+     padding-left: 2rem;
+     margin-right: 1rem;
+     border-radius: 0 20px 20px 0;
+ }
+
+ .navbar.collapsed a:hover,
+ .navbar.collapsed a.active {
+     padding-left: 0.75rem;
+     margin-right: 0.5rem;
+     border-radius: 0 15px 15px 0;
+ }
+
+ .navbar a i {
+     margin-right: 0.75rem;
+     width: 20px;
+     text-align: center;
+ }
+
+ .navbar.collapsed a i {
+     margin-right: 0;
+ }
+
+ /*Main content*/
+ .main-content {
+     padding: 2rem;
+     max-width: 1200px;
+     margin-left: 285px;
+     margin-top: 80px;
+     min-height: calc(100vh - 80px);
+ }
+
+ .content-section {
+     display: none;
+     padding: 2rem;
+ }
+
+ .content-section.active {
+     display: block;
+ }
+
+ .cards-container {
+     display: grid;
+     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+     gap: 1.5rem;
+ }
+
+ .class-card {
+     background: white;
+     padding: 1.5rem;
+     border-radius: 10px;
+     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+     transition: transform 0.3s ease;
+     cursor: pointer;
+ }
+
+ .class-card:hover {
+     transform: translateY(-5px);
+ }
+
+ .class-card h3 {
+     color: #073A4B;
+     margin-bottom: 1rem;
+     font-size: 1.3rem;
+ }
+
+ .class-info {
+     margin-bottom: 1rem;
+ }
+
+ .class-info p {
+     margin-bottom: 0.5rem;
+     display: flex;
+     align-items: center;
+     gap: 0.5rem;
+ }
+
+ .class-info i {
+     color: #108AB1;
+     width: 16px;
+ }
+
+ .class-card button {
+     margin-top: 1rem;
+     padding: 0.75rem 1.5rem;
+     background-color: #108AB1;
+     color: white;
+     border: none;
+     border-radius: 6px;
+     cursor: pointer;
+     width: 100%;
+     font-size: 1rem;
+     transition: background-color 0.3s;
+ }
+
+ .class-card button:hover {
+     background-color: #073A4B;
+ }
+
+ /* Class Detail Styles */
+ .class-detail {
+     background: white;
+     border-radius: 10px;
+     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+     padding: 2rem;
+     margin-bottom: 2rem;
+ }
+
+ .class-detail-header {
+     display: flex;
+     justify-content: space-between;
+     align-items: center;
+     margin-bottom: 2rem;
+     padding-bottom: 1rem;
+     border-bottom: 2px solid #f0f0f0;
+ }
+
+ .class-detail-title {
+     color: #073A4B;
+     font-size: 1.8rem;
+     margin: 0;
+ }
+
+ .back-btn {
+     background: #108AB1;
+     color: white;
+     border: none;
+     padding: 0.75rem 1.5rem;
+     border-radius: 6px;
+     cursor: pointer;
+     display: flex;
+     align-items: center;
+     gap: 0.5rem;
+     transition: background-color 0.3s;
+ }
+
+ .back-btn:hover {
+     background: #073A4B;
+ }
+
+ .detail-grid {
+     display: grid;
+     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+     gap: 2rem;
+     margin-bottom: 2rem;
+ }
+
+ .detail-card {
+     background: #f8f9fa;
+     padding: 1.5rem;
+     border-radius: 8px;
+     border-left: 4px solid #108AB1;
+ }
+
+ .detail-card h4 {
+     color: #073A4B;
+     margin-bottom: 1rem;
+     font-size: 1.2rem;
+     display: flex;
+     align-items: center;
+     gap: 0.5rem;
+ }
+
+ .detail-card p {
+     margin-bottom: 0.5rem;
+     display: flex;
+     align-items: center;
+     gap: 0.5rem;
+ }
+
+ .detail-card i {
+     color: #108AB1;
+     width: 16px;
+ }
+
+ .attendance-stats {
+     display: flex;
+     gap: 1rem;
+     margin-top: 1rem;
+ }
+
+ .stat-item {
+     background: white;
+     padding: 1rem;
+     border-radius: 6px;
+     text-align: center;
+     flex: 1;
+     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+ }
+
+ .stat-number {
+     font-size: 1.5rem;
+     font-weight: bold;
+     color: #108AB1;
+ }
+
+ .stat-label {
+     font-size: 0.9rem;
+     color: #666;
+     margin-top: 0.25rem;
+ }
+
+ .schedule-table {
+     width: 100%;
+     border-collapse: collapse;
+     margin-top: 1rem;
+ }
+
+ .schedule-table th,
+ .schedule-table td {
+     padding: 0.75rem;
+     text-align: left;
+     border-bottom: 1px solid #ddd;
+ }
+
+ .schedule-table th {
+     background-color: #108AB1;
+     color: white;
+     font-weight: 600;
+ }
+
+ .schedule-table tr:hover {
+     background-color: #f5f5f5;
+ }
+
+ button {
+     font-family: inherit;
+ }
+
+ /* Responsive adjustments */
+ @media (max-width: 768px) {
+     .main-content {
+         margin-left: 0;
+         padding: 1rem;
+     }
+
+     .navbar {
+         transform: translateX(-100%);
+         transition: transform 0.3s ease;
+     }
+
+     .navbar.show {
+         transform: translateX(0);
+     }
+
+     .navbar-toggle {
+         left: 10px;
+         top: 90px;
+         border-radius: 8px;
+     }
+
+     .cards-container {
+         grid-template-columns: 1fr;
+     }
+
+     .detail-grid {
+         grid-template-columns: 1fr;
+     }
+
+     .class-detail-header {
+         flex-direction: column;
+         gap: 1rem;
+         align-items: flex-start;
+     }
+
+     .attendance-stats {
+         flex-direction: column;
+     }
+
+     .header h1 {
+         font-size: 1.3rem;
+     }
+ }
+
+ /* Modal Styles */
+ .modal {
+     display: none;
+     position: fixed;
+     z-index: 1000;
+     left: 0;
+     top: 0;
+     width: 100%;
+     height: 100%;
+     background-color: rgba(0, 0, 0, 0.5);
+     backdrop-filter: blur(3px);
+ }
+
+ .modal-content {
+     background-color: white;
+     margin: 15% auto;
+     padding: 0;
+     border-radius: 10px;
+     width: 90%;
+     max-width: 400px;
+     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+     animation: modalFadeIn 0.3s ease;
+ }
+
+ @keyframes modalFadeIn {
+     from {
+         opacity: 0;
+         transform: translateY(-50px);
+     }
+
+     to {
+         opacity: 1;
+         transform: translateY(0);
+     }
+ }
+
+ .modal-header {
+     padding: 1.5rem;
+     border-bottom: 1px solid #ddd;
+     background-color: #f8f9fa;
+     border-radius: 10px 10px 0 0;
+ }
+
+ .modal-header h3 {
+     margin: 0;
+     color: #073A4B;
+     display: flex;
+     align-items: center;
+     gap: 0.5rem;
+ }
+
+ .modal-body {
+     padding: 1.5rem;
+     text-align: center;
+ }
+
+ .modal-body p {
+     margin: 0;
+     color: #333;
+     font-size: 1.1rem;
+ }
+
+ .modal-footer {
+     padding: 1rem 1.5rem;
+     border-top: 1px solid #ddd;
+     display: flex;
+     gap: 1rem;
+     justify-content: flex-end;
+     background-color: #f8f9fa;
+     border-radius: 0 0 10px 10px;
+ }
+
+ .logout-confirm-btn {
+     background: #dc3545;
+     color: white;
+     border: none;
+     padding: 0.75rem 1.5rem;
+     border-radius: 6px;
+     cursor: pointer;
+     display: flex;
+     align-items: center;
+     gap: 0.5rem;
+     font-size: 1rem;
+     transition: background-color 0.3s;
+ }
+
+ .logout-confirm-btn:hover {
+     background: #c82333;
+ }
+
+ .cancel-btn {
+     background: white;
+     color: #6c757d;
+     border: 2px solid #6c757d;
+     padding: 0.75rem 1.5rem;
+     border-radius: 6px;
+     cursor: pointer;
+     display: flex;
+     align-items: center;
+     gap: 0.5rem;
+     font-size: 1rem;
+     transition: all 0.3s;
+     font-weight: 500;
+ }
+
+ .cancel-btn:hover {
+     background: #6c757d;
+     color: white;
+     transform: translateY(-1px);
+     box-shadow: 0 2px 8px rgba(108, 117, 125, 0.3);
+ }
+
+ /* Notification Settings */
+ .notification-settings {
+     display: flex;
+     flex-direction: column;
+     gap: 1.5rem;
+ }
+
+ .setting-item {
+     display: flex;
+     align-items: center;
+     gap: 1rem;
+     padding: 1rem;
+     background: white;
+     border-radius: 6px;
+     border: 1px solid #ddd;
+ }
+
+ .setting-info {
+     flex: 1;
+ }
+
+ .setting-title {
+     display: block;
+     font-weight: 600;
+     color: #073A4B;
+     margin-bottom: 0.25rem;
+ }
+
+ .setting-description {
+     color: #666;
+     font-size: 0.9rem;
+ }
+
+ /* Toggle Switch */
+ .switch {
+     position: relative;
+     display: inline-block;
+     width: 50px;
+     height: 24px;
+ }
+
+ .switch input {
+     opacity: 0;
+     width: 0;
+     height: 0;
+ }
+
+ .slider {
+     position: absolute;
+     cursor: pointer;
+     top: 0;
+     left: 0;
+     right: 0;
+     bottom: 0;
+     background-color: #ccc;
+     transition: 0.4s;
+     border-radius: 24px;
+ }
+
+ .slider:before {
+     position: absolute;
+     content: "";
+     height: 18px;
+     width: 18px;
+     left: 3px;
+     bottom: 3px;
+     background-color: white;
+     transition: 0.4s;
+     border-radius: 50%;
+ }
+
+ input:checked+.slider {
+     background-color: #108AB1;
+ }
+
+ input:checked+.slider:before {
+     transform: translateX(26px);
+ }
+
+ /* Success Message */
+ .success-message {
+     background: #d4edda;
+     color: #155724;
+     padding: 1rem;
+     border: 1px solid #c3e6cb;
+     border-radius: 6px;
+     margin-bottom: 1rem;
+     display: none;
+ }
+
+ .error-message {
+     background: #f8d7da;
+     color: #721c24;
+     padding: 1rem;
+     border: 1px solid #f5c6cb;
+     border-radius: 6px;
+     margin-bottom: 1rem;
+     display: none;
+ }
+
+ /* Success Message */
+ .success-message {
+     background: #d4edda;
+     color: #155724;
+     padding: 1rem;
+     border: 1px solid #c3e6cb;
+     border-radius: 6px;
+     margin-bottom: 1rem;
+     display: none;
+ }
+
+ button {
+     font-family: inherit;
+ }
+
+ /* Settings Form Styles */
+ .form-group {
+     margin-bottom: 1.5rem;
+ }
+
+ .form-group label {
+     display: block;
+     margin-bottom: 0.5rem;
+     font-weight: 600;
+     color: #073A4B;
+ }
+
+ .form-group label i {
+     margin-right: 0.5rem;
+     color: #108AB1;
+ }
+
+ .form-group input {
+     width: 100%;
+     padding: 0.75rem;
+     border: 2px solid #ddd;
+     border-radius: 6px;
+     font-size: 1rem;
+     transition: border-color 0.3s ease;
+ }
+
+ .form-group input:focus {
+     outline: none;
+     border-color: #108AB1;
+     box-shadow: 0 0 0 3px rgba(16, 138, 177, 0.1);
+ }
+
+ .form-group input[readonly] {
+     background-color: #f8f9fa;
+     color: #6c757d;
+     cursor: not-allowed;
+ }
+
+ .password-input-group {
+     position: relative;
+     display: flex;
+ }
+
+ .password-input-group input {
+     padding-right: 45px;
+ }
+
+ .toggle-password {
+     position: absolute;
+     right: 10px;
+     top: 50%;
+     transform: translateY(-50%);
+     background: none;
+     border: none;
+     color: #666;
+     cursor: pointer;
+     padding: 0.25rem;
+ }
+
+ .toggle-password:hover {
+     color: #108AB1;
+ }
+
+ .password-requirements {
+     margin-top: 0.5rem;
+ }
+
+ .password-requirements small {
+     color: #666;
+     font-style: italic;
+ }
+
+ .form-actions {
+     display: flex;
+     gap: 1rem;
+     margin-top: 2rem;
+     flex-wrap: wrap;
+ }
+
+ .change-password-btn {
+     background: #6c757d;
+     color: white;
+     border: none;
+     padding: 0.75rem 1.5rem;
+     border-radius: 6px;
+     cursor: pointer;
+     display: flex;
+     align-items: center;
+     gap: 0.5rem;
+     font-size: 1rem;
+     transition: background-color 0.3s;
+ }
+
+ .change-password-btn:hover {
+     background: #5a6268;
+ }
+
+ .save-btn {
+     background: #108AB1;
+     color: white;
+     border: none;
+     padding: 0.75rem 1.5rem;
+     border-radius: 6px;
+     cursor: pointer;
+     display: flex;
+     align-items: center;
+     gap: 0.5rem;
+     font-size: 1rem;
+     transition: background-color 0.3s;
+ }
+
+ .save-btn:hover {
+     background: #073A4B;
+ }
