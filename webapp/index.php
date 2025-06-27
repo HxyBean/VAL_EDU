@@ -75,14 +75,9 @@ switch ($path) {
         break;
         
     case '/student/dashboard':
-        // Will be implemented with StudentController
-        if (isset($_SESSION['user_id']) && $_SESSION['user_role'] === 'student') {
-            echo "<h1>Student Dashboard</h1><p>Welcome, " . htmlspecialchars($_SESSION['user_name']) . "!</p>";
-            echo "<a href='/webapp/logout'>Logout</a> | <a href='/webapp/'>Home</a>";
-        } else {
-            header('Location: /webapp/login');
-            exit();
-        }
+        require_once('Controller/StudentController.php');
+        $controller = new StudentController();
+        $controller->dashboard();
         break;
         
     case '/parent/dashboard':
@@ -94,6 +89,18 @@ switch ($path) {
             header('Location: /webapp/login');
             exit();
         }
+        break;
+        
+    case '/student/update-info':
+        require_once('Controller/StudentController.php');
+        $controller = new StudentController();
+        $controller->updateInfo();
+        break;
+
+    case '/student/change-password':
+        require_once('Controller/StudentController.php');
+        $controller = new StudentController();
+        $controller->changePassword();
         break;
         
     default:

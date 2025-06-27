@@ -1,0 +1,108 @@
+ .navbar {
+     background-color: #073A4B;
+     box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+     position: fixed;
+     top: 0;
+     left: 0;
+     width: 250px;
+     height: 100vh;
+     z-index: 100;
+     overflow-y: auto;
+     padding-top: 100px;
+     transition: width 0.3s ease;
+ }
+
+ .navbar.collapsed {
+     width: 60px;
+ }
+
+ .navbar.collapsed .navbar-toggle {
+     left: 60px;
+ }
+
+ .navbar-toggle {
+     position: fixed;
+     top: 110px;
+     left: 250px;
+     background: #073A4B;
+     color: white;
+     border: none;
+     width: 30px;
+     height: 40px;
+     border-radius: 0 8px 8px 0;
+     cursor: pointer;
+     display: flex;
+     align-items: center;
+     justify-content: center;
+     transition: all 0.3s ease;
+     z-index: 103;
+ }
+
+ .navbar-toggle:hover i {
+     transform: scale(1.3);
+ }
+
+ .navbar-toggle i {
+     font-size: 0.9rem;
+     transition: transform 0.3s ease;
+ }
+
+ .navbar ul {
+     list-style: none;
+     display: flex;
+     flex-direction: column;
+     padding: 0;
+     margin: 0;
+ }
+
+ .navbar li {
+     margin: 0;
+     width: 100%;
+ }
+
+ .navbar a {
+     display: block;
+     color: #ecf0f1;
+     text-decoration: none;
+     padding: 1rem 1.5rem;
+     transition: all 0.3s ease;
+     border-left: 4px solid transparent;
+     white-space: nowrap;
+     overflow: hidden;
+ }
+
+ .navbar.collapsed a {
+     padding: 1rem 0.75rem;
+     text-align: center;
+ }
+
+ .navbar.collapsed a span {
+     display: none;
+ }
+
+ .navbar a:hover,
+ .navbar a.active {
+     background-color: #108AB1;
+     border-left-color: #108AB1;
+     color: #fff;
+     padding-left: 2rem;
+     margin-right: 1rem;
+     border-radius: 0 20px 20px 0;
+ }
+
+ .navbar.collapsed a:hover,
+ .navbar.collapsed a.active {
+     padding-left: 0.75rem;
+     margin-right: 0.5rem;
+     border-radius: 0 15px 15px 0;
+ }
+
+ .navbar a i {
+     margin-right: 0.75rem;
+     width: 20px;
+     text-align: center;
+ }
+
+ .navbar.collapsed a i {
+     margin-right: 0;
+ }

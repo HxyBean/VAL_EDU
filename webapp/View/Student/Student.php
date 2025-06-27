@@ -12,16 +12,10 @@
 </head>
 
 <body>
-    <?php include __DIR__ . '/../Partial/DashboardHeader.php';?>
-    <nav class="navbar" id="navbar">
-        <button class="navbar-toggle" id="navbarToggle">
-            <i class="fas fa-chevron-left"></i>
-        </button>
-        <ul>
-            <li><a href="#overview" class="nav-link active"><i class="fas fa-globe"></i> <span>Tổng Quan</span></a></li>
-            <li><a href="#settings" class="nav-link"><i class="fas fa-cog"></i> <span>Cài Đặt</span></a></li>
-        </ul>
-    </nav>
+    <?php $student_name = $student['full_name'] ?? ''; ?>
+    <?php include __DIR__ . '/../Partial/DashboardHeader.php'; ?>
+    <?php include __DIR__ . '/../Partial/Navbar.php'; ?>
+
     <!-- Logout Confirmation Modal -->
     <div id="logout-modal" class="modal">
         <div class="modal-content">
@@ -46,26 +40,21 @@
         <section id="overview" class="content-section active">
             <h2>Lớp đang theo học</h2>
             <div class="cards-container">
-                <div class="class-card" onclick="showClassDetail('A1')">
-                    <h3>Lớp A1 - Tiếng Anh Cơ Bản</h3>
-                    <div class="class-info">
-                        <p><i class="fas fa-code"></i> Mã lớp: A1012025</p>
-                        <p><i class="fas fa-user-tie"></i> Giảng viên: Phạm Hải Nam</p>
-                        <p><i class="fas fa-calendar-alt"></i> 9:00 - 11:00 T2,4,6</p>
-                        <p><i class="fas fa-chart-line"></i> Tiến độ: 8/20 buổi</p>
-                    </div>
-                    <button>Xem Chi Tiết</button>
-                </div>
-                <div class="class-card" onclick="showClassDetail('B2')">
-                    <h3>Lớp B2 - Tiếng Anh Nâng Cao</h3>
-                    <div class="class-info">
-                        <p><i class="fas fa-code"></i> Mã lớp: B1012025</p>
-                        <p><i class="fas fa-user-tie"></i> Giảng viên: Đinh Thế Minh</p>
-                        <p><i class="fas fa-calendar-alt"></i> 14:00 - 16:00 T3,5,7</p>
-                        <p><i class="fas fa-chart-line"></i> Tiến độ: 12/25 buổi</p>
-                    </div>
-                    <button>Xem Chi Tiết</button>
-                </div>
+                <?php if (!empty($classes)): ?>
+                    <?php foreach ($classes as $class): ?>
+                        <div class="class-card">
+                            <h3><?= htmlspecialchars($class['class_name']) ?> - <?= htmlspecialchars($class['subject']) ?></h3>
+                            <div class="class-info">
+                                <p><i class="fas fa-code"></i> Mã lớp: <?= htmlspecialchars($class['id']) ?></p>
+                                <p><i class="fas fa-calendar-alt"></i> <?= htmlspecialchars($class['schedule_time']) ?> <?= htmlspecialchars($class['schedule_days']) ?></p>
+                                <p><i class="fas fa-chart-line"></i> Tiến độ: <?= intval($class['sessions_attended']) ?>/<?= intval($class['sessions_total']) ?> buổi</p>
+                            </div>
+                            <!-- Có thể thêm nút xem chi tiết -->
+                        </div>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <p>Bạn chưa đăng ký lớp học nào.</p>
+                <?php endif; ?>
             </div>
         </section>
 
@@ -139,15 +128,15 @@
                     <form id="personal-info-form">
                         <div class="form-group">
                             <label for="fullname"><i class="fas fa-user"></i> Họ và tên:</label>
-                            <input type="text" id="fullname" name="fullname" value="Đỗ Ngọc Huy">
+                            <input type="text" id="fullname" name="fullname" value="<?= htmlspecialchars($student['full_name'] ?? '') ?>">
                         </div>
                         <div class="form-group">
                             <label for="email"><i class="fas fa-envelope"></i> Địa chỉ email:</label>
-                            <input type="email" id="email" name="email" value="hxy@student.valedu.com">
+                            <input type="email" id="email" name="email" value="<?= htmlspecialchars($student['email'] ?? '') ?>">
                         </div>
                         <div class="form-group">
                             <label for="phone"><i class="fas fa-phone"></i> Số điện thoại:</label>
-                            <input type="tel" id="phone" name="phone" value="0123456789">
+                            <input type="tel" id="phone" name="phone" value="<?= htmlspecialchars($student['phone'] ?? '') ?>">
                         </div>
                         <div class="form-actions">
                             <button type="button" class="change-password-btn" onclick="showChangePassword()">
@@ -237,6 +226,6 @@
         </section>
     </main>
 </body>
-<script src="student.js" defer></script>
-<?php include __DIR__ . '/../Partial/Footer.php';?>
+<script src="Student.js" defer></script>
+<?php include __DIR__ . '/../Partial/Footer.php'; ?>
 </html>

@@ -99,5 +99,34 @@ class UserModel extends BaseModel {
         $sql = "SELECT id, username, email, full_name, phone, created_at FROM users WHERE role = ? AND is_active = 1 ORDER BY full_name";
         return $this->queryPrepared($sql, ['s', $role]);
     }
+
+    public function updateStudentInfo($id, $fullName, $email, $phone) {
+        // Kiểm tra trùng email với user khác
+        $sql = "SELECT id FROM users WHERE email = ? AND id != ?";
+        $result = $this->queryPrepared($sql, ['si', $email, $id]);
+        if (!empty($result['data'])) {
+            return ['code' => 1, 'error' => 'Email đã được sử dụng bởi tài khoản khác!'];
+        }
+        $sql = "UPDATE users SET full_name = ?, email = ?, phone = ? WHERE id = ?";
+        return $this->queryPrepared($sql, ['sssi', $fullName, $email, $phone, $id]);
+    }
+
+    public function changePassword($id, $currentPassword, $newPassword) {
+        $sql = "SELECT password FROM users WHERE id = ?";
+        $result = $this->queryPrepared($sql, ['i', $id]);
+        if (empty($result['data'])) {
+            return ['code' => 1, 'error' => 'Tài khoản không tồn tại!'];
+        }
+        $hash = $result['data'][0]['password'];
+        if (!password_verify($currentPassword, $hash)) {
+            return ['code' => 1, 'error' => 'Mật khẩu hiện tại không đúng!'];
+        }
+        if (strlen($newPassword) < 6) {
+            return ['code' => 1, 'error' => 'Mật khẩu mới phải có ít nhất 6 ký tự!'];
+        }
+        $newHash = password_hash($newPassword, PASSWORD_DEFAULT);
+        $sql = "UPDATE users SET password = ? WHERE id = ?";
+        return $this->queryPrepared($sql, ['si', $newHash, $id]);
+    }
 }
 ?>
