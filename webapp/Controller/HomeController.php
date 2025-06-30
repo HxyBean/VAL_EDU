@@ -27,6 +27,7 @@ class HomeController extends BaseController {
             'success_message' => $success_message
         ];
         
-        $this->renderView('Home', $data);
+        // Render the Home view from Home folder
+        $this->renderView('Home/Home', $data);
     }
 }

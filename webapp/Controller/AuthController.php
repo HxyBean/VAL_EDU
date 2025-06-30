@@ -22,7 +22,7 @@ class AuthController extends BaseController {
             'error_message' => $error
         ];
         
-        $this->renderView('Login', $data);
+        $this->renderView('Auth/Login', $data);
     }
     
     public function login() {
@@ -93,7 +93,7 @@ class AuthController extends BaseController {
             'old_data' => $oldData
         ];
         
-        $this->renderView('Register', $data);
+        $this->renderView('Auth/Register', $data);
     }
     
     public function register() {
@@ -251,7 +251,8 @@ class AuthController extends BaseController {
             'success_message' => $success
         ];
         
-        $this->renderView('F_pswd', $data);
+        // Use the correct filename: F_pswd instead of ForgotPassword
+        $this->renderView('Auth/F_pswd', $data);
     }
     
     public function forgotPassword() {
@@ -289,24 +290,16 @@ class AuthController extends BaseController {
         }
     }
     
-    // Helper method to redirect based on user role
+    // Helper method to redirect to user's dashboard using username
     private function redirectToDashboard($role) {
-        switch ($role) {
-            case 'admin':
-                $this->redirect('/webapp/admin/dashboard');
-                break;
-            case 'tutor':
-                $this->redirect('/webapp/tutor/dashboard');
-                break;
-            case 'student':
-                $this->redirect('/webapp/student/dashboard');
-                break;
-            case 'parent':
-                $this->redirect('/webapp/parent/dashboard');
-                break;
-            default:
-                $this->redirect('/webapp/');
-                break;
+        // Get the username from session
+        $username = $_SESSION['username'] ?? '';
+        
+        if (!empty($username)) {
+            $this->redirect('/webapp/' . urlencode($username));
+        } else {
+            // Fallback to home if no username in session
+            $this->redirect('/webapp/');
         }
     }
 }

@@ -4,17 +4,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Giao Diện Học Sinh - VAL EDU</title>
-    <link rel="stylesheet" href="/webapp/View/Student/Student.css">
+    <title><?= $page_title ?? 'Giao Diện Học Sinh - VAL EDU' ?></title>
     <link rel="stylesheet" href="/webapp/View/Partial/Footer.css">
     <link rel="stylesheet" href="/webapp/View/Partial/HomeHeader.css">
+    <link rel="stylesheet" href="/webapp/View/Partial/DashboardHeader.css">
+    <link rel="stylesheet" href="/webapp/View/Student/Student.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 
 <body>
-    <?php $student_name = $student['full_name'] ?? ''; ?>
-    <?php include __DIR__ . '/../Partial/DashboardHeader.php'; ?>
-    <?php include __DIR__ . '/../Partial/Navbar.php'; ?>
+    <?php include __DIR__ . '/../Partial/DashboardHeader.php';?>
+    <?php $user_role = 'student'; include __DIR__ . '/../Partial/DashboardNavbar.php';?>
 
     <!-- Logout Confirmation Modal -->
     <div id="logout-modal" class="modal">
@@ -40,24 +40,30 @@
         <section id="overview" class="content-section active">
             <h2>Lớp đang theo học</h2>
             <div class="cards-container">
-                <?php if (!empty($classes)): ?>
-                    <?php foreach ($classes as $class): ?>
-                        <div class="class-card">
-                            <h3><?= htmlspecialchars($class['class_name']) ?> - <?= htmlspecialchars($class['subject']) ?></h3>
+                <?php if (isset($courses) && !empty($courses)): ?>
+                    <?php foreach ($courses as $course): ?>
+                        <div class="class-card" onclick="showClassDetail('<?= htmlspecialchars($course['id'] ?? '') ?>')">
+                            <h3><?= htmlspecialchars($course['class_name'] ?? 'Tên lớp không có') ?></h3>
                             <div class="class-info">
-                                <p><i class="fas fa-code"></i> Mã lớp: <?= htmlspecialchars($class['id']) ?></p>
-                                <p><i class="fas fa-calendar-alt"></i> <?= htmlspecialchars($class['schedule_time']) ?> <?= htmlspecialchars($class['schedule_days']) ?></p>
-                                <p><i class="fas fa-chart-line"></i> Tiến độ: <?= intval($class['sessions_attended']) ?>/<?= intval($class['sessions_total']) ?> buổi</p>
+                                <p><i class="fas fa-code"></i> Mã lớp: <?= htmlspecialchars($course['class_name'] . '.' . $course['class_year']) ?></p>
+                                <p><i class="fas fa-user-tie"></i> Giảng viên: <?= htmlspecialchars($course['instructor_name'] ?? 'Chưa phân công') ?></p>
+                                <p><i class="fas fa-calendar-alt"></i> <?= htmlspecialchars($course['schedule_time'] ?? '') ?> - <?= htmlspecialchars($course['schedule_days'] ?? '') ?></p>
+                                <p><i class="fas fa-chart-line"></i> Tiến độ: <?= htmlspecialchars($course['sessions_completed'] ?? 0) ?>/<?= htmlspecialchars($course['sessions_total'] ?? 0) ?> buổi</p>
                             </div>
-                            <!-- Có thể thêm nút xem chi tiết -->
+                            <button>Xem Chi Tiết</button>
                         </div>
                     <?php endforeach; ?>
                 <?php else: ?>
-                    <p>Bạn chưa đăng ký lớp học nào.</p>
+                    <div class="no-data">
+                        <i class="fas fa-graduation-cap"></i>
+                        <p>Bạn chưa đăng ký lớp học nào.</p>
+                        <a href="/webapp/" class="btn-primary">Khám phá khóa học</a>
+                    </div>
                 <?php endif; ?>
             </div>
         </section>
 
+        <!-- Rest of the sections remain the same for now -->
         <section id="class-detail" class="content-section">
             <div class="class-detail">
                 <div class="class-detail-header">
@@ -72,16 +78,13 @@
                         <h4><i class="fas fa-info-circle"></i> Thông tin cơ bản</h4>
                         <p><i class="fas fa-tag"></i> <strong>Tên lớp:</strong> <span id="detail-class-name"></span></p>
                         <p><i class="fas fa-code"></i> <strong>Mã lớp:</strong> <span id="detail-class-code"></span></p>
-                        <p><i class="fas fa-user-tie"></i> <strong>Giảng viên:</strong> <span
-                                id="detail-teacher"></span></p>
-                        <p><i class="fas fa-calendar-alt"></i> <strong>Lịch học:</strong> <span
-                                id="detail-schedule"></span></p>
+                        <p><i class="fas fa-user-tie"></i> <strong>Giảng viên:</strong> <span id="detail-teacher"></span></p>
+                        <p><i class="fas fa-calendar-alt"></i> <strong>Lịch học:</strong> <span id="detail-schedule"></span></p>
                     </div>
 
                     <div class="detail-card">
                         <h4><i class="fas fa-chart-bar"></i> Thống kê điểm danh</h4>
-                        <p><i class="fas fa-list-ol"></i> <strong>Tổng số buổi:</strong> <span
-                                id="detail-total-sessions"></span></p>
+                        <p><i class="fas fa-list-ol"></i> <strong>Tổng số buổi:</strong> <span id="detail-total-sessions"></span></p>
                         <div class="attendance-stats">
                             <div class="stat-item">
                                 <div class="stat-number" id="detail-attended">0</div>
@@ -128,15 +131,15 @@
                     <form id="personal-info-form">
                         <div class="form-group">
                             <label for="fullname"><i class="fas fa-user"></i> Họ và tên:</label>
-                            <input type="text" id="fullname" name="fullname" value="<?= htmlspecialchars($student['full_name'] ?? '') ?>">
+                            <input type="text" id="fullname" name="fullname" value="<?= htmlspecialchars($student_data['full_name'] ?? $user_name ?? '') ?>">
                         </div>
                         <div class="form-group">
                             <label for="email"><i class="fas fa-envelope"></i> Địa chỉ email:</label>
-                            <input type="email" id="email" name="email" value="<?= htmlspecialchars($student['email'] ?? '') ?>">
+                            <input type="email" id="email" name="email" value="<?= htmlspecialchars($student_data['email'] ?? '') ?>">
                         </div>
                         <div class="form-group">
                             <label for="phone"><i class="fas fa-phone"></i> Số điện thoại:</label>
-                            <input type="tel" id="phone" name="phone" value="<?= htmlspecialchars($student['phone'] ?? '') ?>">
+                            <input type="tel" id="phone" name="phone" value="<?= htmlspecialchars($student_data['phone'] ?? '') ?>">
                         </div>
                         <div class="form-actions">
                             <button type="button" class="change-password-btn" onclick="showChangePassword()">
@@ -157,8 +160,7 @@
                             <label for="current-password"><i class="fas fa-lock"></i> Mật khẩu hiện tại:</label>
                             <div class="password-input-group">
                                 <input type="password" id="current-password" name="current-password" required>
-                                <button type="button" class="toggle-password"
-                                    onclick="togglePassword('current-password')">
+                                <button type="button" class="toggle-password" onclick="togglePassword('current-password')">
                                     <i class="fas fa-eye"></i>
                                 </button>
                             </div>
@@ -179,8 +181,7 @@
                             <label for="confirm-password"><i class="fas fa-lock"></i> Xác nhận mật khẩu mới:</label>
                             <div class="password-input-group">
                                 <input type="password" id="confirm-password" name="confirm-password" required>
-                                <button type="button" class="toggle-password"
-                                    onclick="togglePassword('confirm-password')">
+                                <button type="button" class="toggle-password" onclick="togglePassword('confirm-password')">
                                     <i class="fas fa-eye"></i>
                                 </button>
                             </div>
@@ -225,7 +226,23 @@
             </div>
         </section>
     </main>
+
+    <script>
+        // Pass PHP data to JavaScript
+        const studentData = <?= json_encode([
+            'courses' => $courses ?? [],
+            'attendance' => $attendance ?? [],
+            'stats' => $stats ?? [],
+            'payments' => $payments ?? [],
+            'user_name' => $user_name ?? '',
+            'student_data' => $student_data ?? null
+        ]) ?>;
+        
+        // Debug: Log the data to console
+        console.log('Student data loaded:', studentData);
+    </script>
+    <script src="/webapp/View/Student/Student.js" defer></script>
+    <script src="/webapp/View/Partial/DashboardNavbar.js" defer></script>
+    <?php include __DIR__ . '/../Partial/Footer.php';?>
 </body>
-<script src="Student.js" defer></script>
-<?php include __DIR__ . '/../Partial/Footer.php'; ?>
 </html>

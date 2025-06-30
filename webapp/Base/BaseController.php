@@ -17,44 +17,24 @@
             if (!empty($data)) {
                 extract($data);
             }
-            /*
-            // Get controller name and convert to view folder
-            $viewFolder = get_called_class(); // get the name of the current class
-            $viewFolder = str_replace('Controller', '', $viewFolder); // Remove 'Controller' suffix
-            $viewFolder = ucfirst($viewFolder); // Ensure first letter is uppercase
-            // Example: If the controller is 'UserController', the view folder will be 'User'
-
-            // Build full view path with .php extension
-            // Example: If the view is 'profile', the path will be 'View/User(get from above)/profile.php'
-            $viewPath = $this->viewPath . $viewFolder . '/' . $viewName . '.php';
+            
+            // Construct the view path
+            $viewPath = __DIR__ . '/../View/' . $viewName . '.php';
             
             // Check if view file exists
             if (file_exists($viewPath)) {
                 include $viewPath;
             } else {
-                throw new Exception("View file not found: $viewPath");
-            }*/
-            
-        
-            // Try multiple view locations
-            $possiblePaths = [
-            $this->viewPath . 'Auth/' . $viewName . '.php',      // For AuthController
-            $this->viewPath . 'Home/' . $viewName . '.php',      // For HomeController
-            $this->viewPath . 'Admin/' . $viewName . '.php',     // For AdminController
-            $this->viewPath . 'Student/' . $viewName . '.php',   // For StudentController
-            $this->viewPath . 'Tutor/' . $viewName . '.php',     // For TutorController
-            $this->viewPath . 'Parent/' . $viewName . '.php',    // For ParentController
-            ];
-        
-            foreach ($possiblePaths as $path) {
-                if (file_exists($path)) {
-                    include $path;
-                    return;
+                // If specific view doesn't exist, try with default structure
+                $defaultPath = __DIR__ . '/../View/' . $viewName . '.php';
+                if (file_exists($defaultPath)) {
+                    include $defaultPath;
+                } else {
+                    throw new Exception("View not found: " . $viewName);
                 }
             }
-                // If no view found, show error
-                echo "View not found: " . $viewName . ". Searched paths: " . implode(', ', $possiblePaths); 
         }
+        
         // Include partial views (like header, footer)
         public function includePartial($partialName, $data = []) {
             if (!empty($data)) {

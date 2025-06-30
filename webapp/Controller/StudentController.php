@@ -1,90 +1,193 @@
 <?php
-
 require_once(__DIR__ . '/../Base/BaseController.php');
 require_once(__DIR__ . '/../Model/StudentModel.php');
 
 class StudentController extends BaseController {
+    private $studentModel;
+    
+    public function __construct() {
+        parent::__construct();
+        $this->studentModel = new StudentModel();
+    }
+
     public function dashboard() {
+        // Check if user is logged in and is a student
         if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'student') {
             header('Location: /webapp/login');
             exit();
         }
-        $studentModel = new StudentModel();
-        $studentId = $_SESSION['user_id'];
-        $studentInfo = $studentModel->getStudentInfo($studentId);
-        $classes = $studentModel->getStudentClasses($studentId);
 
+        // Get student data
+        $user_id = $_SESSION['user_id'];
+        $user_name = $_SESSION['user_name'] ?? '';
+        $username = $_SESSION['username'] ?? '';
+        
+        // Get student-specific data from database
+        $studentData = null;
+        $courses = [];
+        $attendance = [];
+        $stats = [];
+        $payments = [];
+        
+        try {
+            // Get student profile information
+            $studentData = $this->studentModel->getStudentById($user_id);
+            
+            // Get student's enrolled courses
+            $courses = $this->studentModel->getStudentCourses($user_id);
+            
+            // Get student attendance records
+            $attendance = $this->studentModel->getStudentAttendance($user_id);
+            
+            // Get student statistics
+            $stats = $this->studentModel->getStudentStats($user_id);
+            
+            // Get student payment records
+            $payments = $this->studentModel->getStudentPayments($user_id);
+            
+        } catch (Exception $e) {
+            error_log("Error getting student data: " . $e->getMessage());
+        }
+        
         $data = [
-            'student' => $studentInfo,
-            'classes' => $classes
+            'page_title' => 'Student Dashboard - VAL Edu',
+            'user_logged_in' => true,
+            'user_name' => $user_name,
+            'username' => $username,
+            'user_role' => 'student',
+            'student_data' => $studentData,
+            'courses' => $courses,
+            'attendance' => $attendance,
+            'stats' => $stats,
+            'payments' => $payments
         ];
-        $this->renderView('Student', $data);
+        
+        // Render the Student view
+        $this->renderView('Student/Student', $data);
     }
-
-    public function updateInfo() {
+    
+    // API endpoint for updating student profile
+    public function updateProfile() {
+        // Set content type first
+        header('Content-Type: application/json');
+        
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            http_response_code(405);
+            echo json_encode(['success' => false, 'message' => 'Method not allowed']);
+            exit();
+        }
+        
         if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'student') {
             http_response_code(401);
             echo json_encode(['success' => false, 'message' => 'Unauthorized']);
             exit();
         }
-        $studentId = $_SESSION['user_id'];
-        $fullName = trim($_POST['fullname'] ?? '');
-        $email = trim($_POST['email'] ?? '');
-        $phone = trim($_POST['phone'] ?? '');
-
-        if (!$fullName || !$email || !$phone) {
-            echo json_encode(['success' => false, 'message' => 'Vui lòng điền đầy đủ thông tin!']);
+        
+        error_log("Update profile API called");
+        error_log("POST data: " . json_encode($_POST));
+        error_log("Session user_id: " . $_SESSION['user_id']);
+        
+        $user_id = $_SESSION['user_id'];
+        $data = [
+            'full_name' => trim($_POST['full_name'] ?? ''),
+            'email' => trim($_POST['email'] ?? ''),
+            'phone' => trim($_POST['phone'] ?? '')
+        ];
+        
+        // Validation
+        if (empty($data['full_name']) || empty($data['email'])) {
+            echo json_encode(['success' => false, 'message' => 'Tên và email không được để trống']);
             exit();
         }
-
-        // Validate email
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            echo json_encode(['success' => false, 'message' => 'Địa chỉ email không hợp lệ!']);
+        
+        if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
+            echo json_encode(['success' => false, 'message' => 'Email không hợp lệ']);
             exit();
         }
-
-        // Validate phone
-        if (!preg_match('/^[0-9]{10,11}$/', str_replace(' ', '', $phone))) {
-            echo json_encode(['success' => false, 'message' => 'Số điện thoại không hợp lệ!']);
-            exit();
-        }
-
-        require_once(__DIR__ . '/../Model/UserModel.php');
-        $userModel = new UserModel();
-        $result = $userModel->updateStudentInfo($studentId, $fullName, $email, $phone);
-
-        if ($result['code'] === 0) {
-            $_SESSION['user_name'] = $fullName; // Cập nhật session
-            echo json_encode(['success' => true, 'message' => 'Thông tin cá nhân đã được cập nhật thành công!']);
-        } else {
-            echo json_encode(['success' => false, 'message' => $result['error'] ?? 'Lỗi hệ thống!']);
+        
+        try {
+            $result = $this->studentModel->updateStudentProfile($user_id, $data);
+            if ($result) {
+                // Update session data
+                $_SESSION['user_name'] = $data['full_name'];
+                $_SESSION['user_email'] = $data['email'];
+                
+                echo json_encode(['success' => true, 'message' => 'Cập nhật thông tin thành công']);
+            } else {
+                echo json_encode(['success' => false, 'message' => 'Cập nhật thất bại - Không có dữ liệu nào được thay đổi']);
+            }
+        } catch (Exception $e) {
+            error_log("Error updating student profile: " . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Lỗi hệ thống: ' . $e->getMessage()]);
         }
         exit();
     }
-
+    
+    // API endpoint for changing password
     public function changePassword() {
+        // Set content type first
+        header('Content-Type: application/json');
+        
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            http_response_code(405);
+            echo json_encode(['success' => false, 'message' => 'Method not allowed']);
+            exit();
+        }
+        
         if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'student') {
             http_response_code(401);
             echo json_encode(['success' => false, 'message' => 'Unauthorized']);
             exit();
         }
-        $studentId = $_SESSION['user_id'];
-        $currentPassword = $_POST['current_password'] ?? '';
-        $newPassword = $_POST['new_password'] ?? '';
-
-        if (!$currentPassword || !$newPassword) {
-            echo json_encode(['success' => false, 'message' => 'Vui lòng nhập đầy đủ thông tin!']);
+        
+        error_log("Change password API called");
+        error_log("POST data keys: " . implode(', ', array_keys($_POST)));
+        error_log("Session user_id: " . $_SESSION['user_id']);
+        
+        $user_id = $_SESSION['user_id'];
+        $current_password = $_POST['current_password'] ?? '';
+        $new_password = $_POST['new_password'] ?? '';
+        $confirm_password = $_POST['confirm_password'] ?? '';
+        
+        // Validation
+        if (empty($current_password) || empty($new_password) || empty($confirm_password)) {
+            echo json_encode(['success' => false, 'message' => 'Vui lòng điền đầy đủ thông tin']);
             exit();
         }
-
-        require_once(__DIR__ . '/../Model/UserModel.php');
-        $userModel = new UserModel();
-        $result = $userModel->changePassword($studentId, $currentPassword, $newPassword);
-
-        if ($result['code'] === 0) {
-            echo json_encode(['success' => true, 'message' => 'Mật khẩu đã được thay đổi thành công!']);
-        } else {
-            echo json_encode(['success' => false, 'message' => $result['error'] ?? 'Lỗi hệ thống!']);
+        
+        if ($new_password !== $confirm_password) {
+            echo json_encode(['success' => false, 'message' => 'Mật khẩu xác nhận không khớp']);
+            exit();
+        }
+        
+        if (strlen($new_password) < 6) {
+            echo json_encode(['success' => false, 'message' => 'Mật khẩu mới phải có ít nhất 6 ký tự']);
+            exit();
+        }
+        
+        try {
+            // Verify current password
+            $student = $this->studentModel->getStudentById($user_id);
+            if (!$student) {
+                echo json_encode(['success' => false, 'message' => 'Không tìm thấy thông tin học sinh']);
+                exit();
+            }
+            
+            if (!password_verify($current_password, $student['password'])) {
+                echo json_encode(['success' => false, 'message' => 'Mật khẩu hiện tại không đúng']);
+                exit();
+            }
+            
+            // Change password
+            $result = $this->studentModel->changePassword($user_id, $new_password);
+            if ($result) {
+                echo json_encode(['success' => true, 'message' => 'Đổi mật khẩu thành công']);
+            } else {
+                echo json_encode(['success' => false, 'message' => 'Đổi mật khẩu thất bại - Không có dữ liệu nào được thay đổi']);
+            }
+        } catch (Exception $e) {
+            error_log("Error changing password: " . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Lỗi hệ thống: ' . $e->getMessage()]);
         }
         exit();
     }

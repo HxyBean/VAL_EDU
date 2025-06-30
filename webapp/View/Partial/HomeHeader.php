@@ -50,15 +50,9 @@
         <div class="cta-button">
             <?php if ($user_logged_in ?? false): ?>
                 <span class="welcome-text">Xin chào, <?= htmlspecialchars($user_name ?? '') ?></span>
-                <!-- Use proper route URLs -->
-                <?php if (($_SESSION['user_role'] ?? '') === 'admin'): ?>
-                    <a href="/webapp/admin/dashboard" class="dashboard-btn">Dashboard</a>
-                <?php elseif (($_SESSION['user_role'] ?? '') === 'tutor'): ?>
-                    <a href="/webapp/tutor/dashboard" class="dashboard-btn">Dashboard</a>
-                <?php elseif (($_SESSION['user_role'] ?? '') === 'student'): ?>
-                    <a href="/webapp/student/dashboard" class="dashboard-btn">Dashboard</a>
-                <?php elseif (($_SESSION['user_role'] ?? '') === 'parent'): ?>
-                    <a href="/webapp/parent/dashboard" class="dashboard-btn">Dashboard</a>
+                <!-- Use username-based dashboard route -->
+                <?php if (isset($_SESSION['username'])): ?>
+                    <a href="/webapp/<?= urlencode($_SESSION['username']) ?>" class="dashboard-btn">Dashboard</a>
                 <?php endif; ?>
                 <a href="/webapp/logout" class="logout-btn">Đăng xuất</a>
             <?php else: ?>
