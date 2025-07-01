@@ -387,25 +387,27 @@ class AdminController extends BaseController {
     
     // API endpoint for getting tutors
     public function getTutors() {
-        error_log("getTutors method called");
         header('Content-Type: application/json');
         
-        if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
-            error_log("Unauthorized access to getTutors");
-            http_response_code(401);
-            echo json_encode(['success' => false, 'message' => 'Unauthorized']);
-            exit();
-        }
-        
         try {
-            error_log("Calling getTutorsForForm from model");
-            $tutors = $this->adminModel->getTutorsForForm();
-            error_log("Tutors retrieved: " . count($tutors) . " tutors");
+            if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
+                throw new Exception('Unauthorized');
+            }
+
+            $tutors = $this->adminModel->getAllTutors();
             
-            echo json_encode(['success' => true, 'tutors' => $tutors]);
+            echo json_encode([
+                'success' => true,
+                'tutors' => $tutors
+            ]);
+
         } catch (Exception $e) {
             error_log("Error in getTutors: " . $e->getMessage());
-            echo json_encode(['success' => false, 'message' => 'Error loading tutors: ' . $e->getMessage()]);
+            http_response_code(400);
+            echo json_encode([
+                'success' => false,
+                'message' => $e->getMessage()
+            ]);
         }
         exit();
     }
@@ -486,6 +488,260 @@ class AdminController extends BaseController {
         } catch (Exception $e) {
             error_log("Error reopening course: " . $e->getMessage());
             echo json_encode(['success' => false, 'message' => 'Lỗi hệ thống']);
+        }
+        exit();
+    }
+    
+    // API endpoint for getting course details
+    public function getCourseDetails() {
+        if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
+            http_response_code(401);
+            echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+            exit();
+        }
+
+        try {
+            $courseId = intval($_GET['id'] ?? 0);
+            
+            if ($courseId <= 0) {
+                echo json_encode(['success' => false, 'message' => 'ID khóa học không hợp lệ']);
+                exit();
+            }
+            
+            $courseDetails = $this->adminModel->getCourseDetails($courseId);
+            
+            if ($courseDetails) {
+                echo json_encode([
+                    'success' => true,
+                    'data' => $courseDetails
+                ]);
+            } else {
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Không tìm thấy thông tin khóa học'
+                ]);
+            }
+            
+        } catch (Exception $e) {
+            error_log("Error getting course details: " . $e->getMessage());
+            echo json_encode([
+                'success' => false,
+                'message' => 'Lỗi hệ thống: ' . $e->getMessage()
+            ]);
+        }
+        exit();
+    }
+    
+    // API endpoint for updating course
+    public function updateCourse() {
+        header('Content-Type: application/json');
+        error_reporting(E_ALL);
+        ini_set('display_errors', '0');
+        
+        try {
+            if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
+                throw new Exception('Unauthorized');
+            }
+
+            $courseId = intval($_POST['course_id'] ?? 0);
+            
+            // Validate course ID
+            if ($courseId <= 0) {
+                throw new Exception('Invalid course ID');
+            }
+
+            // Validate and sanitize input data
+            $data = [
+                'class_name' => trim($_POST['class_name'] ?? ''),
+                'class_year' => intval($_POST['class_year'] ?? 0),
+                'class_level' => trim($_POST['class_level'] ?? ''),
+                'subject' => trim($_POST['subject'] ?? ''),
+                'description' => trim($_POST['description'] ?? ''),
+                'max_students' => intval($_POST['max_students'] ?? 0),
+                'sessions_total' => intval($_POST['sessions_total'] ?? 0),
+                'price_per_session' => floatval($_POST['price_per_session'] ?? 0),
+                'schedule_time' => $_POST['schedule_time'] ?? '',
+                'schedule_duration' => intval($_POST['schedule_duration'] ?? 0),
+                'schedule_days' => $_POST['schedule_days'] ?? '',
+                'start_date' => $_POST['start_date'] ?? '',
+                'end_date' => $_POST['end_date'] ?? '',
+                'tutor_id' => !empty($_POST['tutor_id']) ? intval($_POST['tutor_id']) : null
+            ];
+
+            // Perform update
+            $result = $this->adminModel->updateCourse($courseId, $data);
+            
+            if ($result === true) {
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'Course updated successfully'
+                ]);
+            } else {
+                throw new Exception('Failed to update course');
+            }
+
+        } catch (Exception $e) {
+            error_log("Error in updateCourse: " . $e->getMessage());
+            http_response_code(500);
+            echo json_encode([
+                'success' => false,
+                'message' => $e->getMessage()
+            ]);
+        }
+        exit();
+    }
+    
+    // API endpoint for creating tutor
+    public function createTutor() {
+        header('Content-Type: application/json');
+        
+        try {
+            if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
+                throw new Exception('Unauthorized');
+            }
+
+            // Validate required fields
+            $required = ['fullname', 'email', 'username', 'password'];
+            foreach ($required as $field) {
+                if (empty($_POST[$field])) {
+                    throw new Exception("Field $field is required");
+                }
+            }
+
+            // Validate email format
+            if (!filter_var($_POST['email'], FILTER_VALIDATE_EMAIL)) {
+                throw new Exception('Invalid email format');
+            }
+
+            // Validate username format
+            if (!preg_match('/^[a-zA-Z0-9_]+$/', $_POST['username'])) {
+                throw new Exception('Username can only contain letters, numbers and underscore');
+            }
+
+            // Validate password length
+            if (strlen($_POST['password']) < 6) {
+                throw new Exception('Password must be at least 6 characters');
+            }
+
+            $tutorData = [
+                'full_name' => trim($_POST['fullname']),
+                'email' => trim($_POST['email']),
+                'username' => trim($_POST['username']),
+                'password' => password_hash($_POST['password'], PASSWORD_DEFAULT),
+                'phone' => trim($_POST['phone'] ?? ''),
+                'role' => 'tutor'
+            ];
+
+            $result = $this->adminModel->createTutor($tutorData);
+            
+            if ($result) {
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'Tutor created successfully'
+                ]);
+            } else {
+                throw new Exception('Failed to create tutor');
+            }
+
+        } catch (Exception $e) {
+            http_response_code(400);
+            echo json_encode([
+                'success' => false,
+                'message' => $e->getMessage()
+            ]);
+        }
+        exit();
+    }
+
+    // API endpoint for getting tutor details
+    public function getTutorDetails() {
+        header('Content-Type: application/json');
+        
+        try {
+            if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
+                throw new Exception('Unauthorized');
+            }
+
+            $tutorId = intval($_GET['id'] ?? 0);
+            if ($tutorId <= 0) {
+                throw new Exception('Invalid tutor ID');
+            }
+
+            error_log("Getting details for tutor ID: " . $tutorId);
+
+            $tutor = $this->adminModel->getTutorDetails($tutorId);
+            
+            if (!$tutor) {
+                throw new Exception('Tutor not found');
+            }
+
+            echo json_encode([
+                'success' => true,
+                'tutor' => $tutor
+            ]);
+
+        } catch (Exception $e) {
+            error_log("Error in getTutorDetails: " . $e->getMessage());
+            http_response_code(400);
+            echo json_encode([
+                'success' => false,
+                'message' => $e->getMessage()
+            ]);
+        }
+        exit();
+    }
+
+    // API endpoint for updating tutor
+    public function updateTutor() {
+        header('Content-Type: application/json');
+        
+        try {
+            if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
+                throw new Exception('Unauthorized');
+            }
+
+            $tutorId = intval($_POST['tutor_id'] ?? 0);
+            if ($tutorId <= 0) {
+                throw new Exception('Invalid tutor ID');
+            }
+
+            // Validate required fields
+            $required = ['fullname', 'email', 'phone'];
+            foreach ($required as $field) {
+                if (empty($_POST[$field])) {
+                    throw new Exception("Field $field is required");
+                }
+            }
+
+            // Validate email format
+            if (!filter_var($_POST['email'], FILTER_VALIDATE_EMAIL)) {
+                throw new Exception('Invalid email format');
+            }
+
+            $tutorData = [
+                'full_name' => trim($_POST['fullname']),
+                'email' => trim($_POST['email']),
+                'phone' => trim($_POST['phone'])
+            ];
+
+            $result = $this->adminModel->updateTutor($tutorId, $tutorData);
+            
+            if ($result) {
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'Cập nhật thông tin giáo viên thành công'
+                ]);
+            } else {
+                throw new Exception('Failed to update tutor');
+            }
+
+        } catch (Exception $e) {
+            error_log("Error in updateTutor: " . $e->getMessage());
+            http_response_code(400);
+            echo json_encode([
+                'success' => false,
+                'message' => $e->getMessage()
+            ]);
         }
         exit();
     }

@@ -132,38 +132,30 @@ class AdminModel extends BaseModel {
         }
     }
     
-    public function getAllTutors($limit = 20, $offset = 0) {
+    public function getAllTutors($limit = null, $offset = null) {
         try {
-            // If no parameters provided, return all tutors for form selection
-            if ($limit === null && $offset === null) {
-                $sql = "SELECT id, full_name, email, phone FROM users WHERE role = 'tutor' AND is_active = 1 ORDER BY full_name ASC";
-                $result = $this->db->query($sql);
-                if (!$result) {
-                    error_log("Query failed: " . $this->db->error);
-                    return [];
-                }
-                return $result->fetch_all(MYSQLI_ASSOC);
-            }
-            
-            // Otherwise return paginated results with class count
             $sql = "SELECT u.id, u.username, u.full_name, u.email, u.phone, u.created_at,
-                           COUNT(DISTINCT ct.class_id) as classes_assigned,
-                           u.is_active
+                    (SELECT COUNT(*) FROM class_tutors ct 
+                     WHERE ct.tutor_id = u.id AND ct.status = 'active') as active_classes
                     FROM users u
-                    LEFT JOIN class_tutors ct ON u.id = ct.tutor_id AND ct.status = 'active'
-                    WHERE u.role = 'tutor'
-                    GROUP BY u.id
-                    ORDER BY u.created_at DESC
-                    LIMIT ? OFFSET ?";
-            
-            $stmt = $this->db->prepare($sql);
-            $stmt->bind_param("ii", $limit, $offset);
+                    WHERE u.role = 'tutor' AND u.is_active = 1
+                    ORDER BY u.created_at DESC";
+
+            if ($limit !== null && $offset !== null) {
+                $sql .= " LIMIT ? OFFSET ?";
+                $stmt = $this->db->prepare($sql);
+                $stmt->bind_param("ii", $limit, $offset);
+            } else {
+                $stmt = $this->db->prepare($sql);
+            }
+
             $stmt->execute();
             $result = $stmt->get_result();
             $tutors = $result->fetch_all(MYSQLI_ASSOC);
             $stmt->close();
-            
+
             return $tutors;
+
         } catch (Exception $e) {
             error_log("Error getting tutors: " . $e->getMessage());
             return [];
@@ -395,35 +387,47 @@ class AdminModel extends BaseModel {
     public function getClassLevelDistribution() {
         try {
             $sql = "SELECT 
-                        class_level,
-                        COUNT(*) as class_count,
-                        COUNT(DISTINCT e.student_id) as student_count
-                    FROM classes c
-                    LEFT JOIN enrollments e ON c.id = e.class_id AND e.status = 'active'
-                    WHERE c.is_active = 1
-                    GROUP BY class_level
-                    ORDER BY class_count DESC";
-            
+                    COALESCE(class_level, 'Không xác định') as class_level,
+                    COUNT(*) as class_count,
+                    COUNT(DISTINCT e.student_id) as student_count
+                FROM classes c
+                LEFT JOIN enrollments e ON c.id = e.class_id AND e.status = 'active'
+                WHERE c.status IN ('active', 'completed')
+                GROUP BY class_level
+                ORDER BY class_count DESC";
+        
+            // Kiểm tra prepare statement
             $stmt = $this->db->prepare($sql);
-            $stmt->execute();
+            if (!$stmt) {
+                error_log("Prepare failed in getClassLevelDistribution: " . $this->db->error);
+                return [];
+            }
+        
+            // Kiểm tra execute
+            if (!$stmt->execute()) {
+                error_log("Execute failed in getClassLevelDistribution: " . $stmt->error);
+                $stmt->close();
+                return [];
+            }
+        
             $result = $stmt->get_result();
             $distribution = $result->fetch_all(MYSQLI_ASSOC);
             $stmt->close();
-            
-            // Calculate percentages
+        
+            // Tính toán phần trăm
             $total_classes = array_sum(array_column($distribution, 'class_count'));
-            
+        
             foreach ($distribution as &$level) {
                 $level['percentage'] = $total_classes > 0 ? 
                     round(($level['class_count'] / $total_classes) * 100, 1) : 0;
                 $level['class_count'] = intval($level['class_count']);
                 $level['student_count'] = intval($level['student_count']);
             }
-            
+        
             return $distribution;
-            
+        
         } catch (Exception $e) {
-            error_log("Error getting class level distribution: " . $e->getMessage());
+            error_log("Error in getClassLevelDistribution: " . $e->getMessage());
             return [];
         }
     }
@@ -788,5 +792,304 @@ class AdminModel extends BaseModel {
             return [];
         }
     }
+
+    public function getCourseDetails($courseId) {
+        try {
+            $sql = "SELECT c.*, 
+                COALESCE(u.full_name, 'Chưa phân công') as tutor_name,
+                u.email as tutor_email,
+                u.phone as tutor_phone,
+                ct.tutor_id,
+                COUNT(DISTINCT e.student_id) as enrolled_students,
+                COALESCE(cs.completed_sessions, 0) as completed_sessions
+            FROM classes c
+            LEFT JOIN class_tutors ct ON c.id = ct.class_id AND ct.status = 'active'
+            LEFT JOIN users u ON ct.tutor_id = u.id
+            LEFT JOIN enrollments e ON c.id = e.class_id AND e.status = 'active'
+            LEFT JOIN (
+                SELECT class_id, COUNT(*) as completed_sessions
+                FROM sessions 
+                WHERE status = 'completed'
+                GROUP BY class_id
+            ) cs ON c.id = cs.class_id
+            WHERE c.id = ?
+            GROUP BY c.id";
+
+        $stmt = $this->db->prepare($sql);
+        if (!$stmt) {
+            error_log("Prepare failed: " . $this->db->error);
+            return null;
+        }
+
+        $stmt->bind_param("i", $courseId);
+        if (!$stmt->execute()) {
+            error_log("Execute failed: " . $stmt->error);
+            $stmt->close();
+            return null;
+        }
+
+        $result = $stmt->get_result();
+        $course = $result->fetch_assoc();
+        $stmt->close();
+
+        if (!$course) {
+            return null;
+        }
+
+        return $course;
+
+    } catch (Exception $e) {
+        error_log("Error in getCourseDetails: " . $e->getMessage());
+        return null;
+    }
+}
+
+public function updateCourse($courseId, $data) {
+    try {
+        $this->db->begin_transaction();
+
+        // Debug logging
+        error_log("Starting update for course ID: " . $courseId);
+        error_log("Update data: " . json_encode($data));
+
+        $sql = "UPDATE classes SET 
+                class_name = ?,
+                class_year = ?,
+                class_level = ?,
+                subject = ?,
+                description = ?,
+                max_students = ?,
+                sessions_total = ?,
+                price_per_session = ?,
+                schedule_time = ?,
+                schedule_duration = ?,
+                schedule_days = ?,
+                start_date = ?,
+                end_date = ?,
+                updated_at = NOW()
+                WHERE id = ?";
+
+        $stmt = $this->db->prepare($sql);
+        if (!$stmt) {
+            throw new Exception("Database prepare error: " . $this->db->error);
+        }
+
+        $stmt->bind_param("sisssiiissssssi",
+            $data['class_name'],
+            $data['class_year'],
+            $data['class_level'],
+            $data['subject'],
+            $data['description'],
+            $data['max_students'],
+            $data['sessions_total'],
+            $data['price_per_session'],
+            $data['schedule_time'],
+            $data['schedule_duration'],
+            $data['schedule_days'],
+            $data['start_date'],
+            $data['end_date'],
+            $courseId
+        );
+
+        if (!$stmt->execute()) {
+            throw new Exception("Execute failed: " . $stmt->error);
+        }
+
+        $stmt->close();
+
+        // Handle tutor assignment if provided
+        if (isset($data['tutor_id'])) {
+            // First deactivate existing assignments
+            $sql = "UPDATE class_tutors SET status = 'inactive' WHERE class_id = ?";
+            $stmt = $this->db->prepare($sql);
+            $stmt->bind_param("i", $courseId);
+            $stmt->execute();
+            $stmt->close();
+
+            // Then add new assignment if tutor_id is provided
+            if ($data['tutor_id']) {
+                $sql = "INSERT INTO class_tutors (tutor_id, class_id, assigned_date, status) 
+                        VALUES (?, ?, CURDATE(), 'active')
+                        ON DUPLICATE KEY UPDATE status = 'active', assigned_date = CURDATE()";
+                $stmt = $this->db->prepare($sql);
+                $stmt->bind_param("ii", $data['tutor_id'], $courseId);
+                $stmt->execute();
+                $stmt->close();
+            }
+        }
+
+        $this->db->commit();
+        error_log("Course update completed successfully");
+        return true;
+
+    } catch (Exception $e) {
+        $this->db->rollback();
+        error_log("Error in updateCourse: " . $e->getMessage());
+        throw $e;
+    }
+}
+
+public function createTutor($data) {
+    try {
+        $this->db->begin_transaction();
+
+        // Check if username exists
+        $stmt = $this->db->prepare("SELECT id FROM users WHERE username = ?");
+        $stmt->bind_param("s", $data['username']);
+        $stmt->execute();
+        if ($stmt->get_result()->num_rows > 0) {
+            throw new Exception('Username already exists');
+        }
+        $stmt->close();
+
+        // Check if email exists
+        $stmt = $this->db->prepare("SELECT id FROM users WHERE email = ?");
+        $stmt->bind_param("s", $data['email']);
+        $stmt->execute();
+        if ($stmt->get_result()->num_rows > 0) {
+            throw new Exception('Email already exists');
+        }
+        $stmt->close();
+
+        // Insert new tutor
+        $sql = "INSERT INTO users (username, email, password, full_name, role, phone) 
+                VALUES (?, ?, ?, ?, ?, ?)";
+        $stmt = $this->db->prepare($sql);
+        $stmt->bind_param("ssssss",
+            $data['username'],
+            $data['email'],
+            $data['password'],
+            $data['full_name'],
+            $data['role'],
+            $data['phone']
+        );
+
+        if (!$stmt->execute()) {
+            throw new Exception($stmt->error);
+        }
+
+        $this->db->commit();
+        return true;
+
+    } catch (Exception $e) {
+        $this->db->rollback();
+        error_log("Error creating tutor: " . $e->getMessage());
+        throw $e;
+    }
+}
+
+public function getTutorDetails($tutorId) {
+    try {
+        // Get tutor basic info
+        $sql = "SELECT u.id, u.username, u.full_name, u.email, u.phone, u.created_at, 
+                u.is_active, u.notes,
+                (SELECT COUNT(*) FROM class_tutors ct 
+                 WHERE ct.tutor_id = u.id AND ct.status = 'active') as active_classes
+                FROM users u 
+                WHERE u.id = ? AND u.role = 'tutor'";
+        
+        $stmt = $this->db->prepare($sql);
+        if (!$stmt) {
+            throw new Exception("Prepare failed: " . $this->db->error);
+        }
+
+        $stmt->bind_param("i", $tutorId);
+        if (!$stmt->execute()) {
+            throw new Exception("Execute failed: " . $stmt->error);
+        }
+
+        $result = $stmt->get_result();
+        $tutor = $result->fetch_assoc();
+        $stmt->close();
+
+        if (!$tutor) {
+            return null;
+        }
+
+        // Get tutor's active classes
+        $sql = "SELECT c.*, 
+                COUNT(DISTINCT e.student_id) as enrolled_students
+                FROM classes c
+                INNER JOIN class_tutors ct ON c.id = ct.class_id
+                LEFT JOIN enrollments e ON c.id = e.class_id AND e.status = 'active'
+                WHERE ct.tutor_id = ? AND ct.status = 'active'
+                GROUP BY c.id
+                ORDER BY c.start_date DESC";
+        
+        $stmt = $this->db->prepare($sql);
+        if (!$stmt) {
+            throw new Exception("Prepare failed: " . $this->db->error);
+        }
+
+        $stmt->bind_param("i", $tutorId);
+        if (!$stmt->execute()) {
+            throw new Exception("Execute failed: " . $stmt->error);
+        }
+
+        $result = $stmt->get_result();
+        $tutor['classes'] = $result->fetch_all(MYSQLI_ASSOC);
+        $stmt->close();
+
+        return $tutor;
+
+    } catch (Exception $e) {
+        error_log("Error getting tutor details: " . $e->getMessage());
+        throw $e;
+    }
+}
+
+public function updateTutor($tutorId, $data) {
+    try {
+        $this->db->begin_transaction();
+
+        // Check if email already exists for other tutors
+        $stmt = $this->db->prepare("SELECT id FROM users WHERE email = ? AND id != ? AND role = 'tutor'");
+        $stmt->bind_param("si", $data['email'], $tutorId);
+        $stmt->execute();
+        if ($stmt->get_result()->num_rows > 0) {
+            throw new Exception('Email already exists');
+        }
+        $stmt->close();
+
+        // Update tutor information
+        $sql = "UPDATE users SET 
+                full_name = ?,
+                email = ?,
+                phone = ?,
+                updated_at = NOW()
+                WHERE id = ? AND role = 'tutor'";
+
+        $stmt = $this->db->prepare($sql);
+        if (!$stmt) {
+            throw new Exception("Prepare failed: " . $this->db->error);
+        }
+
+        $stmt->bind_param("sssi", 
+            $data['full_name'],
+            $data['email'],
+            $data['phone'],
+            $tutorId
+        );
+
+        if (!$stmt->execute()) {
+            throw new Exception("Execute failed: " . $stmt->error);
+        }
+
+        $affected_rows = $stmt->affected_rows;
+        $stmt->close();
+
+        if ($affected_rows === 0) {
+            throw new Exception("No tutor found with ID: $tutorId");
+        }
+
+        $this->db->commit();
+        return true;
+
+    } catch (Exception $e) {
+        $this->db->rollback();
+        error_log("Error updating tutor: " . $e->getMessage());
+        throw $e;
+    }
+}
 }
 ?>

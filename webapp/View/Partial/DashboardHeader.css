@@ -6,7 +6,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
     position: fixed;
     top: 0;
     left: 0;
@@ -84,6 +84,7 @@
         opacity: 0;
         transform: translateY(-30px) scale(0.95);
     }
+
     100% {
         opacity: 1;
         transform: translateY(0) scale(1);
@@ -96,7 +97,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: linear-gradient(135deg, #108AB1, #073A4B);
+    background: #073A4B;
     color: white;
     border-radius: 12px 12px 0 0;
 }
@@ -176,8 +177,15 @@
 }
 
 @keyframes iconPulse {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.05); }
+
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.05);
+    }
 }
 
 .logout-modal p {
@@ -250,22 +258,22 @@
         width: 95%;
         max-width: none;
     }
-    
+
     .logout-modal .modal-body {
         padding: 20px 15px;
     }
-    
+
     .logout-icon {
         width: 60px;
         height: 60px;
         font-size: 2rem;
     }
-    
+
     .modal-footer {
         flex-direction: column;
         gap: 10px;
     }
-    
+
     .cancel-btn,
     .logout-confirm-btn {
         width: 100%;

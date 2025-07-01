@@ -200,43 +200,17 @@
             <div class="section-header">
                 <div class="search-bar">
                     <i class="fas fa-search"></i>
-                    <input type="text" placeholder="Tìm kiếm giáo viên...">
+                    <input type="text" id="tutor-search" 
+                           placeholder="Tìm kiếm theo tên, email..." 
+                           onkeyup="searchTutors()">
                 </div>
-                <button class="btn-primary"><i class="fas fa-plus"></i> Thêm Giáo Viên Mới</button>
+                <button class="btn-primary" onclick="showAddTutorModal()">
+                    <i class="fas fa-plus"></i> Thêm Giáo Viên Mới
+                </button>
             </div>
 
             <div class="teachers-grid">
-                <div class="teacher-card">
-                    <div class="teacher-avatar">
-                        <i class="fas fa-user-tie"></i>
-                    </div>
-                    <h4>Emma Watson</h4>
-                    <p>Giáo Viên Tiếng Anh Chính</p>
-                    <div class="teacher-stats">
-                        <span><i class="fas fa-users"></i> 25 Học Viên</span>
-                        <span><i class="fas fa-star"></i> 4.9 Đánh Giá</span>
-                    </div>
-                    <div class="teacher-actions">
-                        <button class="btn-edit">Chỉnh Sửa</button>
-                        <button class="btn-view">Xem Hồ Sơ</button>
-                    </div>
-                </div>
-                
-                <div class="teacher-card">
-                    <div class="teacher-avatar">
-                        <i class="fas fa-user-tie"></i>
-                    </div>
-                    <h4>David Smith</h4>
-                    <p>Chuyên Gia Hội Thoại</p>
-                    <div class="teacher-stats">
-                        <span><i class="fas fa-users"></i> 18 Học Viên</span>
-                        <span><i class="fas fa-star"></i> 4.7 Đánh Giá</span>
-                    </div>
-                    <div class="teacher-actions">
-                        <button class="btn-edit">Chỉnh Sửa</button>
-                        <button class="btn-view">Xem Hồ Sơ</button>
-                    </div>
-                </div>
+                <!-- Tutors will be loaded here by JavaScript -->
             </div>
         </section>        <!-- Manage Courses Section -->
         <section id="manage_courses" class="content-section">
@@ -423,7 +397,8 @@
                 <h3><i class="fas fa-plus-circle"></i> Tạo khóa học mới</h3>
                 <span class="close" onclick="closeCreateCourseModal()">&times;</span>
             </div>
-            <form id="create-course-form" onsubmit="createCourse(event)">
+            <!-- Create Course Form -->
+            <form id="create-course-form" class="course-form" onsubmit="createCourse(event)">
                 <div class="form-grid">
                     <div class="form-group">
                         <label for="class-name">Tên lớp <span class="required">*</span></label>
@@ -567,13 +542,139 @@
     <div id="course-detail-modal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2 id="course-detail-title">Chi tiết khóa học</h2>
+                <h3><i class="fas fa-info-circle"></i> Chi tiết khóa học</h3>
                 <span class="close" onclick="closeCourseDetailModal()">&times;</span>
             </div>
+            <div class="modal-body" id="course-detail-content">
+                <!-- Content will be populated by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Course Modal -->
+    <div id="edit-course-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-edit"></i> Chỉnh sửa khóa học</h3>
+                <span class="close" onclick="closeEditCourseModal()">&times;</span>
+            </div>
             <div class="modal-body">
-                <div id="course-detail-content">
-                    <!-- Content will be populated by JavaScript -->
-                </div>
+                <form id="edit-course-form" class="course-form" onsubmit="updateCourse(event)">
+                    <!-- Form content will be populated by JavaScript -->
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Tutor Modal -->
+    <div id="add-tutor-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-user-plus"></i> Thêm Giáo Viên Mới</h3>
+                <span class="close" onclick="closeAddTutorModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="add-tutor-form" class="form-grid" onsubmit="createTutor(event)">
+                    <div class="form-group">
+                        <label for="tutor-fullname">Họ và Tên <span class="required">*</span></label>
+                        <input type="text" id="tutor-fullname" name="fullname" required
+                               placeholder="Nhập họ và tên giáo viên">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="tutor-email">Email <span class="required">*</span></label>
+                        <input type="email" id="tutor-email" name="email" required
+                               placeholder="Nhập email">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="tutor-username">Tên đăng nhập <span class="required">*</span></label>
+                        <input type="text" id="tutor-username" name="username" required
+                               pattern="[a-zA-Z0-9_]+" placeholder="Chỉ chữ, số và dấu gạch dưới"
+                               title="Chỉ được dùng chữ, số và dấu gạch dưới">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="tutor-password">Mật khẩu <span class="required">*</span></label>
+                        <input type="password" id="tutor-password" name="password" required
+                               minlength="6" placeholder="Tối thiểu 6 ký tự">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="tutor-phone">Số điện thoại</label>
+                        <input type="tel" id="tutor-phone" name="phone"
+                               placeholder="Nhập số điện thoại">
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" onclick="closeAddTutorModal()">Hủy</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Tạo giáo viên
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tutor Detail Modal -->
+    <div id="tutor-detail-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-user-tie"></i> Thông tin giáo viên</h3>
+                <span class="close" onclick="closeTutorDetailModal()">&times;</span>
+            </div>
+            <div class="modal-body" id="tutor-detail-content">
+                <!-- Content will be populated by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Tutor Modal -->
+    <div id="edit-tutor-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-edit"></i> Chỉnh sửa thông tin giáo viên</h3>
+                <span class="close" onclick="closeEditTutorModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="edit-tutor-form" class="form-grid" onsubmit="updateTutor(event)">
+                    <input type="hidden" id="edit-tutor-id" name="tutor_id">
+                    
+                    <div class="form-group">
+                        <label for="edit-tutor-fullname">Họ và Tên <span class="required">*</span></label>
+                        <input type="text" id="edit-tutor-fullname" name="fullname" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="edit-tutor-email">Email <span class="required">*</span></label>
+                        <input type="email" id="edit-tutor-email" name="email" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="edit-tutor-phone">Số điện thoại</label>
+                        <input type="tel" id="edit-tutor-phone" name="phone">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="edit-tutor-subjects">Môn dạy <span class="required">*</span></label>
+                        <select id="edit-tutor-subjects" name="subjects[]" multiple required>
+                            <option value="IELTS Speaking">IELTS Speaking</option>
+                            <option value="IELTS Listening">IELTS Listening</option>
+                            <option value="IELTS Reading">IELTS Reading</option>
+                            <option value="IELTS Writing">IELTS Writing</option>
+                            <option value="TOEIC Listening/Reading">TOEIC Listening/Reading</option>
+                            <option value="TOEIC 4 Skills">TOEIC 4 Skills</option>
+                        </select>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" onclick="closeEditTutorModal()">Hủy</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Lưu thay đổi
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>

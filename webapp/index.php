@@ -14,10 +14,9 @@ $path = str_replace('/webapp', '', $path);
 
 // Handle API routes FIRST (before other routes)
 if (strpos($path, '/api/') === 0) {
-    $apiPath = substr($path, 4); // Remove '/api' prefix
-    error_log("API Route called: " . $apiPath);
-    error_log("Request method: " . $_SERVER['REQUEST_METHOD']);
-    
+    header('Content-Type: application/json'); // Add this header for all API routes
+    $apiPath = substr($path, 4); // Remove /api prefix
+
     switch ($apiPath) {
         case '/student/update-profile':
             if (isset($_SESSION['user_id']) && $_SESSION['user_role'] === 'student') {
@@ -201,10 +200,66 @@ if (strpos($path, '/api/') === 0) {
             }
             exit();
             
+        case '/admin/course-details':
+            if (isset($_SESSION['user_id']) && $_SESSION['user_role'] === 'admin') {
+                header('Content-Type: application/json');  // Thêm header này
+                require_once('Controller/AdminController.php');
+                $controller = new AdminController();
+                $controller->getCourseDetails();
+            } else {
+                http_response_code(401);
+                echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+            }
+            exit();
+            
+        case '/admin/update-course':
+            if (isset($_SESSION['user_id']) && $_SESSION['user_role'] === 'admin') {
+                require_once('Controller/AdminController.php');
+                $controller = new AdminController();
+                $controller->updateCourse();
+            } else {
+                http_response_code(401);
+                echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+            }
+            exit();
+            
+        case '/admin/create-tutor':
+            if (isset($_SESSION['user_id']) && $_SESSION['user_role'] === 'admin') {
+                require_once('Controller/AdminController.php');
+                $controller = new AdminController();
+                $controller->createTutor();
+            } else {
+                http_response_code(401);
+                echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+            }
+            exit();
+            
+        case '/admin/tutor-details':
+            if (isset($_SESSION['user_id']) && $_SESSION['user_role'] === 'admin') {
+                require_once('Controller/AdminController.php');
+                $controller = new AdminController();
+                $controller->getTutorDetails();
+            } else {
+                http_response_code(401);
+                echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+            }
+            exit();
+            
+        case '/admin/update-tutor':
+            if (isset($_SESSION['user_id']) && $_SESSION['user_role'] === 'admin') {
+                require_once('Controller/AdminController.php');
+                $controller = new AdminController();
+                $controller->updateTutor();
+            } else {
+                http_response_code(401);
+                echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+            }
+            exit();
+            
         default:
             error_log("API endpoint not found: " . $apiPath);
             http_response_code(404);
-            echo json_encode(['success' => false, 'message' => 'API endpoint not found: ' . $apiPath]);
+            echo json_encode(['success' => false, 'message' => 'API endpoint not found']);
             exit();
     }
 }
