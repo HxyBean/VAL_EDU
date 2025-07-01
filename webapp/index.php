@@ -189,6 +189,18 @@ if (strpos($path, '/api/') === 0) {
             }
             exit();
             
+        // Thêm route cho reopen course
+        case '/admin/reopen-course':
+            if (isset($_SESSION['user_id']) && $_SESSION['user_role'] === 'admin') {
+                require_once('Controller/AdminController.php');
+                $controller = new AdminController();
+                $controller->reopenCourse();
+            } else {
+                http_response_code(401);
+                echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+            }
+            exit();
+            
         default:
             error_log("API endpoint not found: " . $apiPath);
             http_response_code(404);

@@ -280,17 +280,17 @@
                     </div>
                 </div>
                 <div class="course-stat-card">
-                    <div class="stat-icon"><i class="fas fa-users"></i></div>
+                    <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
                     <div class="stat-info">
-                        <h3 id="total-students-in-courses">0</h3>
-                        <p>Tổng Học Viên</p>
+                        <h3 id="completed-courses">0</h3>
+                        <p>Đã Hoàn Thành</p>
                     </div>
                 </div>
                 <div class="course-stat-card">
-                    <div class="stat-icon"><i class="fas fa-calendar"></i></div>
+                    <div class="stat-icon"><i class="fas fa-lock"></i></div>
                     <div class="stat-info">
-                        <h3 id="courses-this-month">0</h3>
-                        <p>Mở Tháng Này</p>
+                        <h3 id="closed-courses">0</h3>
+                        <p>Đã Đóng</p>
                     </div>
                 </div>
             </div>
@@ -565,33 +565,15 @@
 
     <!-- Course Detail Modal -->
     <div id="course-detail-modal" class="modal">
-        <div class="modal-content course-detail-modal">
-            <div class="modal-header">
-                <h3 id="course-detail-title"></h3>
-                <span class="close" onclick="closeCourseDetailModal()">&times;</span>
-            </div>
-            <div class="course-detail-content" id="course-detail-content">
-                <!-- Course details will be loaded here -->
-            </div>
-        </div>
-    </div>
-
-    <!-- Logout Confirmation Modal -->
-    <div id="logout-modal" class="modal" style="display: none;">
         <div class="modal-content">
             <div class="modal-header">
-                <h3><i class="fas fa-sign-out-alt"></i> Xác nhận đăng xuất</h3>
+                <h2 id="course-detail-title">Chi tiết khóa học</h2>
+                <span class="close" onclick="closeCourseDetailModal()">&times;</span>
             </div>
             <div class="modal-body">
-                <p>Bạn có chắc chắn muốn đăng xuất khỏi hệ thống?</p>
-            </div>
-            <div class="modal-footer">
-                <button class="cancel-btn" onclick="closeLogoutModal()">
-                    <i class="fas fa-times"></i> Hủy
-                </button>
-                <button class="logout-confirm-btn" onclick="confirmLogout()">
-                    <i class="fas fa-sign-out-alt"></i> Đăng xuất
-                </button>
+                <div id="course-detail-content">
+                    <!-- Content will be populated by JavaScript -->
+                </div>
             </div>
         </div>
     </div>

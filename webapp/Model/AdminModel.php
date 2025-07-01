@@ -56,8 +56,8 @@ class AdminModel extends BaseModel {
             $stats['total_tutors'] = $result->fetch_assoc()['total_tutors'];
             $stmt->close();
             
-            // Get total classes
-            $sql = "SELECT COUNT(*) as total_classes FROM classes WHERE is_active = 1";
+            // Get total classes - sử dụng status thay vì is_active
+            $sql = "SELECT COUNT(*) as total_classes FROM classes WHERE status IN ('active', 'completed')";
             $stmt = $this->db->prepare($sql);
             $stmt->execute();
             $result = $stmt->get_result();
@@ -173,17 +173,17 @@ class AdminModel extends BaseModel {
     public function getAllClasses($limit = 20, $offset = 0) {
         try {
             $sql = "SELECT c.*, 
-                           u.full_name as tutor_name,
-                           COUNT(DISTINCT e.student_id) as student_count
-                    FROM classes c
-                    LEFT JOIN class_tutors ct ON c.id = ct.class_id AND ct.status = 'active'
-                    LEFT JOIN users u ON ct.tutor_id = u.id
-                    LEFT JOIN enrollments e ON c.id = e.class_id AND e.status = 'active'
-                    WHERE c.is_active = 1
-                    GROUP BY c.id
-                    ORDER BY c.created_at DESC
-                    LIMIT ? OFFSET ?";
-            
+                       u.full_name as tutor_name,
+                       COUNT(DISTINCT e.student_id) as student_count
+                FROM classes c
+                LEFT JOIN class_tutors ct ON c.id = ct.class_id AND ct.status = 'active'
+                LEFT JOIN users u ON ct.tutor_id = u.id
+                LEFT JOIN enrollments e ON c.id = e.class_id AND e.status = 'active'
+                WHERE c.status IN ('active', 'completed')
+                GROUP BY c.id
+                ORDER BY c.created_at DESC
+                LIMIT ? OFFSET ?";
+        
             $stmt = $this->db->prepare($sql);
             $stmt->bind_param("ii", $limit, $offset);
             $stmt->execute();
@@ -460,12 +460,12 @@ class AdminModel extends BaseModel {
             $stats['new_enrollments_this_month'] = $result->fetch_assoc()['new_enrollments'];
             $stmt->close();
             
-            // Classes started this month
+            // Classes started this month - sử dụng status thay vì is_active
             $sql = "SELECT COUNT(*) as new_classes 
                     FROM classes 
                     WHERE MONTH(start_date) = ? 
                     AND YEAR(start_date) = ?
-                    AND is_active = 1";
+                    AND status IN ('active', 'completed')";
             $stmt = $this->db->prepare($sql);
             $stmt->bind_param("ii", $current_month, $current_year);
             $stmt->execute();
@@ -609,83 +609,44 @@ class AdminModel extends BaseModel {
         try {
             error_log("=== getAllCourses DEBUG START ===");
             
-            // First, check if classes table exists and has data
-            $checkSql = "SELECT COUNT(*) as total FROM classes";
-            $checkResult = $this->db->query($checkSql);
-            if ($checkResult) {
-                $total = $checkResult->fetch_assoc()['total'];
-                error_log("Total records in classes table: " . $total);
-            } else {
-                error_log("Failed to count classes: " . $this->db->error);
-            }
+            // Bao gồm cả status 'closed' để hiển thị khóa học đã đóng
+            $sql = "SELECT c.*, 
+                    COALESCE(u.full_name, 'Chưa phân công') as tutor_name,
+                    COUNT(DISTINCT e.student_id) as current_students,
+                    COALESCE(completed_sessions.sessions_completed, 0) as actual_sessions_completed
+                    FROM classes c
+                    LEFT JOIN class_tutors ct ON c.id = ct.class_id AND ct.status = 'active'
+                    LEFT JOIN users u ON ct.tutor_id = u.id
+                    LEFT JOIN enrollments e ON c.id = e.class_id AND e.status = 'active'
+                    LEFT JOIN (
+                        SELECT class_id, COUNT(*) as sessions_completed
+                        FROM sessions 
+                        WHERE status = 'completed'
+                        GROUP BY class_id
+                    ) completed_sessions ON c.id = completed_sessions.class_id
+                    WHERE c.status IN ('active', 'completed', 'closed')
+                    GROUP BY c.id 
+                    ORDER BY c.status = 'active' DESC, c.status = 'completed' DESC, c.created_at DESC";
             
-            // Check is_active field exists
-            $checkActive = "SELECT COUNT(*) as active_count FROM classes WHERE is_active = 1";
-            $activeResult = $this->db->query($checkActive);
-            if ($activeResult) {
-                $activeCount = $activeResult->fetch_assoc()['active_count'];
-                error_log("Active classes count: " . $activeCount);
-            } else {
-                error_log("is_active field might not exist: " . $this->db->error);
-                // Try without is_active filter
-                $checkActive = "SELECT COUNT(*) as active_count FROM classes";
-                $activeResult = $this->db->query($checkActive);
-                if ($activeResult) {
-                    $activeCount = $activeResult->fetch_assoc()['active_count'];
-                    error_log("Total classes without is_active filter: " . $activeCount);
-                }
-            }
+            error_log("SQL Query: " . $sql);
             
-            // Try simplified query first
-            $simpleSql = "SELECT c.* FROM classes c ORDER BY c.created_at DESC LIMIT 10";
-            error_log("Trying simple query: " . $simpleSql);
-            
-            $simpleResult = $this->db->query($simpleSql);
-            if ($simpleResult) {
-                $simpleData = $simpleResult->fetch_all(MYSQLI_ASSOC);
-                error_log("Simple query returned " . count($simpleData) . " courses");
-                error_log("First course: " . json_encode($simpleData[0] ?? 'No data'));
-            } else {
-                error_log("Simple query failed: " . $this->db->error);
+            $result = $this->db->query($sql);
+            if (!$result) {
+                error_log("Query failed: " . $this->db->error);
                 return [];
             }
             
-            // Now try the full query but modify based on what exists
-            $sql = "SELECT c.*, 
-                   ct.tutor_id,
-                   u.full_name as tutor_name,
-                   COUNT(DISTINCT e.student_id) as current_students
-            FROM classes c
-            LEFT JOIN class_tutors ct ON c.id = ct.class_id AND ct.status = 'active'
-            LEFT JOIN users u ON ct.tutor_id = u.id
-            LEFT JOIN enrollments e ON c.id = e.class_id AND e.status = 'active'
-            GROUP BY c.id
-            ORDER BY c.created_at DESC";
-    
-        error_log("Full SQL Query: " . $sql);
-        
-        $result = $this->db->query($sql);
-        if (!$result) {
-            error_log("Full query failed: " . $this->db->error);
+            $courses = $result->fetch_all(MYSQLI_ASSOC);
+            error_log("Query successful, found " . count($courses) . " courses");
             
-            // Fallback to simple query
-            error_log("Using fallback simple query");
-            return $simpleData;
-        }
-    
-        $courses = $result->fetch_all(MYSQLI_ASSOC);
-        error_log("Full query successful, found " . count($courses) . " courses");
-        
-        if (count($courses) > 0) {
-            error_log("First course data: " . json_encode($courses[0]));
-        }
-        
-        error_log("=== getAllCourses DEBUG END ===");
-        return $courses;
-    
+            if (count($courses) > 0) {
+                error_log("First course data: " . json_encode($courses[0]));
+            }
+            
+            return $courses;
+            
         } catch (Exception $e) {
             error_log("Exception in getAllCourses: " . $e->getMessage());
-            error_log("Exception trace: " . $e->getTraceAsString());
             return [];
         }
     }
@@ -760,6 +721,42 @@ class AdminModel extends BaseModel {
             
         } catch (Exception $e) {
             error_log("Error closing course: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    public function reopenCourse($courseId) {
+        try {
+            error_log("Reopening course with ID: " . $courseId);
+            
+            $sql = "UPDATE classes SET status = 'active', updated_at = NOW() WHERE id = ? AND status = 'closed'";
+            
+            $stmt = $this->db->prepare($sql);
+            if (!$stmt) {
+                error_log("Prepare failed: " . $this->db->error);
+                return false;
+            }
+            
+            $stmt->bind_param("i", $courseId);
+            if (!$stmt->execute()) {
+                error_log("Execute failed: " . $stmt->error);
+                $stmt->close();
+                return false;
+            }
+            
+            $affected_rows = $stmt->affected_rows;
+            $stmt->close();
+            
+            if ($affected_rows > 0) {
+                error_log("Course reopened successfully");
+                return true;
+            } else {
+                error_log("No course was reopened - may not exist or not closed");
+                return false;
+            }
+            
+        } catch (Exception $e) {
+            error_log("Error reopening course: " . $e->getMessage());
             return false;
         }
     }

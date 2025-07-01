@@ -449,5 +449,45 @@ class AdminController extends BaseController {
         }
         exit();
     }
+    
+    // API endpoint for reopening course
+    public function reopenCourse() {
+        header('Content-Type: application/json');
+        
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            http_response_code(405);
+            echo json_encode(['success' => false, 'message' => 'Method not allowed']);
+            exit();
+        }
+        
+        if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
+            http_response_code(401);
+            echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+            exit();
+        }
+        
+        try {
+            $input = json_decode(file_get_contents('php://input'), true);
+            $courseId = intval($input['course_id'] ?? 0);
+            
+            if ($courseId <= 0) {
+                echo json_encode(['success' => false, 'message' => 'ID khóa học không hợp lệ']);
+                exit();
+            }
+            
+            $result = $this->adminModel->reopenCourse($courseId);
+            
+            if ($result) {
+                echo json_encode(['success' => true, 'message' => 'Mở lại khóa học thành công']);
+            } else {
+                echo json_encode(['success' => false, 'message' => 'Không thể mở lại khóa học']);
+            }
+            
+        } catch (Exception $e) {
+            error_log("Error reopening course: " . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Lỗi hệ thống']);
+        }
+        exit();
+    }
 }
 ?>

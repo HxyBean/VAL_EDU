@@ -1,6 +1,3 @@
-<?php
-
-?>
 <header class="header">
     <div class="logo">
         <img src="/webapp/View/images/logo_transparent.png" alt="VAL Edu" style="height: 40px;">
@@ -26,3 +23,22 @@
         </button>
     </div>
 </header>
+<div id="logout-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3><i class="fas fa-sign-out-alt"></i> Xác nhận đăng xuất</h3>
+        </div>
+        <div class="modal-body">
+            <p>Bạn có chắc chắn muốn đăng xuất khỏi hệ thống?</p>
+        </div>
+        <div class="modal-footer">
+            <button class="cancel-btn" onclick="closeLogoutModal()">
+                <i class="fas fa-times"></i> Hủy
+            </button>
+            <button class="logout-confirm-btn" onclick="confirmLogout()">
+                <i class="fas fa-sign-out-alt"></i> Đăng xuất
+            </button>
+        </div>
+    </div>
+</div>
+<script src="/webapp/View/Partial/DashboardHeader.js" defer></script>
