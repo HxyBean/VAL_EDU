@@ -1907,3 +1907,566 @@ function closeEditTutorModal() {
         if (form) form.reset();
     }, 300);
 }
+
+// Load and display students
+function loadStudents() {
+    const tableBody = document.getElementById('students-table-body');
+    const loadingElement = document.getElementById('students-loading');
+    const noStudentsElement = document.getElementById('no-students');
+
+    if (!tableBody || !loadingElement || !noStudentsElement) return;
+
+    // Show loading state
+    tableBody.style.display = 'none';
+    loadingElement.style.display = 'block';
+    noStudentsElement.style.display = 'none';
+
+    fetch('/webapp/api/admin/get-students')
+        .then(response => response.json())
+        .then(data => {
+            loadingElement.style.display = 'none';
+
+            if (data.success && data.students && data.students.length > 0) {
+                tableBody.innerHTML = data.students.map((student, index) => `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td>${student.id}</td>
+                        <td>${student.full_name}</td>
+                        <td>${student.email}</td>
+                        <td>${formatDate(student.created_at)}</td>
+                        <td>
+                            <span class="student-status ${student.is_active ? 'active' : 'inactive'}">
+                                ${student.is_active ? 'Đang hoạt động' : 'Ngừng hoạt động'}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="action-buttons">
+                                <button class="btn-icon btn-view" onclick="viewStudent(${student.id})" title="Xem chi tiết">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button class="btn-icon btn-edit" onclick="editStudent(${student.id})" title="Chỉnh sửa">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `).join('');
+                tableBody.style.display = 'table-row-group';
+            } else {
+                noStudentsElement.style.display = 'block';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            loadingElement.style.display = 'none';
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="7" class="error-message">
+                        <i class="fas fa-exclamation-circle"></i>
+                        Có lỗi xảy ra khi tải danh sách học viên
+                    </td>
+                </tr>
+            `;
+            tableBody.style.display = 'table-row-group';
+        });
+}
+
+// Helper function to format date
+function formatDate(dateString) {
+    const options = {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+    };
+    return new Date(dateString).toLocaleDateString('vi-VN', options);
+}
+
+// Call loadStudents when the page loads
+document.addEventListener('DOMContentLoaded', function () {
+    if (document.getElementById('manage_students').classList.contains('active')) {
+        loadStudents();
+    }
+});
+
+// Load students when switching to student management tab
+document.querySelector('[href="#manage_students"]').addEventListener('click', function () {
+    loadStudents();
+});
+
+// Edit student
+function editStudent(studentId) {
+    const modal = document.getElementById('edit-student-modal');
+    const form = document.getElementById('edit-student-form');
+
+    if (!modal || !form) {
+        console.error('Modal elements not found');
+        return;
+    }
+
+    // Show loading state
+    form.innerHTML = `
+        <div class="loading-state">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p>Đang tải thông tin học viên...</p>
+        </div>
+    `;
+
+    // Show modal
+    modal.style.display = 'block';
+    document.body.style.overflow = 'hidden';
+
+    // Add show class for animation
+    setTimeout(() => {
+        modal.classList.add('show');
+    }, 10);
+
+    // Fetch student details
+    fetch(`/webapp/api/admin/student-details?id=${studentId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.student) {
+                populateEditStudentForm(data.student);
+            } else {
+                throw new Error(data.message || 'Failed to load student details');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showMessage('Lỗi: ' + error.message, 'error');
+            closeEditStudentModal();
+        });
+}
+
+// Populate edit form
+function populateEditStudentForm(student) {
+    const form = document.getElementById('edit-student-form');
+    form.innerHTML = `
+        <input type="hidden" id="edit-student-id" name="student_id" value="${student.id}">
+        
+        <div class="form-group">
+            <label for="edit-student-fullname">Họ và Tên <span class="required">*</span></label>
+            <input type="text" id="edit-student-fullname" name="fullname" required 
+                   value="${student.full_name || ''}">
+        </div>
+
+        <div class="form-group">
+            <label for="edit-student-email">Email <span class="required">*</span></label>
+            <input type="email" id="edit-student-email" name="email" required 
+                   value="${student.email || ''}">
+        </div>
+
+        <div class="form-group">
+            <label for="edit-student-phone">Số điện thoại</label>
+            <input type="tel" id="edit-student-phone" name="phone" 
+                   value="${student.phone || ''}">
+        </div>
+
+        <div class="form-group">
+            <label for="edit-student-status">Trạng thái</label>
+            <select id="edit-student-status" name="is_active">
+                <option value="1" ${student.is_active == 1 ? 'selected' : ''}>Đang học</option>
+                <option value="0" ${student.is_active == 0 ? 'selected' : ''}>Ngừng học</option>
+            </select>
+        </div>
+
+        <div class="modal-footer">
+            <button type="button" class="btn btn-success" onclick="showAddToCourseModal(${student.id})">
+                <i class="fas fa-plus-circle"></i> Thêm vào khóa học
+            </button>
+                                                                                                                                                                                                                                                                                                                                                                                                                         <button type="button" class="btn btn-secondary" onclick="closeEditStudentModal()">Hủy</button>
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save"></i> Lưu thay đổi
+            </button>
+        </div>
+    `;
+}
+
+// Update student
+function updateStudent(event) {
+    event.preventDefault();
+    const form = event.target;
+    const formData = new FormData(form);
+
+    // Show loading state
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang lưu...';
+    submitBtn.disabled = true;
+
+    fetch('/webapp/api/admin/update-student', {
+        method: 'POST',
+        body: formData
+    })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                showMessage('Cập nhật thông tin thành công!', 'success');
+                closeEditStudentModal();
+                loadStudents(); // Refresh students list
+            } else {
+                throw new Error(data.message || 'Có lỗi xảy ra');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showMessage('Lỗi: ' + error.message, 'error');
+        })
+        .finally(() => {
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+        });
+}
+
+// Close edit modal
+function closeEditStudentModal() {
+    const modal = document.getElementById('edit-student-modal');
+    if (!modal) return;
+
+    modal.classList.remove('show');
+
+    setTimeout(() => {
+        modal.style.display = 'none';
+        document.body.style.overflow = 'auto';
+        const form = document.getElementById('edit-student-form');
+        if (form) form.reset();
+    }, 300);
+}
+
+// ===========================================
+// ADD STUDENT TO COURSE MODAL FUNCTIONS
+// ===========================================
+
+// Show Add Student to Course Modal
+function showAddToCourseModal(studentId) {
+    const modal = document.getElementById('add-student-course-modal');
+    const coursesList = document.getElementById('available-courses-list');
+
+    if (!modal || !coursesList) return;
+
+    // Show loading state
+    coursesList.innerHTML = `
+        <div class="loading-state">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p>Đang tải danh sách khóa học...</p>
+        </div>
+    `;
+
+    // Show modal
+    modal.style.display = 'block';
+    document.body.style.overflow = 'hidden';
+
+    fetch('/webapp/api/admin/available-courses')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success && data.courses) {
+                displayAvailableCourses(data.courses, studentId);
+            } else {
+                throw new Error(data.message || 'Failed to load courses');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            coursesList.innerHTML = `
+                <div class="error-state">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <h3>Có lỗi xảy ra</h3>
+                    <p>${error.message}</p>
+                </div>
+            `;
+        });
+}
+
+function displayAvailableCourses(courses, studentId) {
+    const coursesList = document.getElementById('available-courses-list');
+
+    if (courses.length === 0) {
+        coursesList.innerHTML = `
+            <div class="no-courses">
+                <i class="fas fa-info-circle"></i>
+                <p>Không có khóa học nào khả dụng</p>
+            </div>
+        `;
+        return;
+    }
+
+    const coursesHtml = courses.map(course => `
+        <div class="course-item ${course.available_slots <= 0 ? 'full' : ''}">
+            <div class="course-info">
+                <h4>${course.class_name}</h4>
+                <p><i class="fas fa-users"></i> ${course.enrolled_students}/${course.max_students} học viên</p>
+                <p><i class="fas fa-calendar"></i> ${formatSchedule(course)}</p>
+                <p><i class="fas fa-money-bill"></i> ${formatCurrency(course.price_per_session)}/buổi</p>
+            </div>
+            <button 
+                class="btn-enroll" 
+                onclick="enrollStudent(${studentId}, ${course.id})"
+                ${course.available_slots <= 0 ? 'disabled' : ''}
+            >
+                ${course.available_slots <= 0 ? 'Lớp đã đầy' : 'Thêm vào lớp'}
+            </button>
+        </div>
+    `).join('');
+
+    coursesList.innerHTML = `
+        <div class="courses-grid">
+            ${coursesHtml}
+        </div>
+    `;
+}
+
+function enrollStudent(studentId, courseId) {
+    const button = event.target;
+    const originalText = button.innerHTML;
+    button.disabled = true;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang xử lý...';
+
+    fetch('/webapp/api/admin/enroll-student', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            student_id: studentId,
+            course_id: courseId
+        })
+    })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                showMessage('Thêm học viên vào lớp thành công!', 'success');
+                closeAddStudentToCourseModal();
+                // Refresh student details if needed
+                viewStudent(studentId);
+            } else {
+                throw new Error(data.message || 'Có lỗi xảy ra');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showMessage('Lỗi: ' + error.message, 'error');
+            button.disabled = false;
+            button.innerHTML = originalText;
+        });
+}
+
+function closeAddStudentToCourseModal() {
+    const modal = document.getElementById('add-student-course-modal');
+    if (!modal) return;
+
+    modal.classList.remove('show');
+
+    setTimeout(() => {
+        modal.style.display = 'none';
+        document.body.style.overflow = 'auto';
+    }, 300);
+}
+
+// View student details
+function viewStudent(studentId) {
+    const modal = document.getElementById('student-detail-modal');
+    const content = document.getElementById('student-detail-content');
+
+    if (!modal || !content) return;
+
+    // Show loading state
+    content.innerHTML = `
+        <div class="loading-state">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p>Đang tải thông tin học viên...</p>
+        </div>
+    `;
+
+    // Show modal
+    modal.style.display = 'block';
+    document.body.style.overflow = 'hidden';
+
+    // Add show class for animation
+    setTimeout(() => {
+        modal.classList.add('show');
+    }, 10);
+
+    // Fetch student details
+    fetch(`/webapp/api/admin/student-details?id=${studentId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.student) {
+                displayStudentDetails(data.student);
+            } else {
+                throw new Error(data.message || 'Failed to load student details');
+            }
+        })
+        .catch(error => {
+            content.innerHTML = `
+                <div class="error-state">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <h3>Có lỗi xảy ra</h3>
+                    <p>${error.message}</p>
+                </div>
+            `;
+        });
+}
+
+// Display student details in modal
+function displayStudentDetails(student) {
+    const content = document.getElementById('student-detail-content');
+
+    content.innerHTML = `
+        <div class="student-profile">
+            <div class="student-avatar">
+                <i class="fas fa-user-graduate"></i>
+            </div>
+            <h2>${student.full_name}</h2>
+            <span class="student-status ${student.is_active ? 'active' : 'inactive'}">
+                <i class="fas fa-circle"></i>
+                ${student.is_active ? 'Đang học' : 'Ngừng học'}
+            </span>
+        </div>
+
+        <div class="info-section">
+            <h3>Thông tin cơ bản</h3>
+            <div class="info-grid">
+                <div class="info-item">
+                    <i class="fas fa-envelope"></i>
+                    <span class="label">Email:</span>
+                    ${student.email}
+                </div>
+                <div class="info-item">
+                    <i class="fas fa-phone"></i>
+                    <span class="label">Số điện thoại:</span>
+                    ${student.phone || 'Chưa cập nhật'}
+                </div>
+                <div class="info-item">
+                    <i class="fas fa-calendar-alt"></i>
+                    <span class="label">Ngày tham gia:</span>
+                    ${formatDate(student.created_at)}
+                </div>
+            </div>
+        </div>
+
+        <div class="info-section">
+            <h3>Khóa học đang theo học</h3>
+            ${student.enrollments && student.enrollments.length > 0 ? `
+                <div class="enrollments-table">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Tên khóa học</th>
+                                <th>Ngày bắt đầu</th>
+                                <th>Trạng thái</th>
+                                <th>Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${student.enrollments.map(enrollment => `
+                                <tr>
+                                    <td>${enrollment.class_name}</td>
+                                    <td>${formatDate(enrollment.enrollment_date)}</td>
+                                    <td>
+                                        <span class="status ${enrollment.enrollment_status}">
+                                            ${enrollment.enrollment_status === 'active' ? 'Đang học' : 'Hoàn thành'}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <button class="btn-icon btn-delete" 
+                                                onclick="removeFromCourse(${student.id}, ${enrollment.class_id})"
+                                                title="Xóa khỏi khóa học">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            ` : `
+                <div class="no-enrollments">
+                    <i class="fas fa-info-circle"></i>
+                    <p>Học viên chưa tham gia khóa học nào</p>
+                </div>
+            `}
+        </div>
+    `;
+}
+
+// Close student detail modal
+function closeStudentDetailModal() {
+    const modal = document.getElementById('student-detail-modal');
+    if (!modal) return;
+
+    modal.classList.remove('show');
+
+    setTimeout(() => {
+        modal.style.display = 'none';
+        document.body.style.overflow = 'auto';
+    }, 300);
+}
+
+function removeFromCourse(studentId, courseId) {
+    if (!confirm('Bạn có chắc chắn muốn xóa học viên này khỏi khóa học không?')) {
+        return;
+    }
+
+    const button = event.target.closest('button');
+    const originalHTML = button.innerHTML;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    button.disabled = true;
+
+    // Parse IDs to integers
+    studentId = parseInt(studentId);
+    courseId = parseInt(courseId);
+
+    // Log data being sent
+    console.log('Removing student from course:', { student_id: studentId, course_id: courseId });
+
+    fetch('/webapp/api/admin/remove-from-course', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            student_id: studentId,
+            course_id: courseId
+        })
+    })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(data => {
+                    throw new Error(data.message || `HTTP error! status: ${response.status}`);
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                showMessage(data.message || 'Đã xóa học viên khỏi khóa học thành công', 'success');
+                viewStudent(studentId); // Refresh student details
+            } else {
+                throw new Error(data.message || 'Có lỗi xảy ra');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showMessage('Lỗi: ' + error.message, 'error');
+        })
+        .finally(() => {
+            button.innerHTML = originalHTML;
+            button.disabled = false;
+        });
+}
