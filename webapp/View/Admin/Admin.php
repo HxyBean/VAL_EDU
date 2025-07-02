@@ -147,51 +147,45 @@
             <div class="section-header">
                 <div class="search-bar">
                     <i class="fas fa-search"></i>
-                    <input type="text" placeholder="Tìm kiếm học viên...">
+                    <input type="text" id="student-search" 
+                           placeholder="Tìm kiếm học viên..." 
+                           onkeyup="searchStudents()">
                 </div>
-                <button class="btn-primary"><i class="fas fa-plus"></i> Thêm Học Viên Mới</button>
+                <button class="btn-primary">
+                    <i class="fas fa-plus"></i> Thêm Học Viên Mới
+                </button>
             </div>
 
             <div class="table-container">
                 <table class="data-table">
                     <thead>
                         <tr>
-                            <th>Mã</th>
-                            <th>Họ Tên</th>
+                            <th>STT</th>
+                            <th>Mã học viên</th>
+                            <th>Họ và tên</th>
                             <th>Email</th>
-                            <th>Cấp Độ Khóa Học</th>
-                            <th>Ngày Đăng Ký</th>
-                            <th>Trạng Thái</th>
-                            <th>Thao Tác</th>
+                            <th>Ngày đăng ký</th>
+                            <th>Trạng thái</th>
+                            <th>Thao tác</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        <tr>
-                            <td>001</td>
-                            <td>Sarah Johnson</td>
-                            <td>sarah.j@email.com</td>
-                            <td>Trung Cấp</td>
-                            <td>15/01/2024</td>
-                            <td><span class="status active">Hoạt Động</span></td>
-                            <td>
-                                <button class="btn-edit"><i class="fas fa-edit"></i></button>
-                                <button class="btn-delete"><i class="fas fa-trash"></i></button>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>002</td>
-                            <td>John Doe</td>
-                            <td>john.d@email.com</td>
-                            <td>Nâng Cao</td>
-                            <td>20/02/2024</td>
-                            <td><span class="status active">Hoạt Động</span></td>
-                            <td>
-                                <button class="btn-edit"><i class="fas fa-edit"></i></button>
-                                <button class="btn-delete"><i class="fas fa-trash"></i></button>
-                            </td>
-                        </tr>
+                    <tbody id="students-table-body">
+                        <!-- Data will be loaded here by JavaScript -->
                     </tbody>
                 </table>
+                
+                <!-- Loading State -->
+                <div id="students-loading" class="table-loading-state">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <p>Đang tải danh sách học viên...</p>
+                </div>
+
+                <!-- Empty State -->
+                <div id="no-students" class="table-empty-state" style="display: none;">
+                    <i class="fas fa-user-graduate"></i>
+                    <h3>Chưa có học viên nào</h3>
+                    <p>Thêm học viên mới để bắt đầu</p>
+                </div>
             </div>
         </section>        <!-- Manage Teachers Section -->
         <section id="manage_teachers" class="content-section">
@@ -675,6 +669,82 @@
                         </button>
                     </div>
                 </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Student Modal -->
+    <div id="edit-student-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-edit"></i> Chỉnh sửa thông tin học viên</h3>
+                <span class="close" onclick="closeEditStudentModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="edit-student-form" class="form-grid" onsubmit="updateStudent(event)">
+                    <input type="hidden" id="edit-student-id" name="student_id">
+                    
+                    <div class="form-group">
+                        <label for="edit-student-fullname">Họ và Tên <span class="required">*</span></label>
+                        <input type="text" id="edit-student-fullname" name="fullname" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="edit-student-email">Email <span class="required">*</span></label>
+                        <input type="email" id="edit-student-email" name="email" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="edit-student-phone">Số điện thoại</label>
+                        <input type="tel" id="edit-student-phone" name="phone">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="edit-student-status">Trạng thái</label>
+                        <select id="edit-student-status" name="is_active">
+                            <option value="1">Đang học</option>
+                            <option value="0">Ngừng học</option>
+                        </select>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-success" onclick="showAddToCourseModal()">
+                            <i class="fas fa-plus-circle"></i> Thêm vào khóa học
+                        </button>
+                        <button type="button" class="btn btn-secondary" onclick="closeEditStudentModal()">Hủy</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Lưu thay đổi
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Student To Course Modal -->
+    <div id="add-student-course-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-plus-circle"></i> Thêm vào khóa học</h3>
+                <span class="close" onclick="closeAddStudentToCourseModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div id="available-courses-list">
+                    <!-- Courses will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Student Detail Modal -->
+    <div id="student-detail-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-user-graduate"></i> Thông tin học viên</h3>
+                <span class="close" onclick="closeStudentDetailModal()">&times;</span>
+            </div>
+            <div class="modal-body" id="student-detail-content">
+                <!-- Content will be populated by JavaScript -->
             </div>
         </div>
     </div>

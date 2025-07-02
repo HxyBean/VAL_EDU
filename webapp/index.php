@@ -256,6 +256,72 @@ if (strpos($path, '/api/') === 0) {
             }
             exit();
             
+        case '/admin/get-students':
+            if (isset($_SESSION['user_id']) && $_SESSION['user_role'] === 'admin') {
+                require_once('Controller/AdminController.php');
+                $controller = new AdminController();
+                $controller->getStudents();
+            } else {
+                http_response_code(401);
+                echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+            }
+            exit();
+            
+        case '/admin/student-details':
+            if (isset($_SESSION['user_id']) && $_SESSION['user_role'] === 'admin') {
+                require_once('Controller/AdminController.php');
+                $controller = new AdminController();
+                $controller->getStudentDetails();
+            } else {
+                http_response_code(401);
+                echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+            }
+            exit();
+
+        case '/admin/update-student':
+            if (isset($_SESSION['user_id']) && $_SESSION['user_role'] === 'admin') {
+                require_once('Controller/AdminController.php');
+                $controller = new AdminController();
+                $controller->updateStudent();
+            } else {
+                http_response_code(401);
+                echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+            }
+            exit();
+            
+        case '/admin/available-courses':
+            if (isset($_SESSION['user_id']) && $_SESSION['user_role'] === 'admin') {
+                require_once('Controller/AdminController.php');
+                $controller = new AdminController();
+                $controller->getAvailableCourses();
+            } else {
+                http_response_code(401);
+                echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+            }
+            exit();
+
+        case '/admin/enroll-student':
+            if (isset($_SESSION['user_id']) && $_SESSION['user_role'] === 'admin') {
+                require_once('Controller/AdminController.php');
+                $controller = new AdminController();
+                $controller->enrollStudent();
+            } else {
+                http_response_code(401);
+                echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+            }
+            exit();
+            
+        case '/admin/remove-from-course':
+            if (isset($_SESSION['user_id']) && $_SESSION['user_role'] === 'admin') {
+                require_once('Controller/AdminController.php');
+                $controller = new AdminController();
+                $controller->removeFromCourse();
+            } else {
+                http_response_code(401);
+                echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+            }
+            exit();
+            
         default:
             error_log("API endpoint not found: " . $apiPath);
             http_response_code(404);

@@ -1091,5 +1091,301 @@ public function updateTutor($tutorId, $data) {
         throw $e;
     }
 }
+
+public function getStudentDetails($studentId) {
+    try {
+        // Get student basic info
+        $sql = "SELECT u.id, u.username, u.full_name, u.email, u.phone, 
+                u.created_at, u.is_active,
+                (SELECT COUNT(*) FROM enrollments e 
+                 WHERE e.student_id = u.id AND e.status = 'active') as active_classes
+                FROM users u 
+                WHERE u.id = ? AND u.role = 'student'";
+        
+        $stmt = $this->db->prepare($sql);
+        if (!$stmt) {
+            throw new Exception("Prepare failed: " . $this->db->error);
+        }
+
+        $stmt->bind_param("i", $studentId);
+        if (!$stmt->execute()) {
+            throw new Exception("Execute failed: " . $stmt->error);
+        }
+
+        $result = $stmt->get_result();
+        $student = $result->fetch_assoc();
+        $stmt->close();
+
+        if (!$student) {
+            return null;
+        }
+
+        // Get student's active enrollments
+        $sql = "SELECT c.*, e.enrollment_date, e.status as enrollment_status
+                FROM enrollments e
+                INNER JOIN classes c ON e.class_id = c.id
+                WHERE e.student_id = ? AND e.status = 'active'
+                ORDER BY e.enrollment_date DESC";
+        
+        $stmt = $this->db->prepare($sql);
+        if (!$stmt) {
+            throw new Exception("Prepare failed: " . $this->db->error);
+        }
+
+        $stmt->bind_param("i", $studentId);
+        if (!$stmt->execute()) {
+            throw new Exception("Execute failed: " . $stmt->error);
+        }
+
+        $result = $stmt->get_result();
+        $student['enrollments'] = $result->fetch_all(MYSQLI_ASSOC);
+        $stmt->close();
+
+        return $student;
+
+    } catch (Exception $e) {
+        error_log("Error getting student details: " . $e->getMessage());
+        throw $e;
+    }
+}
+
+public function updateStudent($studentId, $data) {
+    try {
+        $this->db->begin_transaction();
+
+        // Check if email already exists for other students
+        $stmt = $this->db->prepare("SELECT id FROM users WHERE email = ? AND id != ? AND role = 'student'");
+        $stmt->bind_param("si", $data['email'], $studentId);
+        $stmt->execute();
+        if ($stmt->get_result()->num_rows > 0) {
+            throw new Exception('Email đã tồn tại');
+        }
+        $stmt->close();
+
+        // Update student information
+        $sql = "UPDATE users SET 
+                full_name = ?,
+                email = ?,
+                phone = ?,
+                is_active = ?,
+                updated_at = NOW()
+                WHERE id = ? AND role = 'student'";
+
+        $stmt = $this->db->prepare($sql);
+        if (!$stmt) {
+            throw new Exception("Prepare failed: " . $this->db->error);
+        }
+
+        $stmt->bind_param("sssii", 
+            $data['full_name'],
+            $data['email'],
+            $data['phone'],
+            $data['is_active'],
+            $studentId
+        );
+
+        if (!$stmt->execute()) {
+            throw new Exception("Execute failed: " . $stmt->error);
+        }
+
+        $affected_rows = $stmt->affected_rows;
+        $stmt->close();
+
+        if ($affected_rows === 0) {
+            throw new Exception("Không tìm thấy học viên với ID: $studentId");
+        }
+
+        $this->db->commit();
+        return true;
+
+    } catch (Exception $e) {
+        $this->db->rollback();
+        error_log("Error updating student: " . $e->getMessage());
+        throw $e;
+    }
+}
+
+public function getAvailableCourses() {
+    try {
+        $sql = "SELECT c.*, 
+                COUNT(DISTINCT e.student_id) as enrolled_students,
+                (c.max_students - COUNT(DISTINCT e.student_id)) as available_slots
+                FROM classes c
+                LEFT JOIN enrollments e ON c.id = e.class_id AND e.status = 'active'
+                WHERE c.status = 'active'
+                GROUP BY c.id
+                HAVING available_slots > 0
+                ORDER BY c.start_date ASC";
+
+        $stmt = $this->db->prepare($sql);
+        if (!$stmt) {
+            throw new Exception("Prepare failed: " . $this->db->error);
+        }
+
+        if (!$stmt->execute()) {
+            throw new Exception("Execute failed: " . $stmt->error);
+        }
+
+        $result = $stmt->get_result();
+        $courses = $result->fetch_all(MYSQLI_ASSOC);
+        $stmt->close();
+
+        // Add some processing for each course
+        foreach ($courses as &$course) {
+            $course['available_slots'] = $course['max_students'] - $course['enrolled_students'];
+            $course['schedule_info'] = $this->formatScheduleInfo($course);
+            $course['price_formatted'] = number_format($course['price_per_session'], 0, ',', '.') . ' VNĐ';
+        }
+
+        return $courses;
+
+    } catch (Exception $e) {
+        error_log("Error getting available courses: " . $e->getMessage());
+        throw $e;
+    }
+}
+
+private function formatScheduleInfo($course) {
+    $days = $course['schedule_days'] ?? '';
+    $time = $course['schedule_time'] ? date('H:i', strtotime($course['schedule_time'])) : '';
+    $duration = $course['schedule_duration'] ?? '';
+    
+    return sprintf("%s %s (%d phút)", $days, $time, $duration);
+}
+
+public function enrollStudent($studentId, $courseId) {
+    try {
+        $this->db->begin_transaction();
+
+        // Check if student exists
+        $stmt = $this->db->prepare("SELECT id FROM users WHERE id = ? AND role = 'student' AND is_active = 1");
+        $stmt->bind_param("i", $studentId);
+        $stmt->execute();
+        if ($stmt->get_result()->num_rows === 0) {
+            throw new Exception("Không tìm thấy học viên hoặc học viên không còn hoạt động");
+        }
+        $stmt->close();
+
+        // Check if course exists and has available slots
+        $sql = "SELECT c.*, 
+                (SELECT COUNT(*) FROM enrollments e 
+                 WHERE e.class_id = c.id AND e.status = 'active') as enrolled_students
+                FROM classes c
+                WHERE c.id = ? AND c.status = 'active'";
+        
+        $stmt = $this->db->prepare($sql);
+        $stmt->bind_param("i", $courseId);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $course = $result->fetch_assoc();
+        $stmt->close();
+
+        if (!$course) {
+            throw new Exception("Khóa học không tồn tại hoặc đã đóng");
+        }
+
+        if ($course['enrolled_students'] >= $course['max_students']) {
+            throw new Exception("Lớp học đã đầy");
+        }
+
+        // Check if student is already enrolled
+        $stmt = $this->db->prepare(
+            "SELECT id FROM enrollments 
+             WHERE student_id = ? AND class_id = ? AND status = 'active'"
+        );
+        $stmt->bind_param("ii", $studentId, $courseId);
+        $stmt->execute();
+        if ($stmt->get_result()->num_rows > 0) {
+            throw new Exception("Học viên đã đăng ký khóa học này");
+        }
+        $stmt->close();
+
+        // Create enrollment
+        $sql = "INSERT INTO enrollments (student_id, class_id, enrollment_date, status) 
+                VALUES (?, ?, CURDATE(), 'active')";
+        $stmt = $this->db->prepare($sql);
+        $stmt->bind_param("ii", $studentId, $courseId);
+        
+        if (!$stmt->execute()) {
+            throw new Exception("Không thể thêm học viên vào lớp");
+        }
+        $stmt->close();
+
+        $this->db->commit();
+        return true;
+
+    } catch (Exception $e) {
+        $this->db->rollback();
+        error_log("Error enrolling student: " . $e->getMessage());
+        throw $e;
+    }
+}
+
+public function removeFromCourse($studentId, $courseId) {
+    try {
+        $this->db->begin_transaction();
+
+        // Validate input
+        if (!$studentId || !$courseId) {
+            throw new Exception("Thông tin không hợp lệ");
+        }
+
+        // Check if enrollment exists and is active
+        $sql = "SELECT id FROM enrollments 
+                WHERE student_id = ? AND class_id = ? AND status = 'active'";
+        
+        $stmt = $this->db->prepare($sql);
+        if (!$stmt) {
+            throw new Exception("Lỗi truy vấn: " . $this->db->error);
+        }
+
+        $stmt->bind_param("ii", $studentId, $courseId);
+        
+        if (!$stmt->execute()) {
+            throw new Exception("Lỗi thực thi: " . $stmt->error);
+        }
+        
+        $result = $stmt->get_result();
+        if ($result->num_rows === 0) {
+            $stmt->close();
+            throw new Exception("Học viên không có trong lớp học này");
+        }
+        $stmt->close();
+
+        // Update enrollment status to 'dropped'
+        $sql = "UPDATE enrollments 
+                SET status = 'dropped', 
+                    updated_at = NOW() 
+                WHERE student_id = ? 
+                AND class_id = ? 
+                AND status = 'active'";
+
+        $stmt = $this->db->prepare($sql);
+        if (!$stmt) {
+            throw new Exception("Lỗi truy vấn: " . $this->db->error);
+        }
+
+        $stmt->bind_param("ii", $studentId, $courseId);
+        
+        if (!$stmt->execute()) {
+            throw new Exception("Lỗi cập nhật: " . $stmt->error);
+        }
+        
+        $affected_rows = $stmt->affected_rows;
+        $stmt->close();
+
+        if ($affected_rows === 0) {
+            throw new Exception("Không thể xóa học viên khỏi lớp học");
+        }
+
+        $this->db->commit();
+        return true;
+
+    } catch (Exception $e) {
+        $this->db->rollback();
+        error_log("Error removing student from course: " . $e->getMessage());
+        throw $e;
+    }
+}
 }
 ?>

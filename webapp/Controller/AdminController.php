@@ -745,5 +745,240 @@ class AdminController extends BaseController {
         }
         exit();
     }
+
+    // API endpoint for getting all students
+    public function getStudents() {
+        header('Content-Type: application/json');
+        
+        try {
+            if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
+                throw new Exception('Unauthorized');
+            }
+
+            $students = $this->adminModel->getAllStudents();
+            
+            echo json_encode([
+                'success' => true,
+                'students' => $students
+            ]);
+
+        } catch (Exception $e) {
+            error_log("Error in getStudents: " . $e->getMessage());
+            http_response_code(400);
+            echo json_encode([
+                'success' => false,
+                'message' => $e->getMessage()
+            ]);
+        }
+        exit();
+    }
+
+    // API endpoint for getting student details
+    public function getStudentDetails() {
+        header('Content-Type: application/json');
+        
+        try {
+            if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
+                throw new Exception('Unauthorized');
+            }
+
+            $studentId = intval($_GET['id'] ?? 0);
+            if ($studentId <= 0) {
+                throw new Exception('Invalid student ID');
+            }
+
+            $student = $this->adminModel->getStudentDetails($studentId);
+            
+            if (!$student) {
+                throw new Exception('Student not found');
+            }
+
+            echo json_encode([
+                'success' => true,
+                'student' => $student
+            ]);
+
+        } catch (Exception $e) {
+            error_log("Error in getStudentDetails: " . $e->getMessage());
+            http_response_code(400);
+            echo json_encode([
+                'success' => false,
+                'message' => $e->getMessage()
+            ]);
+        }
+        exit();
+    }
+    
+    // API endpoint for updating student
+    public function updateStudent() {
+        header('Content-Type: application/json');
+        
+        try {
+            if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
+                throw new Exception('Unauthorized');
+            }
+
+            $studentId = intval($_POST['student_id'] ?? 0);
+            if ($studentId <= 0) {
+                throw new Exception('ID học viên không hợp lệ');
+            }
+
+            // Validate required fields
+            $required = ['fullname', 'email'];
+            foreach ($required as $field) {
+                if (empty($_POST[$field])) {
+                    throw new Exception("Trường $field là bắt buộc");
+                }
+            }
+
+            // Validate email format
+            if (!filter_var($_POST['email'], FILTER_VALIDATE_EMAIL)) {
+                throw new Exception('Email không hợp lệ');
+            }
+
+            $studentData = [
+                'full_name' => trim($_POST['fullname']),
+                'email' => trim($_POST['email']),
+                'phone' => trim($_POST['phone'] ?? ''),
+                'is_active' => isset($_POST['is_active']) ? intval($_POST['is_active']) : 1
+            ];
+
+            $result = $this->adminModel->updateStudent($studentId, $studentData);
+            
+            if ($result) {
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'Cập nhật thông tin học viên thành công'
+                ]);
+            } else {
+                throw new Exception('Không thể cập nhật thông tin học viên');
+            }
+
+        } catch (Exception $e) {
+            error_log("Error in updateStudent: " . $e->getMessage());
+            http_response_code(400);
+            echo json_encode([
+                'success' => false,
+                'message' => $e->getMessage()
+            ]);
+        }
+        exit();
+    }
+
+    // API endpoint for getting available courses
+    public function getAvailableCourses() {
+        header('Content-Type: application/json');
+        
+        try {
+            if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
+                throw new Exception('Unauthorized');
+            }
+
+            $courses = $this->adminModel->getAvailableCourses();
+            
+            echo json_encode([
+                'success' => true,
+                'courses' => $courses
+            ]);
+
+        } catch (Exception $e) {
+            error_log("Error in getAvailableCourses: " . $e->getMessage());
+            http_response_code(400);
+            echo json_encode([
+                'success' => false,
+                'message' => $e->getMessage()
+            ]);
+        }
+        exit();
+    }
+
+    // API endpoint for enrolling student in course
+    public function enrollStudent() {
+        header('Content-Type: application/json');
+        
+        try {
+            if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
+                throw new Exception('Unauthorized');
+            }
+
+            $input = json_decode(file_get_contents('php://input'), true);
+            
+            $studentId = intval($input['student_id'] ?? 0);
+            $courseId = intval($input['course_id'] ?? 0);
+
+            if ($studentId <= 0 || $courseId <= 0) {
+                throw new Exception('Dữ liệu không hợp lệ');
+            }
+
+            $result = $this->adminModel->enrollStudent($studentId, $courseId);
+            
+            if ($result) {
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'Thêm học viên vào lớp thành công'
+                ]);
+            } else {
+                throw new Exception('Không thể thêm học viên vào lớp');
+            }
+
+        } catch (Exception $e) {
+            error_log("Error in enrollStudent: " . $e->getMessage());
+            http_response_code(400);
+            echo json_encode([
+                'success' => false,
+                'message' => $e->getMessage()
+            ]);
+        }
+        exit();
+    }
+
+    // API endpoint for removing student from course
+    public function removeFromCourse() {
+        header('Content-Type: application/json');
+        
+        try {
+            if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
+                throw new Exception('Unauthorized');
+            }
+
+            // Get and decode JSON input
+            $input = json_decode(file_get_contents('php://input'), true);
+            
+            // Log received data
+            error_log("Received data for removeFromCourse: " . json_encode($input));
+            
+            // Validate student ID
+            $studentId = isset($input['student_id']) ? intval($input['student_id']) : 0;
+            if ($studentId <= 0) {
+                throw new Exception('ID học viên không hợp lệ');
+            }
+
+            // Validate course ID
+            $courseId = isset($input['course_id']) ? intval($input['course_id']) : 0;
+            if ($courseId <= 0) {
+                throw new Exception('ID khóa học không hợp lệ');
+            }
+
+            $result = $this->adminModel->removeFromCourse($studentId, $courseId);
+            
+            if ($result) {
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'Đã xóa học viên khỏi khóa học thành công'
+                ]);
+            } else {
+                throw new Exception('Không thể xóa học viên khỏi khóa học');
+            }
+
+        } catch (Exception $e) {
+            error_log("Error in removeFromCourse: " . $e->getMessage());
+            http_response_code(400);
+            echo json_encode([
+                'success' => false,
+                'message' => $e->getMessage()
+            ]);
+        }
+        exit();
+    }
 }
 ?>
