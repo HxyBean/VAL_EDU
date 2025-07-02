@@ -305,5 +305,9 @@ class StudentModel extends BaseModel {
             return [];
         }
     }
+    
+    public function getConnection() {
+        return $this->db;
+    }
 }
 ?>

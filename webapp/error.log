@@ -1,0 +1,164 @@
+[02-Jul-2025 23:17:51 Europe/Berlin] === getAllCourses DEBUG START ===
+[02-Jul-2025 23:17:51 Europe/Berlin] SQL Query: SELECT c.*, 
+                    COALESCE(u.full_name, 'Chưa phân công') as tutor_name,
+                    COUNT(DISTINCT e.student_id) as current_students,
+                    COALESCE(completed_sessions.sessions_completed, 0) as actual_sessions_completed
+                    FROM classes c
+                    LEFT JOIN class_tutors ct ON c.id = ct.class_id AND ct.status = 'active'
+                    LEFT JOIN users u ON ct.tutor_id = u.id
+                    LEFT JOIN enrollments e ON c.id = e.class_id AND e.status = 'active'
+                    LEFT JOIN (
+                        SELECT class_id, COUNT(*) as sessions_completed
+                        FROM sessions 
+                        WHERE status = 'completed'
+                        GROUP BY class_id
+                    ) completed_sessions ON c.id = completed_sessions.class_id
+                    WHERE c.status IN ('active', 'completed', 'closed')
+                    GROUP BY c.id 
+                    ORDER BY c.status = 'active' DESC, c.status = 'completed' DESC, c.created_at DESC
+[02-Jul-2025 23:17:51 Europe/Berlin] Query successful, found 2 courses
+[02-Jul-2025 23:17:51 Europe/Berlin] First course data: {"id":"2","class_name":"SuckMyDOCK","class_year":"2025","class_level":"N\u00e2ng cao","subject":"TOEIC 4 Skills","description":"bruh bruh lmao","max_students":"30","sessions_total":"30","sessions_completed":"0","price_per_session":"69000.00","schedule_time":"17:30:00","schedule_duration":"90","schedule_days":"T2,T4,T6","start_date":"2025-07-06","end_date":"2026-02-13","status":"active","notes":null,"created_at":"2025-07-03 04:11:44","updated_at":"2025-07-03 04:11:44","tutor_name":"Ch\u01b0a ph\u00e2n c\u00f4ng","current_students":"0","actual_sessions_completed":"0"}
+[02-Jul-2025 23:17:51 Europe/Berlin] Starting updateCourse - ID: 2
+[02-Jul-2025 23:17:51 Europe/Berlin] Update data: {"class_name":"Test","class_year":2025,"class_level":"S\u01a1 c\u1ea5p","subject":"IELTS Speaking","description":"Test description","max_students":15,"sessions_total":30,"price_per_session":300000,"schedule_time":"09:00","schedule_duration":120,"schedule_days":"T2,T4,T6","start_date":"2025-01-15","end_date":"2025-06-15","tutor_id":null}
+[02-Jul-2025 23:17:51 Europe/Berlin] PHP Fatal error:  Uncaught ArgumentCountError: The number of elements in the type definition string must match the number of bind variables in D:\xampp\htdocs\webapp\Model\AdminModel.php:895
+Stack trace:
+#0 D:\xampp\htdocs\webapp\Model\AdminModel.php(895): mysqli_stmt->bind_param('sisssiiissssssi', 'Test', 2025, 'S\xC6\xA1 c\xE1\xBA\xA5p', 'IELTS Speaking', 'Test descriptio...', 15, 30, 300000, '09:00', 120, 'T2,T4,T6', '2025-01-15', '2025-06-15', '2')
+#1 D:\xampp\htdocs\webapp\debug_course_update.php(65): AdminModel->updateCourse('2', Array)
+#2 {main}
+  thrown in D:\xampp\htdocs\webapp\Model\AdminModel.php on line 895
+[02-Jul-2025 23:20:05 Europe/Berlin] === getAllCourses DEBUG START ===
+[02-Jul-2025 23:20:05 Europe/Berlin] SQL Query: SELECT c.*, 
+                    COALESCE(u.full_name, 'Chưa phân công') as tutor_name,
+                    COUNT(DISTINCT e.student_id) as current_students,
+                    COALESCE(completed_sessions.sessions_completed, 0) as actual_sessions_completed
+                    FROM classes c
+                    LEFT JOIN class_tutors ct ON c.id = ct.class_id AND ct.status = 'active'
+                    LEFT JOIN users u ON ct.tutor_id = u.id
+                    LEFT JOIN enrollments e ON c.id = e.class_id AND e.status = 'active'
+                    LEFT JOIN (
+                        SELECT class_id, COUNT(*) as sessions_completed
+                        FROM sessions 
+                        WHERE status = 'completed'
+                        GROUP BY class_id
+                    ) completed_sessions ON c.id = completed_sessions.class_id
+                    WHERE c.status IN ('active', 'completed', 'closed')
+                    GROUP BY c.id 
+                    ORDER BY c.status = 'active' DESC, c.status = 'completed' DESC, c.created_at DESC
+[02-Jul-2025 23:20:05 Europe/Berlin] Query successful, found 2 courses
+[02-Jul-2025 23:20:05 Europe/Berlin] First course data: {"id":"2","class_name":"SuckMyDOCK","class_year":"2025","class_level":"N\u00e2ng cao","subject":"TOEIC 4 Skills","description":"bruh bruh lmao","max_students":"30","sessions_total":"30","sessions_completed":"0","price_per_session":"69000.00","schedule_time":"17:30:00","schedule_duration":"90","schedule_days":"T2,T4,T6","start_date":"2025-07-06","end_date":"2026-02-13","status":"active","notes":null,"created_at":"2025-07-03 04:11:44","updated_at":"2025-07-03 04:11:44","tutor_name":"Ch\u01b0a ph\u00e2n c\u00f4ng","current_students":"0","actual_sessions_completed":"0"}
+[02-Jul-2025 23:20:05 Europe/Berlin] Starting updateCourse - ID: 2
+[02-Jul-2025 23:20:05 Europe/Berlin] Update data: {"class_name":"Test","class_year":2025,"class_level":"S\u01a1 c\u1ea5p","subject":"IELTS Speaking","description":"Test description","max_students":15,"sessions_total":30,"price_per_session":300000,"schedule_time":"09:00","schedule_duration":120,"schedule_days":"T2,T4,T6","start_date":"2025-01-15","end_date":"2025-06-15","tutor_id":null}
+[02-Jul-2025 23:20:05 Europe/Berlin] PHP Fatal error:  Uncaught ArgumentCountError: The number of elements in the type definition string must match the number of bind variables in D:\xampp\htdocs\webapp\Model\AdminModel.php:897
+Stack trace:
+#0 D:\xampp\htdocs\webapp\Model\AdminModel.php(897): mysqli_stmt->bind_param('sisssiidssssi', 'Test', 2025, 'S\xC6\xA1 c\xE1\xBA\xA5p', 'IELTS Speaking', 'Test descriptio...', 15, 30, 300000, '09:00', 120, 'T2,T4,T6', '2025-01-15', '2025-06-15', '2')
+#1 D:\xampp\htdocs\webapp\debug_course_update.php(65): AdminModel->updateCourse('2', Array)
+#2 {main}
+  thrown in D:\xampp\htdocs\webapp\Model\AdminModel.php on line 897
+[02-Jul-2025 23:20:07 Europe/Berlin] === getAllCourses DEBUG START ===
+[02-Jul-2025 23:20:07 Europe/Berlin] SQL Query: SELECT c.*, 
+                    COALESCE(u.full_name, 'Chưa phân công') as tutor_name,
+                    COUNT(DISTINCT e.student_id) as current_students,
+                    COALESCE(completed_sessions.sessions_completed, 0) as actual_sessions_completed
+                    FROM classes c
+                    LEFT JOIN class_tutors ct ON c.id = ct.class_id AND ct.status = 'active'
+                    LEFT JOIN users u ON ct.tutor_id = u.id
+                    LEFT JOIN enrollments e ON c.id = e.class_id AND e.status = 'active'
+                    LEFT JOIN (
+                        SELECT class_id, COUNT(*) as sessions_completed
+                        FROM sessions 
+                        WHERE status = 'completed'
+                        GROUP BY class_id
+                    ) completed_sessions ON c.id = completed_sessions.class_id
+                    WHERE c.status IN ('active', 'completed', 'closed')
+                    GROUP BY c.id 
+                    ORDER BY c.status = 'active' DESC, c.status = 'completed' DESC, c.created_at DESC
+[02-Jul-2025 23:20:07 Europe/Berlin] Query successful, found 2 courses
+[02-Jul-2025 23:20:07 Europe/Berlin] First course data: {"id":"2","class_name":"SuckMyDOCK","class_year":"2025","class_level":"N\u00e2ng cao","subject":"TOEIC 4 Skills","description":"bruh bruh lmao","max_students":"30","sessions_total":"30","sessions_completed":"0","price_per_session":"69000.00","schedule_time":"17:30:00","schedule_duration":"90","schedule_days":"T2,T4,T6","start_date":"2025-07-06","end_date":"2026-02-13","status":"active","notes":null,"created_at":"2025-07-03 04:11:44","updated_at":"2025-07-03 04:11:44","tutor_name":"Ch\u01b0a ph\u00e2n c\u00f4ng","current_students":"0","actual_sessions_completed":"0"}
+[02-Jul-2025 23:20:07 Europe/Berlin] Starting updateCourse - ID: 2
+[02-Jul-2025 23:20:07 Europe/Berlin] Update data: {"class_name":"Test","class_year":2025,"class_level":"S\u01a1 c\u1ea5p","subject":"IELTS Speaking","description":"Test description","max_students":15,"sessions_total":30,"price_per_session":300000,"schedule_time":"09:00","schedule_duration":120,"schedule_days":"T2,T4,T6","start_date":"2025-01-15","end_date":"2025-06-15","tutor_id":null}
+[02-Jul-2025 23:20:07 Europe/Berlin] PHP Fatal error:  Uncaught ArgumentCountError: The number of elements in the type definition string must match the number of bind variables in D:\xampp\htdocs\webapp\Model\AdminModel.php:897
+Stack trace:
+#0 D:\xampp\htdocs\webapp\Model\AdminModel.php(897): mysqli_stmt->bind_param('sisssiidssssi', 'Test', 2025, 'S\xC6\xA1 c\xE1\xBA\xA5p', 'IELTS Speaking', 'Test descriptio...', 15, 30, 300000, '09:00', 120, 'T2,T4,T6', '2025-01-15', '2025-06-15', '2')
+#1 D:\xampp\htdocs\webapp\debug_course_update.php(65): AdminModel->updateCourse('2', Array)
+#2 {main}
+  thrown in D:\xampp\htdocs\webapp\Model\AdminModel.php on line 897
+[02-Jul-2025 23:22:00 Europe/Berlin] === getAllCourses DEBUG START ===
+[02-Jul-2025 23:22:00 Europe/Berlin] SQL Query: SELECT c.*, 
+                    COALESCE(u.full_name, 'Chưa phân công') as tutor_name,
+                    COUNT(DISTINCT e.student_id) as current_students,
+                    COALESCE(completed_sessions.sessions_completed, 0) as actual_sessions_completed
+                    FROM classes c
+                    LEFT JOIN class_tutors ct ON c.id = ct.class_id AND ct.status = 'active'
+                    LEFT JOIN users u ON ct.tutor_id = u.id
+                    LEFT JOIN enrollments e ON c.id = e.class_id AND e.status = 'active'
+                    LEFT JOIN (
+                        SELECT class_id, COUNT(*) as sessions_completed
+                        FROM sessions 
+                        WHERE status = 'completed'
+                        GROUP BY class_id
+                    ) completed_sessions ON c.id = completed_sessions.class_id
+                    WHERE c.status IN ('active', 'completed', 'closed')
+                    GROUP BY c.id 
+                    ORDER BY c.status = 'active' DESC, c.status = 'completed' DESC, c.created_at DESC
+[02-Jul-2025 23:22:00 Europe/Berlin] Query successful, found 2 courses
+[02-Jul-2025 23:22:00 Europe/Berlin] First course data: {"id":"2","class_name":"SuckMyDOCK","class_year":"2025","class_level":"N\u00e2ng cao","subject":"TOEIC 4 Skills","description":"bruh bruh lmao","max_students":"30","sessions_total":"30","sessions_completed":"0","price_per_session":"69000.00","schedule_time":"17:30:00","schedule_duration":"90","schedule_days":"T2,T4,T6","start_date":"2025-07-06","end_date":"2026-02-13","status":"active","notes":null,"created_at":"2025-07-03 04:11:44","updated_at":"2025-07-03 04:11:44","tutor_name":"Ch\u01b0a ph\u00e2n c\u00f4ng","current_students":"0","actual_sessions_completed":"0"}
+[02-Jul-2025 23:22:00 Europe/Berlin] Starting updateCourse - ID: 2
+[02-Jul-2025 23:22:00 Europe/Berlin] Update data: {"class_name":"Test","class_year":2025,"class_level":"S\u01a1 c\u1ea5p","subject":"IELTS Speaking","description":"Test description","max_students":15,"sessions_total":30,"price_per_session":300000,"schedule_time":"09:00","schedule_duration":120,"schedule_days":"T2,T4,T6","start_date":"2025-01-15","end_date":"2025-06-15","tutor_id":null}
+[02-Jul-2025 23:22:00 Europe/Berlin] PHP Fatal error:  Uncaught ArgumentCountError: The number of elements in the type definition string must match the number of bind variables in D:\xampp\htdocs\webapp\Model\AdminModel.php:897
+Stack trace:
+#0 D:\xampp\htdocs\webapp\Model\AdminModel.php(897): mysqli_stmt->bind_param('sisssiiisissi', 'Test', 2025, 'S\xC6\xA1 c\xE1\xBA\xA5p', 'IELTS Speaking', 'Test descriptio...', 15, 30, 300000, '09:00', 120, 'T2,T4,T6', '2025-01-15', '2025-06-15', '2')
+#1 D:\xampp\htdocs\webapp\debug_course_update.php(65): AdminModel->updateCourse('2', Array)
+#2 {main}
+  thrown in D:\xampp\htdocs\webapp\Model\AdminModel.php on line 897
+[02-Jul-2025 23:22:03 Europe/Berlin] === getAllCourses DEBUG START ===
+[02-Jul-2025 23:22:03 Europe/Berlin] SQL Query: SELECT c.*, 
+                    COALESCE(u.full_name, 'Chưa phân công') as tutor_name,
+                    COUNT(DISTINCT e.student_id) as current_students,
+                    COALESCE(completed_sessions.sessions_completed, 0) as actual_sessions_completed
+                    FROM classes c
+                    LEFT JOIN class_tutors ct ON c.id = ct.class_id AND ct.status = 'active'
+                    LEFT JOIN users u ON ct.tutor_id = u.id
+                    LEFT JOIN enrollments e ON c.id = e.class_id AND e.status = 'active'
+                    LEFT JOIN (
+                        SELECT class_id, COUNT(*) as sessions_completed
+                        FROM sessions 
+                        WHERE status = 'completed'
+                        GROUP BY class_id
+                    ) completed_sessions ON c.id = completed_sessions.class_id
+                    WHERE c.status IN ('active', 'completed', 'closed')
+                    GROUP BY c.id 
+                    ORDER BY c.status = 'active' DESC, c.status = 'completed' DESC, c.created_at DESC
+[02-Jul-2025 23:22:03 Europe/Berlin] Query successful, found 2 courses
+[02-Jul-2025 23:22:03 Europe/Berlin] First course data: {"id":"2","class_name":"SuckMyDOCK","class_year":"2025","class_level":"N\u00e2ng cao","subject":"TOEIC 4 Skills","description":"bruh bruh lmao","max_students":"30","sessions_total":"30","sessions_completed":"0","price_per_session":"69000.00","schedule_time":"17:30:00","schedule_duration":"90","schedule_days":"T2,T4,T6","start_date":"2025-07-06","end_date":"2026-02-13","status":"active","notes":null,"created_at":"2025-07-03 04:11:44","updated_at":"2025-07-03 04:11:44","tutor_name":"Ch\u01b0a ph\u00e2n c\u00f4ng","current_students":"0","actual_sessions_completed":"0"}
+[02-Jul-2025 23:22:03 Europe/Berlin] Starting updateCourse - ID: 2
+[02-Jul-2025 23:22:03 Europe/Berlin] Update data: {"class_name":"Test","class_year":2025,"class_level":"S\u01a1 c\u1ea5p","subject":"IELTS Speaking","description":"Test description","max_students":15,"sessions_total":30,"price_per_session":300000,"schedule_time":"09:00","schedule_duration":120,"schedule_days":"T2,T4,T6","start_date":"2025-01-15","end_date":"2025-06-15","tutor_id":null}
+[02-Jul-2025 23:22:03 Europe/Berlin] PHP Fatal error:  Uncaught ArgumentCountError: The number of elements in the type definition string must match the number of bind variables in D:\xampp\htdocs\webapp\Model\AdminModel.php:897
+Stack trace:
+#0 D:\xampp\htdocs\webapp\Model\AdminModel.php(897): mysqli_stmt->bind_param('sisssiiisissi', 'Test', 2025, 'S\xC6\xA1 c\xE1\xBA\xA5p', 'IELTS Speaking', 'Test descriptio...', 15, 30, 300000, '09:00', 120, 'T2,T4,T6', '2025-01-15', '2025-06-15', '2')
+#1 D:\xampp\htdocs\webapp\debug_course_update.php(65): AdminModel->updateCourse('2', Array)
+#2 {main}
+  thrown in D:\xampp\htdocs\webapp\Model\AdminModel.php on line 897
+[02-Jul-2025 23:24:42 Europe/Berlin] === getAllCourses DEBUG START ===
+[02-Jul-2025 23:24:42 Europe/Berlin] SQL Query: SELECT c.*, 
+                    COALESCE(u.full_name, 'Chưa phân công') as tutor_name,
+                    COUNT(DISTINCT e.student_id) as current_students,
+                    COALESCE(completed_sessions.sessions_completed, 0) as actual_sessions_completed
+                    FROM classes c
+                    LEFT JOIN class_tutors ct ON c.id = ct.class_id AND ct.status = 'active'
+                    LEFT JOIN users u ON ct.tutor_id = u.id
+                    LEFT JOIN enrollments e ON c.id = e.class_id AND e.status = 'active'
+                    LEFT JOIN (
+                        SELECT class_id, COUNT(*) as sessions_completed
+                        FROM sessions 
+                        WHERE status = 'completed'
+                        GROUP BY class_id
+                    ) completed_sessions ON c.id = completed_sessions.class_id
+                    WHERE c.status IN ('active', 'completed', 'closed')
+                    GROUP BY c.id 
+                    ORDER BY c.status = 'active' DESC, c.status = 'completed' DESC, c.created_at DESC
+[02-Jul-2025 23:24:42 Europe/Berlin] Query successful, found 2 courses
+[02-Jul-2025 23:24:42 Europe/Berlin] First course data: {"id":"2","class_name":"SuckMyDOCK","class_year":"2025","class_level":"N\u00e2ng cao","subject":"TOEIC 4 Skills","description":"bruh bruh lmao","max_students":"30","sessions_total":"30","sessions_completed":"0","price_per_session":"69000.00","schedule_time":"17:30:00","schedule_duration":"90","schedule_days":"T2,T4,T6","start_date":"2025-07-06","end_date":"2026-02-13","status":"active","notes":null,"created_at":"2025-07-03 04:11:44","updated_at":"2025-07-03 04:11:44","tutor_name":"Ch\u01b0a ph\u00e2n c\u00f4ng","current_students":"0","actual_sessions_completed":"0"}
+[02-Jul-2025 23:24:42 Europe/Berlin] Starting updateCourse - ID: 2
+[02-Jul-2025 23:24:42 Europe/Berlin] Update data: {"class_name":"Test","class_year":2025,"class_level":"S\u01a1 c\u1ea5p","subject":"IELTS Speaking","description":"Test description","max_students":15,"sessions_total":30,"price_per_session":300000,"schedule_time":"09:00","schedule_duration":120,"schedule_days":"T2,T4,T6","start_date":"2025-01-15","end_date":"2025-06-15","tutor_id":null}
+[02-Jul-2025 23:24:42 Europe/Berlin] Course update affected rows: 1
+[02-Jul-2025 23:24:42 Europe/Berlin] Course update completed successfully

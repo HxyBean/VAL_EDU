@@ -629,5 +629,104 @@ function showMessage(message, type = 'info') {
     }, 5000);
 }
 
+// Connection Request Functions
+function acceptConnectionRequest(requestId) {
+    const modal = document.getElementById('accept-connection-modal');
+    modal.style.display = 'block';
+    document.body.style.overflow = 'hidden';
+    modal.setAttribute('data-request-id', requestId);
+    
+    // Load student info for the modal
+    loadStudentInfoForConnection(requestId);
+}
+
+function loadStudentInfoForConnection(requestId) {
+    const infoContainer = document.getElementById('connection-student-info');
+    infoContainer.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> Đang tải thông tin...</div>';
+    
+    fetch(`/webapp/api/parent/get-connection-request-info?id=${requestId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                infoContainer.innerHTML = `
+                    <div class="student-info-card">
+                        <div class="student-avatar">
+                            <i class="fas fa-user-graduate"></i>
+                        </div>
+                        <div class="student-details">
+                            <h4>${data.student.full_name}</h4>
+                            <p><i class="fas fa-envelope"></i> ${data.student.email}</p>
+                            <p><i class="fas fa-graduation-cap"></i> ${data.student.enrolled_classes} lớp đang học</p>
+                            <p><i class="fas fa-calendar"></i> Tham gia từ ${new Date(data.student.created_at).toLocaleDateString('vi-VN')}</p>
+                        </div>
+                    </div>
+                `;
+            } else {
+                infoContainer.innerHTML = '<p class="error">Không thể tải thông tin học sinh</p>';
+            }
+        })
+        .catch(error => {
+            infoContainer.innerHTML = '<p class="error">Lỗi kết nối</p>';
+        });
+}
+
+function closeAcceptConnectionModal() {
+    const modal = document.getElementById('accept-connection-modal');
+    modal.style.display = 'none';
+    document.body.style.overflow = 'auto';
+}
+
+function confirmAcceptConnection() {
+    const modal = document.getElementById('accept-connection-modal');
+    const requestId = modal.getAttribute('data-request-id');
+    
+    fetch('/webapp/api/parent/accept-connection-request', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `request_id=${requestId}`
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showMessage(data.message, 'success');
+                closeAcceptConnectionModal();
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                showMessage(data.message || 'Không thể chấp nhận yêu cầu', 'error');
+            }
+        })
+        .catch(error => {
+            showMessage('Lỗi kết nối', 'error');
+        });
+}
+
+function rejectConnectionRequest(requestId) {
+    if (!confirm('Bạn có chắc chắn muốn từ chối yêu cầu kết nối này?')) {
+        return;
+    }
+    
+    fetch('/webapp/api/parent/reject-connection-request', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `request_id=${requestId}`
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showMessage(data.message, 'success');
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                showMessage(data.message || 'Không thể từ chối yêu cầu', 'error');
+            }
+        })
+        .catch(error => {
+            showMessage('Lỗi kết nối', 'error');
+        });
+}
+
 // Initialize dashboard
 console.log('Parent.js loaded successfully');

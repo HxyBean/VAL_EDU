@@ -151,9 +151,6 @@
                            placeholder="Tìm kiếm học viên..." 
                            onkeyup="searchStudents()">
                 </div>
-                <button class="btn-primary">
-                    <i class="fas fa-plus"></i> Thêm Học Viên Mới
-                </button>
             </div>
 
             <div class="table-container">
@@ -214,11 +211,14 @@
                 <div class="course-filters">
                     <div class="filter-group">
                         <label for="year-filter">Năm học:</label>
-                        <select id="year-filter" onchange="filterCoursesByYear()">
+                        <select id="year-filter" onchange="filterCoursesByYear(this.value)">
                             <option value="">Tất cả năm</option>
-                            <option value="2025">2025</option>
-                            <option value="2024">2024</option>
-                            <option value="2023">2023</option>
+                            <?php
+                            $currentYear = date('Y');
+                            for ($year = $currentYear - 5; $year <= $currentYear + 5; $year++) {
+                                echo "<option value=\"$year\">$year</option>";
+                            }
+                            ?>
                         </select>
                     </div>
                     <div class="search-bar">
@@ -284,37 +284,6 @@
             </div>
         </section>
 
-        <!-- Reports Section -->
-        <section id="view_reports" class="content-section">
-            <h2>Báo Cáo & Phân Tích</h2>
-            
-            <div class="reports-grid">
-                <div class="report-card">
-                    <h4>Báo Cáo Tiến Độ Học Viên</h4>
-                    <p>Theo dõi hiệu suất cá nhân và lớp học</p>
-                    <button class="btn-primary">Tạo Báo Cáo</button>
-                </div>
-                
-                <div class="report-card">
-                    <h4>Báo Cáo Tài Chính</h4>
-                    <p>Phân tích doanh thu, chi phí và lợi nhuận</p>
-                    <button class="btn-primary">Tạo Báo Cáo</button>
-                </div>
-                
-                <div class="report-card">
-                    <h4>Hiệu Suất Giáo Viên</h4>
-                    <p>Hiệu quả giảng dạy và phản hồi học viên</p>
-                    <button class="btn-primary">Tạo Báo Cáo</button>
-                </div>
-                
-                <div class="report-card">
-                    <h4>Đăng Ký Khóa Học</h4>
-                    <p>Xu hướng phổ biến và đăng ký khóa học</p>
-                    <button class="btn-primary">Tạo Báo Cáo</button>
-                </div>
-            </div>
-        </section>        
-        
         <!-- Settings Section -->
         <section id="settings" class="content-section">
             <h2>Cài Đặt Hệ Thống</h2>
@@ -598,6 +567,14 @@
                         <label for="tutor-phone">Số điện thoại</label>
                         <input type="tel" id="tutor-phone" name="phone"
                                placeholder="Nhập số điện thoại">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="tutor-discount">Tỷ lệ chiết khấu (%)</label>
+                        <input type="number" id="tutor-discount" name="discount_percentage" 
+                               min="0" max="100" step="0.1" value="0" 
+                               placeholder="0.0">
+                        <small class="form-help">Tỷ lệ chiết khấu từ doanh thu khóa học (0-100%)</small>
                     </div>
 
                     <div class="modal-footer">

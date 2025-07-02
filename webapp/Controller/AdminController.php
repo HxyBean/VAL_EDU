@@ -539,34 +539,69 @@ class AdminController extends BaseController {
         ini_set('display_errors', '0');
         
         try {
+            if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+                throw new Exception('Method not allowed');
+            }
+
             if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
                 throw new Exception('Unauthorized');
             }
+
+            error_log("Update course API called");
+            error_log("POST data: " . json_encode($_POST));
 
             $courseId = intval($_POST['course_id'] ?? 0);
             
             // Validate course ID
             if ($courseId <= 0) {
-                throw new Exception('Invalid course ID');
+                throw new Exception('ID khóa học không hợp lệ');
+            }
+
+            // Validate required fields
+            $required_fields = ['class_name', 'class_year', 'class_level', 'subject', 'max_students', 'sessions_total', 'price_per_session', 'schedule_time', 'schedule_duration', 'schedule_days', 'start_date', 'end_date'];
+            
+            foreach ($required_fields as $field) {
+                if (empty($_POST[$field])) {
+                    throw new Exception("Trường {$field} là bắt buộc");
+                }
             }
 
             // Validate and sanitize input data
             $data = [
-                'class_name' => trim($_POST['class_name'] ?? ''),
-                'class_year' => intval($_POST['class_year'] ?? 0),
-                'class_level' => trim($_POST['class_level'] ?? ''),
-                'subject' => trim($_POST['subject'] ?? ''),
+                'class_name' => trim($_POST['class_name']),
+                'class_year' => intval($_POST['class_year']),
+                'class_level' => trim($_POST['class_level']),
+                'subject' => trim($_POST['subject']),
                 'description' => trim($_POST['description'] ?? ''),
-                'max_students' => intval($_POST['max_students'] ?? 0),
-                'sessions_total' => intval($_POST['sessions_total'] ?? 0),
-                'price_per_session' => floatval($_POST['price_per_session'] ?? 0),
-                'schedule_time' => $_POST['schedule_time'] ?? '',
-                'schedule_duration' => intval($_POST['schedule_duration'] ?? 0),
-                'schedule_days' => $_POST['schedule_days'] ?? '',
-                'start_date' => $_POST['start_date'] ?? '',
-                'end_date' => $_POST['end_date'] ?? '',
+                'max_students' => intval($_POST['max_students']),
+                'sessions_total' => intval($_POST['sessions_total']),
+                'price_per_session' => floatval($_POST['price_per_session']),
+                'schedule_time' => $_POST['schedule_time'],
+                'schedule_duration' => intval($_POST['schedule_duration']),
+                'schedule_days' => $_POST['schedule_days'],
+                'start_date' => $_POST['start_date'],
+                'end_date' => $_POST['end_date'],
                 'tutor_id' => !empty($_POST['tutor_id']) ? intval($_POST['tutor_id']) : null
             ];
+
+            // Additional validations
+            if ($data['max_students'] <= 0) {
+                throw new Exception('Số học sinh tối đa phải lớn hơn 0');
+            }
+
+            if ($data['sessions_total'] <= 0) {
+                throw new Exception('Số buổi học phải lớn hơn 0');
+            }
+
+            if ($data['price_per_session'] < 0) {
+                throw new Exception('Giá tiền không được âm');
+            }
+
+            if (strtotime($data['start_date']) >= strtotime($data['end_date'])) {
+                throw new Exception('Ngày kết thúc phải sau ngày khai giảng');
+            }
+
+            error_log("Validated data: " . json_encode($data));
 
             // Perform update
             $result = $this->adminModel->updateCourse($courseId, $data);
@@ -574,15 +609,16 @@ class AdminController extends BaseController {
             if ($result === true) {
                 echo json_encode([
                     'success' => true,
-                    'message' => 'Course updated successfully'
+                    'message' => 'Cập nhật khóa học thành công'
                 ]);
             } else {
-                throw new Exception('Failed to update course');
+                throw new Exception('Cập nhật khóa học thất bại');
             }
 
         } catch (Exception $e) {
             error_log("Error in updateCourse: " . $e->getMessage());
-            http_response_code(500);
+            error_log("Stack trace: " . $e->getTraceAsString());
+            http_response_code(400);
             echo json_encode([
                 'success' => false,
                 'message' => $e->getMessage()

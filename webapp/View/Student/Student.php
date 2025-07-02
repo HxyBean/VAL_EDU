@@ -122,6 +122,44 @@
             </div>
         </section>
 
+        <!-- Parent Connections Section -->
+        <section id="parent_connections" class="content-section">
+            <h2>Kết nối với phụ huynh</h2>
+            <div class="cards-container">
+                <!-- Existing linked parents -->
+                <?php if (isset($linked_parents) && !empty($linked_parents)): ?>
+                    <?php foreach ($linked_parents as $parent): ?>
+                        <div class="parent-card">
+                            <div class="parent-avatar">
+                                <i class="fas fa-user-tie"></i>
+                            </div>
+                            <h4><?= htmlspecialchars($parent['full_name']) ?></h4>
+                            <div class="parent-info">
+                                <p><i class="fas fa-envelope"></i> <?= htmlspecialchars($parent['email']) ?></p>
+                                <p><i class="fas fa-phone"></i> <?= htmlspecialchars($parent['phone'] ?? 'Chưa có') ?></p>
+                                <span class="status-badge connected">Đã kết nối</span>
+                            </div>
+                            <div class="parent-actions">
+                                <button class="btn-secondary" onclick="disconnectParent(<?= $parent['id'] ?>)">
+                                    <i class="fas fa-unlink"></i> Hủy kết nối
+                                </button>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+                
+                <!-- Add new parent connection -->
+                <div class="parent-card add-parent-card" onclick="showAddParentModal()">
+                    <div class="add-parent-icon">
+                        <i class="fas fa-plus"></i>
+                    </div>
+                    <h4>Kết nối phụ huynh</h4>
+                    <p>Thêm phụ huynh để theo dõi tiến độ học tập và nhận thông báo quan trọng</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Settings Section -->
         <section id="settings" class="content-section">
             <div class="class-detail">
                 <h2>Cài đặt</h2>
@@ -228,22 +266,69 @@
         </section>
     </main>
 
+    <!-- Add Parent Connection Modal -->
+    <div id="add-parent-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-user-plus"></i> Kết nối với phụ huynh</h3>
+                <span class="close" onclick="closeAddParentModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <!-- Invite Form -->
+                <div id="invite-form">
+                    <h4>Gửi lời mời kết nối</h4>
+                    <form id="parent-invite-form">
+                        <div class="form-group">
+                            <label for="parent-email">Email phụ huynh <span class="required">*</span></label>
+                            <input type="email" id="parent-email" name="parent_email" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="parent-phone">Số điện thoại (tùy chọn)</label>
+                            <input type="tel" id="parent-phone" name="parent_phone">
+                        </div>
+                        <div class="form-group">
+                            <label for="parent-name">Tên phụ huynh</label>
+                            <input type="text" id="parent-name" name="parent_name" placeholder="Ví dụ: Bố/Mẹ của [Tên học sinh]">
+                        </div>
+                        <div class="form-group">
+                            <label for="connection-message">Lời nhắn (tùy chọn)</label>
+                            <textarea id="connection-message" name="message" rows="3" placeholder="Xin chào, con muốn kết nối tài khoản để bố/mẹ có thể theo dõi tiến độ học tập..."></textarea>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" onclick="closeAddParentModal()">Hủy</button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-paper-plane"></i> Gửi lời mời
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
-        // Pass PHP data to JavaScript
-        const studentData = <?= json_encode([
-            'courses' => $courses ?? [],
-            'attendance' => $attendance ?? [],
-            'stats' => $stats ?? [],
-            'payments' => $payments ?? [],
-            'user_name' => $user_name ?? '',
-            'student_data' => $student_data ?? null
-        ]) ?>;
-        
-        // Debug: Log the data to console
-        console.log('Student data loaded:', studentData);
+        // Pass PHP data to JavaScript (ensure it's only declared once)
+        if (typeof studentData === 'undefined') {
+            window.studentData = <?= json_encode([
+                'courses' => $courses ?? [],
+                'attendance' => $attendance ?? [],
+                'stats' => $stats ?? [],
+                'payments' => $payments ?? [],
+                'user_name' => $user_name ?? '',
+                'student_data' => $student_data ?? null
+            ]) ?>;
+            
+            // Debug: Log the data to console
+            console.log('Student data loaded:', window.studentData);
+        }
     </script>
-    <script src="/webapp/View/Student/Student.js" defer></script>
-    <script src="/webapp/View/Partial/DashboardNavbar.js" defer></script>
+    
+    <?php if (!isset($scripts_loaded)): ?>
+        <script src="/webapp/View/Student/Student.js" defer></script>
+        <script src="/webapp/View/Partial/DashboardNavbar.js" defer></script>
+        <?php $scripts_loaded = true; ?>
+    <?php endif; ?>
+    
     <?php include __DIR__ . '/../Partial/Footer.php';?>
 </body>
 </html>

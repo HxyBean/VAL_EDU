@@ -452,4 +452,35 @@ switch ($path) {
         }
         break;
 }
+
+// Handle student routes
+if (strpos($path, '/student') === 0) {
+    require_once(__DIR__ . '/Controller/StudentController.php');
+    $controller = new StudentController();
+    
+    switch ($path) {
+        case '/student':
+        case '/student/':
+        case '/student/dashboard':
+            $controller->dashboard();
+            break;
+            
+        case '/student/update-profile':
+            $controller->updateProfile();
+            break;
+            
+        case '/student/change-password':
+            $controller->changePassword();
+            break;
+            
+        case '/student/send-parent-connection':
+            $controller->sendParentConnection();
+            break;
+            
+        default:
+            $controller->dashboard();
+            break;
+    }
+    exit;
+}
 ?>

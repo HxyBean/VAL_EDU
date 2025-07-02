@@ -1460,11 +1460,27 @@ function updateCourse(event) {
     const form = event.target;
     const formData = new FormData(form);
 
+    // Validate required fields
+    const requiredFields = ['class_name', 'class_year', 'class_level', 'subject', 'max_students', 'sessions_total', 'price_per_session', 'schedule_time', 'schedule_duration', 'start_date', 'end_date'];
+    
+    for (const field of requiredFields) {
+        if (!formData.get(field)) {
+            showMessage(`Vui lòng điền đầy đủ thông tin: ${field}`, 'error');
+            return;
+        }
+    }
+
     // Get selected schedule days
     const scheduleDays = [];
     form.querySelectorAll('input[name="schedule_days"]:checked').forEach(checkbox => {
         scheduleDays.push(checkbox.value);
     });
+    
+    if (scheduleDays.length === 0) {
+        showMessage('Vui lòng chọn ít nhất một ngày học trong tuần', 'error');
+        return;
+    }
+    
     formData.set('schedule_days', scheduleDays.join(','));
 
     // Show loading state
@@ -1473,32 +1489,37 @@ function updateCourse(event) {
     submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang lưu...';
     submitBtn.disabled = true;
 
-    console.log('Form data:', Object.fromEntries(formData));
+    console.log('Sending update data:', Object.fromEntries(formData));
 
     fetch('/webapp/api/admin/update-course', {
         method: 'POST',
-        body: formData,
-        headers: {
-            'Accept': 'application/json'
-        }
+        body: formData
     })
         .then(async response => {
             console.log('Update response:', response);
+            
+            // Get response text first
             const text = await response.text();
             console.log('Response text:', text);
 
+            // Try to parse as JSON
+            let data;
             try {
-                const data = text ? JSON.parse(text) : {};
-                if (!response.ok) {
-                    throw new Error(data.message || `Server responded with ${response.status}`);
-                }
-                return data;
-            } catch (e) {
-                console.error('Parse error:', e);
-                throw new Error(`Server error: ${text || response.statusText}`);
+                data = text ? JSON.parse(text) : {};
+            } catch (parseError) {
+                console.error('JSON parse error:', parseError);
+                throw new Error(`Server returned invalid JSON: ${text || 'Empty response'}`);
             }
+
+            // Check if response was successful
+            if (!response.ok) {
+                throw new Error(data.message || `HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            return data;
         })
         .then(data => {
+            console.log('Update response data:', data);
             if (data.success) {
                 showMessage('Cập nhật khóa học thành công!', 'success');
                 closeEditCourseModal();
@@ -1508,7 +1529,7 @@ function updateCourse(event) {
             }
         })
         .catch(error => {
-            console.error('Error:', error);
+            console.error('Update error:', error);
             showMessage('Lỗi khi cập nhật khóa học: ' + error.message, 'error');
         })
         .finally(() => {
@@ -1529,9 +1550,29 @@ function showAddTutorModal() {
     modal.style.display = 'block';
     document.body.style.overflow = 'hidden';
 
+    // Set default values and generate discount code
+    const discountPercentageInput = document.getElementById('tutor-discount-percentage');
+    if (discountPercentageInput) {
+        discountPercentageInput.value = '5';
+    }
+    
+    // Auto-generate discount code
+    generateDiscountCode();
+
     setTimeout(() => {
         modal.classList.add('show');
     }, 10);
+}
+
+function generateDiscountCode() {
+    // Generate a unique 8-character discount code
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let code = '';
+    for (let i = 0; i < 8; i++) {
+        code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    
+    document.getElementById('tutor-discount-code').value = code;
 }
 
 // Close Add Tutor Modal
@@ -1585,6 +1626,38 @@ function createTutor(event) {
         });
 }
 // Load and display tutors
+function searchTutors() {
+    const searchTerm = document.getElementById('tutor-search').value.toLowerCase();
+    
+    if (!tutors || tutors.length === 0) {
+        // If no tutors loaded, try to load them first
+        loadTutors();
+        return;
+    }
+    
+    let filteredTutors;
+    
+    if (searchTerm.trim() === '') {
+        filteredTutors = tutors;
+    } else {
+        filteredTutors = tutors.filter(tutor => {
+            const searchFields = [
+                tutor.full_name || '',
+                tutor.email || '',
+                tutor.phone || '',
+                tutor.username || ''
+            ];
+            
+            return searchFields.some(field => 
+                field.toLowerCase().includes(searchTerm)
+            );
+        });
+    }
+    
+    displayTutors(filteredTutors);
+}
+
+// Make sure tutors are loaded and stored in global variable
 function loadTutors() {
     const tutorsGrid = document.querySelector('.teachers-grid');
     if (!tutorsGrid) return;
@@ -1601,6 +1674,7 @@ function loadTutors() {
         .then(response => response.json())
         .then(data => {
             if (data.success && data.tutors) {
+                tutors = data.tutors; // Store in global variable for search
                 displayTutors(data.tutors);
             } else {
                 throw new Error(data.message || 'Không thể tải danh sách giáo viên');
@@ -2083,6 +2157,67 @@ function populateEditStudentForm(student) {
     `;
 }
 
+function searchStudents() {
+    const searchTerm = document.getElementById('student-search').value.toLowerCase();
+    const tableBody = document.getElementById('students-table-body');
+    
+    if (!tableBody) return;
+    
+    // Get all table rows
+    const rows = tableBody.querySelectorAll('tr');
+    
+    if (rows.length === 0) {
+        // If no students loaded, try to load them first
+        loadStudents();
+        return;
+    }
+    
+    let visibleCount = 0;
+    
+    rows.forEach(row => {
+        if (searchTerm.trim() === '') {
+            row.style.display = '';
+            visibleCount++;
+        } else {
+            // Get text content from relevant cells (name, email, etc.)
+            const cells = row.querySelectorAll('td');
+            if (cells.length >= 4) {
+                const studentId = cells[1].textContent.toLowerCase();
+                const studentName = cells[2].textContent.toLowerCase();
+                const studentEmail = cells[3].textContent.toLowerCase();
+                
+                const searchFields = [studentId, studentName, studentEmail];
+                
+                const isMatch = searchFields.some(field => 
+                    field.includes(searchTerm)
+                );
+                
+                if (isMatch) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            }
+        }
+    });
+    
+    // Show/hide empty state based on search results
+    const noStudentsElement = document.getElementById('no-students');
+    if (noStudentsElement) {
+        if (visibleCount === 0 && searchTerm.trim() !== '') {
+            noStudentsElement.style.display = 'block';
+            noStudentsElement.innerHTML = `
+                <i class="fas fa-search"></i>
+                <h3>Không tìm thấy kết quả</h3>
+                <p>Không có học viên nào phù hợp với từ khóa "${searchTerm}"</p>
+            `;
+        } else {
+            noStudentsElement.style.display = 'none';
+        }
+    }
+}
+
 // Update student
 function updateStudent(event) {
     event.preventDefault();
@@ -2469,4 +2604,207 @@ function removeFromCourse(studentId, courseId) {
             button.innerHTML = originalHTML;
             button.disabled = false;
         });
+}
+
+function closeCourse(courseId, event) {
+    // Make event parameter optional and add safety checks
+    if (event) {
+        event.stopPropagation();
+    }
+    
+    if (!confirm('Bạn có chắc chắn muốn đóng khóa học này không?')) {
+        return;
+    }
+
+    console.log('Closing course:', courseId);
+
+    // Find the button that triggered this action
+    const button = event ? event.target : document.querySelector(`button[onclick*="closeCourse(${courseId})"]`);
+    let originalText = 'Đóng';
+    
+    if (button) {
+        originalText = button.innerHTML;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang đóng...';
+        button.disabled = true;
+    }
+
+    fetch('/webapp/api/admin/close-course', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            course_id: courseId
+        })
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            showMessage('Đóng khóa học thành công!', 'success');
+            loadCourses(); // Refresh courses list
+        } else {
+            throw new Error(data.message || 'Không thể đóng khóa học');
+        }
+    })
+    .catch(error => {
+        console.error('Error closing course:', error);
+        showMessage('Lỗi khi đóng khóa học: ' + error.message, 'error');
+    })
+    .finally(() => {
+        if (button) {
+            button.innerHTML = originalText;
+            button.disabled = false;
+        }
+    });
+}
+
+function reopenCourse(courseId, event) {
+    // Make event parameter optional and add safety checks
+    if (event) {
+        event.stopPropagation();
+    }
+    
+    if (!confirm('Bạn có chắc chắn muốn mở lại khóa học này không?')) {
+        return;
+    }
+
+    console.log('Reopening course:', courseId);
+
+    // Find the button that triggered this action
+    const button = event ? event.target : document.querySelector(`button[onclick*="reopenCourse(${courseId})"]`);
+    let originalText = 'Mở lại';
+    
+    if (button) {
+        originalText = button.innerHTML;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang mở...';
+        button.disabled = true;
+    }
+
+    fetch('/webapp/api/admin/reopen-course', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            course_id: courseId
+        })
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            showMessage('Mở lại khóa học thành công!', 'success');
+            loadCourses(); // Refresh courses list
+        } else {
+            throw new Error(data.message || 'Không thể mở lại khóa học');
+        }
+    })
+    .catch(error => {
+        console.error('Error reopening course:', error);
+        showMessage('Lỗi khi mở lại khóa học: ' + error.message, 'error');
+    })
+    .finally(() => {
+        if (button) {
+            button.innerHTML = originalText;
+            button.disabled = false;
+        }
+    });
+}
+
+function searchCourses() {
+    const searchTerm = document.getElementById('course-search').value.toLowerCase();
+    
+    if (!allCourses || allCourses.length === 0) {
+        return;
+    }
+    
+    let coursesToFilter = allCourses;
+    
+    // Apply year filter first if it's set
+    const yearFilter = document.getElementById('year-filter').value;
+    if (yearFilter) {
+        coursesToFilter = allCourses.filter(course => {
+            if (!course.start_date) return false;
+            const courseYear = new Date(course.start_date).getFullYear();
+            return courseYear.toString() === yearFilter;
+        });
+    }
+    
+    // Then apply search filter
+    if (searchTerm.trim() === '') {
+        filteredCourses = coursesToFilter;
+    } else {
+        filteredCourses = coursesToFilter.filter(course => {
+            const searchFields = [
+                course.class_name || '',
+                course.subject || '',
+                course.class_level || '',
+                course.tutor_name || '',
+                course.description || ''
+            ];
+            
+            return searchFields.some(field => 
+                field.toLowerCase().includes(searchTerm)
+            );
+        });
+    }
+    
+    displayCourses(filteredCourses);
+    updateCourseStats(filteredCourses);
+}
+
+function filterCoursesByYear(year) {
+    console.log('Filtering courses by year:', year);
+    
+    if (!allCourses || allCourses.length === 0) {
+        filteredCourses = [];
+        displayCourses(filteredCourses);
+        updateCourseStats(filteredCourses);
+        return;
+    }
+
+    let coursesToFilter = allCourses;
+    
+    // Apply year filter
+    if (!year || year === '') {
+        coursesToFilter = allCourses;
+    } else {
+        coursesToFilter = allCourses.filter(course => {
+            if (!course.start_date) return false;
+            const courseYear = new Date(course.start_date).getFullYear();
+            return courseYear.toString() === year.toString();
+        });
+    }
+    
+    // Apply search filter if there's a search term
+    const searchTerm = document.getElementById('course-search').value.toLowerCase();
+    if (searchTerm.trim() !== '') {
+        filteredCourses = coursesToFilter.filter(course => {
+            const searchFields = [
+                course.class_name || '',
+                course.subject || '',
+                course.class_level || '',
+                course.tutor_name || '',
+                course.description || ''
+            ];
+            
+            return searchFields.some(field => 
+                field.toLowerCase().includes(searchTerm)
+            );
+        });
+    } else {
+        filteredCourses = coursesToFilter;
+    }
+
+    displayCourses(filteredCourses);
+    updateCourseStats(filteredCourses);
 }

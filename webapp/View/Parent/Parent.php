@@ -95,6 +95,33 @@
         <section id="my_children" class="content-section">
             <h2>Con Của Tôi</h2>
             
+            <!-- Connection Requests -->
+            <?php if (isset($connection_requests) && !empty($connection_requests)): ?>
+                <div class="connection-requests">
+                    <h3><i class="fas fa-bell"></i> Yêu cầu kết nối mới</h3>
+                    <?php foreach ($connection_requests as $request): ?>
+                        <div class="request-card">
+                            <div class="request-info">
+                                <h4><?= htmlspecialchars($request['student_name']) ?></h4>
+                                <p><i class="fas fa-envelope"></i> <?= htmlspecialchars($request['student_email']) ?></p>
+                                <p><i class="fas fa-calendar"></i> Gửi lúc: <?= date('d/m/Y H:i', strtotime($request['created_at'])) ?></p>
+                                <?php if (!empty($request['message'])): ?>
+                                    <p class="request-message"><i class="fas fa-comment"></i> "<?= htmlspecialchars($request['message']) ?>"</p>
+                                <?php endif; ?>
+                            </div>
+                            <div class="request-actions">
+                                <button class="btn btn-success" onclick="acceptConnectionRequest(<?= $request['id'] ?>)">
+                                    <i class="fas fa-check"></i> Chấp nhận
+                                </button>
+                                <button class="btn btn-danger" onclick="rejectConnectionRequest(<?= $request['id'] ?>)">
+                                    <i class="fas fa-times"></i> Từ chối
+                                </button>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
+            
             <?php if (isset($children) && !empty($children)): ?>
                 <div class="children-grid">
                     <?php foreach ($children as $child): ?>
@@ -384,6 +411,37 @@
             </div>
         </section>
     </main>
+
+    <!-- Accept Connection Modal -->
+    <div id="accept-connection-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-user-check"></i> Xác nhận kết nối</h3>
+                <span class="close" onclick="closeAcceptConnectionModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div id="connection-student-info">
+                    <!-- Student info will be populated here -->
+                </div>
+                <p>Bạn có muốn kết nối với học sinh này để theo dõi tiến độ học tập không?</p>
+                <div class="connection-permissions">
+                    <h4>Quyền truy cập sau khi kết nối:</h4>
+                    <ul>
+                        <li><i class="fas fa-check text-success"></i> Xem lịch học và điểm danh</li>
+                        <li><i class="fas fa-check text-success"></i> Theo dõi tiến độ học tập</li>
+                        <li><i class="fas fa-check text-success"></i> Nhận thông báo về học phí</li>
+                        <li><i class="fas fa-check text-success"></i> Xem báo cáo học tập</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeAcceptConnectionModal()">Hủy</button>
+                <button class="btn btn-success" onclick="confirmAcceptConnection()">
+                    <i class="fas fa-handshake"></i> Xác nhận kết nối
+                </button>
+            </div>
+        </div>
+    </div>
 
     <!-- Logout Confirmation Modal -->
     <div id="logout-modal" class="modal" style="display: none;">

@@ -846,12 +846,30 @@ class AdminModel extends BaseModel {
 
 public function updateCourse($courseId, $data) {
     try {
-        $this->db->begin_transaction();
-
-        // Debug logging
-        error_log("Starting update for course ID: " . $courseId);
+        error_log("Starting updateCourse - ID: $courseId");
         error_log("Update data: " . json_encode($data));
 
+        $this->db->begin_transaction();
+
+        // Verify course exists
+        $stmt = $this->db->prepare("SELECT id FROM classes WHERE id = ?");
+        if (!$stmt) {
+            throw new Exception("Lỗi chuẩn bị truy vấn kiểm tra: " . $this->db->error);
+        }
+        
+        $stmt->bind_param("i", $courseId);
+        if (!$stmt->execute()) {
+            throw new Exception("Lỗi thực thi truy vấn kiểm tra: " . $stmt->error);
+        }
+        
+        $result = $stmt->get_result();
+        if ($result->num_rows === 0) {
+            $stmt->close();
+            throw new Exception("Khóa học không tồn tại");
+        }
+        $stmt->close();
+
+        // Update course information
         $sql = "UPDATE classes SET 
                 class_name = ?,
                 class_year = ?,
@@ -871,50 +889,61 @@ public function updateCourse($courseId, $data) {
 
         $stmt = $this->db->prepare($sql);
         if (!$stmt) {
-            throw new Exception("Database prepare error: " . $this->db->error);
+            throw new Exception("Lỗi chuẩn bị truy vấn cập nhật: " . $this->db->error);
         }
 
-        $stmt->bind_param("sisssiiissssssi",
-            $data['class_name'],
-            $data['class_year'],
-            $data['class_level'],
-            $data['subject'],
-            $data['description'],
-            $data['max_students'],
-            $data['sessions_total'],
-            $data['price_per_session'],
-            $data['schedule_time'],
-            $data['schedule_duration'],
-            $data['schedule_days'],
-            $data['start_date'],
-            $data['end_date'],
-            $courseId
+        // Correct bind_param: 14 parameters total
+        // s=string, i=integer
+        $stmt->bind_param("sisssiiisisssi",
+            $data['class_name'],        // s - string
+            $data['class_year'],        // i - integer  
+            $data['class_level'],       // s - string
+            $data['subject'],           // s - string
+            $data['description'],       // s - string
+            $data['max_students'],      // i - integer
+            $data['sessions_total'],    // i - integer
+            $data['price_per_session'], // i - integer
+            $data['schedule_time'],     // s - string
+            $data['schedule_duration'], // i - integer
+            $data['schedule_days'],     // s - string
+            $data['start_date'],        // s - string (date)
+            $data['end_date'],          // s - string (date)
+            $courseId                   // i - integer
         );
 
         if (!$stmt->execute()) {
-            throw new Exception("Execute failed: " . $stmt->error);
+            throw new Exception("Lỗi thực thi truy vấn cập nhật: " . $stmt->error);
         }
 
+        $affected_rows = $stmt->affected_rows;
         $stmt->close();
 
-        // Handle tutor assignment if provided
+        error_log("Course update affected rows: " . $affected_rows);
+
+        // Handle tutor assignment
         if (isset($data['tutor_id'])) {
             // First deactivate existing assignments
-            $sql = "UPDATE class_tutors SET status = 'inactive' WHERE class_id = ?";
+            $sql = "UPDATE class_tutors SET status = 'inactive', updated_at = NOW() WHERE class_id = ?";
             $stmt = $this->db->prepare($sql);
-            $stmt->bind_param("i", $courseId);
-            $stmt->execute();
-            $stmt->close();
+            if ($stmt) {
+                $stmt->bind_param("i", $courseId);
+                $stmt->execute();
+                $stmt->close();
+            }
 
             // Then add new assignment if tutor_id is provided
             if ($data['tutor_id']) {
-                $sql = "INSERT INTO class_tutors (tutor_id, class_id, assigned_date, status) 
-                        VALUES (?, ?, CURDATE(), 'active')
-                        ON DUPLICATE KEY UPDATE status = 'active', assigned_date = CURDATE()";
+                $sql = "INSERT INTO class_tutors (tutor_id, class_id, assigned_date, status, created_at) 
+                        VALUES (?, ?, CURDATE(), 'active', NOW())
+                        ON DUPLICATE KEY UPDATE status = 'active', assigned_date = CURDATE(), updated_at = NOW()";
                 $stmt = $this->db->prepare($sql);
-                $stmt->bind_param("ii", $data['tutor_id'], $courseId);
-                $stmt->execute();
-                $stmt->close();
+                if ($stmt) {
+                    $stmt->bind_param("ii", $data['tutor_id'], $courseId);
+                    if (!$stmt->execute()) {
+                        error_log("Warning: Could not update tutor assignment: " . $stmt->error);
+                    }
+                    $stmt->close();
+                }
             }
         }
 
@@ -1387,5 +1416,10 @@ public function removeFromCourse($studentId, $courseId) {
         throw $e;
     }
 }
+
+    // Add this method for debugging purposes
+    public function getConnection() {
+        return $this->db;
+    }
 }
 ?>
