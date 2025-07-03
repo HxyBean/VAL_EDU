@@ -120,10 +120,87 @@ class StudentModel extends BaseModel {
     
     public function updateStudentProfile($user_id, $data) {
         try {
-            error_log("Updating profile for user ID: " . $user_id);
+            error_log("Updating student profile for user ID: " . $user_id);
             error_log("Update data: " . json_encode($data));
             
+            // Validate input data first
+            if (empty($data['full_name']) || empty($data['email'])) {
+                error_log("Missing required fields");
+                return false;
+            }
+            
+            if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
+                error_log("Invalid email format");
+                return false;
+            }
+            
             $this->db->begin_transaction();
+            
+            // Check if user exists and is a student
+            $check_sql = "SELECT id, full_name, email, phone FROM users WHERE id = ? AND role = 'student'";
+            $check_stmt = $this->db->prepare($check_sql);
+            if (!$check_stmt) {
+                error_log("Check prepare failed: " . $this->db->error);
+                $this->db->rollback();
+                return false;
+            }
+            
+            $check_stmt->bind_param("i", $user_id);
+            if (!$check_stmt->execute()) {
+                error_log("Check execute failed: " . $check_stmt->error);
+                $this->db->rollback();
+                $check_stmt->close();
+                return false;
+            }
+            
+            $check_result = $check_stmt->get_result();
+            $current_data = $check_result->fetch_assoc();
+            $check_stmt->close();
+            
+            if (!$current_data) {
+                error_log("User not found or not a student");
+                $this->db->rollback();
+                return false;
+            }
+            
+            // Check if data is actually different
+            $data_changed = (
+                $current_data['full_name'] !== $data['full_name'] ||
+                $current_data['email'] !== $data['email'] ||
+                ($current_data['phone'] ?? '') !== ($data['phone'] ?? '')
+            );
+            
+            if (!$data_changed) {
+                error_log("No changes detected, transaction successful");
+                $this->db->commit();
+                return true;
+            }
+            
+            // Check if email already exists for other users
+            $email_check_sql = "SELECT id FROM users WHERE email = ? AND id != ?";
+            $email_check_stmt = $this->db->prepare($email_check_sql);
+            if (!$email_check_stmt) {
+                error_log("Email check prepare failed: " . $this->db->error);
+                $this->db->rollback();
+                return false;
+            }
+            
+            $email_check_stmt->bind_param("si", $data['email'], $user_id);
+            if (!$email_check_stmt->execute()) {
+                error_log("Email check execute failed: " . $email_check_stmt->error);
+                $this->db->rollback();
+                $email_check_stmt->close();
+                return false;
+            }
+            
+            $email_result = $email_check_stmt->get_result();
+            if ($email_result->num_rows > 0) {
+                error_log("Email already exists for another user");
+                $this->db->rollback();
+                $email_check_stmt->close();
+                return false;
+            }
+            $email_check_stmt->close();
             
             // Update users table
             $sql_user = "UPDATE users SET 
@@ -135,7 +212,7 @@ class StudentModel extends BaseModel {
             
             $stmt_user = $this->db->prepare($sql_user);
             if (!$stmt_user) {
-                error_log("Prepare failed: " . $this->db->error);
+                error_log("Update prepare failed: " . $this->db->error);
                 $this->db->rollback();
                 return false;
             }
@@ -148,7 +225,7 @@ class StudentModel extends BaseModel {
             );
             
             if (!$stmt_user->execute()) {
-                error_log("Execute failed: " . $stmt_user->error);
+                error_log("Update execute failed: " . $stmt_user->error);
                 $this->db->rollback();
                 $stmt_user->close();
                 return false;
@@ -157,20 +234,22 @@ class StudentModel extends BaseModel {
             $affected_rows = $stmt_user->affected_rows;
             $stmt_user->close();
             
-            error_log("Affected rows: " . $affected_rows);
+            error_log("Update affected rows: " . $affected_rows);
             
-            if ($affected_rows > 0) {
+            if ($affected_rows >= 0) { // 0 is also success (no changes needed)
                 $this->db->commit();
                 error_log("Profile updated successfully");
                 return true;
             } else {
                 $this->db->rollback();
-                error_log("No rows were updated");
+                error_log("Update failed - no rows affected");
                 return false;
             }
             
         } catch (Exception $e) {
-            $this->db->rollback();
+            if ($this->db->in_transaction) {
+                $this->db->rollback();
+            }
             error_log("Error updating student profile: " . $e->getMessage());
             return false;
         }
@@ -178,10 +257,10 @@ class StudentModel extends BaseModel {
     
     public function changePassword($user_id, $new_password) {
         try {
-            error_log("Changing password for user ID: " . $user_id);
+            error_log("Changing password for student ID: " . $user_id);
             
             $hashed_password = password_hash($new_password, PASSWORD_DEFAULT);
-            error_log("New hashed password: " . $hashed_password);
+            error_log("New hashed password created");
             
             $sql = "UPDATE users SET password = ?, updated_at = NOW() WHERE id = ? AND role = 'student'";
             

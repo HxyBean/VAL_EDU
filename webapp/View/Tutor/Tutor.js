@@ -1,9 +1,8 @@
-
 // Show class detail with real data
 function showClassDetail(classId) {
     console.log('Showing class detail for ID:', classId);
     console.log('Available tutor data:', tutorData);
-    
+
     // Find the class data from tutorData passed from PHP
     const classData = tutorData.classes.find(cls => cls.id == classId);
     if (!classData) {
@@ -19,17 +18,17 @@ function showClassDetail(classId) {
     document.getElementById('class-detail-title').textContent = `${classData.class_name} - ${classData.subject}`;
     document.getElementById('detail-class-name').textContent = `${classData.class_name} - ${classData.subject}`;
     document.getElementById('detail-class-code').textContent = `${classData.class_name}.${classData.class_year}`;
-    
+
     // Format schedule
     const scheduleTime = classData.schedule_time || '';
     const scheduleDays = classData.schedule_days || '';
     const scheduleText = scheduleTime && scheduleDays ? `${scheduleTime} - ${scheduleDays}` : 'Chưa có lịch học';
     document.getElementById('detail-schedule').textContent = scheduleText;
-    
+
     document.getElementById('detail-student-count').textContent = classData.student_count || 0;
     document.getElementById('detail-total-sessions').textContent = classData.sessions_total || 0;
     document.getElementById('detail-completed-sessions').textContent = classData.sessions_completed || 0;
-    
+
     const remaining = (classData.sessions_total || 0) - (classData.sessions_completed || 0);
     document.getElementById('detail-remaining-sessions').textContent = remaining;
 
@@ -42,7 +41,7 @@ function showClassDetail(classId) {
     // Show class detail section
     document.querySelectorAll('.content-section').forEach(sec => sec.classList.remove('active'));
     document.getElementById('class-detail').classList.add('active');
-    
+
     // Update navigation
     document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
 }
@@ -95,26 +94,26 @@ function loadStudentsForAttendance() {
         method: 'POST',
         body: formData
     })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            currentStudents = data.students;
-            displayAttendanceForm(data);
-        } else {
-            showMessage(data.message || 'Lỗi khi tải danh sách học sinh', 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showMessage('Lỗi kết nối. Vui lòng thử lại!', 'error');
-    });
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                currentStudents = data.students;
+                displayAttendanceForm(data);
+            } else {
+                showMessage(data.message || 'Lỗi khi tải danh sách học sinh', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showMessage('Lỗi kết nối. Vui lòng thử lại!', 'error');
+        });
 }
 
 function displayAttendanceForm(data) {
     const classData = tutorData.classes.find(cls => cls.id == currentClass);
     const today = new Date();
     const dateStr = today.toLocaleDateString('vi-VN');
-    
+
     // Update attendance info
     document.getElementById('attendance-class-name').textContent = `${classData.class_name} - ${classData.subject}`;
     document.getElementById('attendance-date').textContent = dateStr;
@@ -185,10 +184,10 @@ function displayAttendanceForm(data) {
 
     // Add event listeners for checkboxes
     document.querySelectorAll('.attendance-input').forEach(checkbox => {
-        checkbox.addEventListener('change', function() {
+        checkbox.addEventListener('change', function () {
             const studentId = this.dataset.studentId;
             const label = this.closest('.student-item').querySelector('.attendance-label');
-            
+
             if (this.checked) {
                 attendanceData[studentId] = 'present';
                 label.textContent = 'Có mặt';
@@ -224,7 +223,7 @@ function completeSession() {
     // Show confirmation
     const attendedCount = Object.values(attendanceData).filter(status => status === 'present').length;
     const absentCount = Object.values(attendanceData).filter(status => status === 'absent').length;
-    
+
     if (!confirm(`Xác nhận hoàn thành buổi học?\n\nCó mặt: ${attendedCount} học sinh\nVắng mặt: ${absentCount} học sinh\n\nDữ liệu sẽ được lưu vào hệ thống.`)) {
         return;
     }
@@ -239,7 +238,7 @@ function completeSession() {
     const formData = new FormData();
     formData.append('class_id', currentClass);
     formData.append('topic', topic);
-    
+
     // Add attendance data
     Object.keys(attendanceData).forEach(studentId => {
         formData.append(`attendance[${studentId}]`, attendanceData[studentId]);
@@ -250,40 +249,40 @@ function completeSession() {
         method: 'POST',
         body: formData
     })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showMessage(data.message, 'success');
-            
-            // Show success message in attendance section
-            const successDiv = document.getElementById('attendance-success');
-            successDiv.style.display = 'block';
-            successDiv.scrollIntoView({ behavior: 'smooth' });
-            
-            // Disable form after successful save
-            document.querySelectorAll('.attendance-input').forEach(input => {
-                input.disabled = true;
-            });
-            completeBtn.style.display = 'none';
-            
-            // Optionally go back to class detail after a delay
-            setTimeout(() => {
-                backToClassDetail();
-            }, 3000);
-            
-        } else {
-            showMessage(data.message || 'Lỗi khi lưu điểm danh', 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showMessage('Lỗi kết nối. Vui lòng thử lại!', 'error');
-    })
-    .finally(() => {
-        // Restore button
-        completeBtn.innerHTML = originalText;
-        completeBtn.disabled = false;
-    });
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showMessage(data.message, 'success');
+
+                // Show success message in attendance section
+                const successDiv = document.getElementById('attendance-success');
+                successDiv.style.display = 'block';
+                successDiv.scrollIntoView({ behavior: 'smooth' });
+
+                // Disable form after successful save
+                document.querySelectorAll('.attendance-input').forEach(input => {
+                    input.disabled = true;
+                });
+                completeBtn.style.display = 'none';
+
+                // Optionally go back to class detail after a delay
+                setTimeout(() => {
+                    backToClassDetail();
+                }, 3000);
+
+            } else {
+                showMessage(data.message || 'Lỗi khi lưu điểm danh', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showMessage('Lỗi kết nối. Vui lòng thử lại!', 'error');
+        })
+        .finally(() => {
+            // Restore button
+            completeBtn.innerHTML = originalText;
+            completeBtn.disabled = false;
+        });
 }
 
 // View student list
@@ -324,33 +323,33 @@ function loadStudentList() {
         method: 'POST',
         body: formData
     })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            displayStudentList(data.students, data.attendance_stats);
-        } else {
-            showMessage(data.message || 'Lỗi khi tải danh sách học sinh', 'error');
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                displayStudentList(data.students, data.attendance_stats);
+            } else {
+                showMessage(data.message || 'Lỗi khi tải danh sách học sinh', 'error');
+                showErrorStudentList();
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showMessage('Lỗi kết nối. Vui lòng thử lại!', 'error');
             showErrorStudentList();
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showMessage('Lỗi kết nối. Vui lòng thử lại!', 'error');
-        showErrorStudentList();
-    });
+        });
 }
 
 function displayStudentList(students, attendanceStats) {
     // Store all students for search functionality
     allStudents = students;
     filteredStudents = students;
-    
+
     // Update stats
     updateStudentStats(students, attendanceStats);
-    
+
     // Clear search when loading new data
     clearSearch();
-    
+
     // Render students
     renderStudentGrid(students);
 }
@@ -359,7 +358,7 @@ function updateStudentStats(students, attendanceStats) {
     const totalStudents = students.length;
     const avgAttendance = attendanceStats.average_attendance_rate || 0;
     const goodAttendanceCount = students.filter(student => {
-        const attendanceRate = student.total_sessions > 0 ? 
+        const attendanceRate = student.total_sessions > 0 ?
             Math.round((student.sessions_attended / student.total_sessions) * 100) : 0;
         return attendanceRate >= 80;
     }).length;
@@ -371,7 +370,7 @@ function updateStudentStats(students, attendanceStats) {
 
 function renderStudentGrid(students) {
     const studentGrid = document.getElementById('student-grid');
-    
+
     if (students.length === 0) {
         // Check if this is a search result or genuinely no students
         const searchInput = document.getElementById('student-search');
@@ -398,9 +397,9 @@ function renderStudentGrid(students) {
 
     let studentsHtml = '';
     students.forEach((student, index) => {
-        const attendanceRate = student.total_sessions > 0 ? 
+        const attendanceRate = student.total_sessions > 0 ?
             Math.round((student.sessions_attended / student.total_sessions) * 100) : 0;
-        
+
         // Determine attendance status color
         let statusClass = 'average';
         let statusIcon = 'fa-user';
@@ -416,7 +415,7 @@ function renderStudentGrid(students) {
         }
 
         // Format enrollment date
-        const enrollmentDate = student.enrollment_date ? 
+        const enrollmentDate = student.enrollment_date ?
             new Date(student.enrollment_date).toLocaleDateString('vi-VN') : 'N/A';
 
         // Check if student name should be highlighted
@@ -478,7 +477,7 @@ function renderStudentGrid(students) {
     });
 
     studentGrid.innerHTML = studentsHtml;
-    
+
     // Update search results info
     updateSearchResultsInfo();
 }
@@ -492,14 +491,14 @@ function filterStudents() {
     const searchInput = document.getElementById('student-search');
     const searchTerm = searchInput.value.trim().toLowerCase();
     const clearBtn = document.getElementById('clear-search');
-    
+
     // Show/hide clear button
     if (searchTerm) {
         clearBtn.style.display = 'flex';
     } else {
         clearBtn.style.display = 'none';
     }
-    
+
     // Filter students
     if (searchTerm === '') {
         // Show all students
@@ -507,15 +506,15 @@ function filterStudents() {
         hideSearchResultsInfo();
     } else {
         // Filter by name (case insensitive, partial match)
-        filteredStudents = allStudents.filter(student => 
+        filteredStudents = allStudents.filter(student =>
             student.full_name.toLowerCase().includes(searchTerm)
         );
         showSearchResultsInfo();
     }
-    
+
     // Re-render the grid with filtered results
     renderStudentGrid(filteredStudents);
-    
+
     // Add search animation
     addSearchAnimation();
 }
@@ -524,15 +523,15 @@ function filterStudents() {
 function clearSearch() {
     const searchInput = document.getElementById('student-search');
     const clearBtn = document.getElementById('clear-search');
-    
+
     searchInput.value = '';
     clearBtn.style.display = 'none';
-    
+
     // Reset to show all students
     filteredStudents = allStudents;
     hideSearchResultsInfo();
     hideNoSearchResults();
-    
+
     // Re-render with all students
     renderStudentGrid(allStudents);
 }
@@ -541,7 +540,7 @@ function clearSearch() {
 function showSearchResultsInfo() {
     const searchResultsInfo = document.getElementById('search-results-info');
     const searchResultsCount = document.getElementById('search-results-count');
-    
+
     searchResultsCount.textContent = filteredStudents.length;
     searchResultsInfo.style.display = 'block';
 }
@@ -556,7 +555,7 @@ function hideSearchResultsInfo() {
 function showNoSearchResults(searchTerm) {
     const noResultsDiv = document.getElementById('no-search-results');
     const searchTermSpan = document.getElementById('search-term');
-    
+
     searchTermSpan.textContent = searchTerm;
     noResultsDiv.style.display = 'block';
 }
@@ -585,7 +584,7 @@ function addSearchAnimation() {
 }
 
 // Enhanced keyboard shortcuts for search
-document.addEventListener('keydown', function(event) {
+document.addEventListener('keydown', function (event) {
     // Focus search when pressing Ctrl+F or Cmd+F
     if ((event.ctrlKey || event.metaKey) && event.key === 'f') {
         event.preventDefault();
@@ -595,7 +594,7 @@ document.addEventListener('keydown', function(event) {
             searchInput.select();
         }
     }
-    
+
     // Clear search when pressing Escape
     if (event.key === 'Escape') {
         const searchInput = document.getElementById('student-search');
@@ -607,10 +606,10 @@ document.addEventListener('keydown', function(event) {
 });
 
 // Add event listener for Enter key in search
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     const searchInput = document.getElementById('student-search');
     if (searchInput) {
-        searchInput.addEventListener('keydown', function(event) {
+        searchInput.addEventListener('keydown', function (event) {
             if (event.key === 'Enter') {
                 event.preventDefault();
                 // Focus first result if available
@@ -670,20 +669,20 @@ function loadAttendanceHistory() {
         method: 'POST',
         body: formData
     })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            displayAttendanceHistory(data.history, data.scheduled_sessions);
-        } else {
-            showMessage(data.message || 'Lỗi khi tải lịch sử điểm danh', 'error');
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                displayAttendanceHistory(data.history, data.scheduled_sessions);
+            } else {
+                showMessage(data.message || 'Lỗi khi tải lịch sử điểm danh', 'error');
+                showErrorTable();
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showMessage('Lỗi kết nối. Vui lòng thử lại!', 'error');
             showErrorTable();
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showMessage('Lỗi kết nối. Vui lòng thử lại!', 'error');
-        showErrorTable();
-    });
+        });
 }
 
 function displayAttendanceHistory(historyData, scheduledSessions) {
@@ -691,7 +690,7 @@ function displayAttendanceHistory(historyData, scheduledSessions) {
     const students = historyData.students;
     const sessions = historyData.sessions;
     const attendance = historyData.attendance;
-    
+
     if (students.length === 0) {
         table.innerHTML = `
             <thead>
@@ -715,7 +714,7 @@ function displayAttendanceHistory(historyData, scheduledSessions) {
 
     // Combine completed sessions with scheduled future sessions
     const allSessions = [...sessions];
-    
+
     // Add future scheduled sessions that don't exist yet
     scheduledSessions.forEach(scheduled => {
         const exists = sessions.find(s => s.session_date === scheduled.session_date);
@@ -743,13 +742,13 @@ function displayAttendanceHistory(historyData, scheduledSessions) {
 
     allSessions.forEach((session, index) => {
         const sessionDate = new Date(session.session_date);
-        const formattedDate = sessionDate.toLocaleDateString('vi-VN', { 
-            day: '2-digit', 
-            month: '2-digit' 
+        const formattedDate = sessionDate.toLocaleDateString('vi-VN', {
+            day: '2-digit',
+            month: '2-digit'
         });
         const isFuture = session.status === 'future';
         const headerClass = isFuture ? 'future-session' : 'completed-session';
-        
+
         headerHtml += `
             <th class="${headerClass}" style="min-width: 100px; text-align: center;">
                 <div>Buổi ${index + 1}</div>
@@ -765,7 +764,7 @@ function displayAttendanceHistory(historyData, scheduledSessions) {
 
     // Build table body
     let bodyHtml = '<tbody>';
-    
+
     students.forEach((student, studentIndex) => {
         bodyHtml += `
             <tr>
@@ -780,7 +779,7 @@ function displayAttendanceHistory(historyData, scheduledSessions) {
         allSessions.forEach(session => {
             const isFuture = session.status === 'future';
             const cellClass = isFuture ? 'future-cell' : 'attendance-cell';
-            
+
             if (isFuture) {
                 // Future session - show as grayed out
                 bodyHtml += `
@@ -793,7 +792,7 @@ function displayAttendanceHistory(historyData, scheduledSessions) {
                 const studentAttendance = attendance[session.id] ? attendance[session.id][student.id] : null;
                 let statusIcon = '';
                 let statusClass = '';
-                
+
                 if (studentAttendance === 'present') {
                     statusIcon = '<i class="fas fa-check-circle" style="color: #28a745;"></i>';
                     statusClass = 'present';
@@ -804,7 +803,7 @@ function displayAttendanceHistory(historyData, scheduledSessions) {
                     statusIcon = '<i class="fas fa-question-circle" style="color: #6c757d;"></i>';
                     statusClass = 'unknown';
                 }
-                
+
                 bodyHtml += `
                     <td class="${cellClass} ${statusClass}" style="text-align: center;">
                         ${statusIcon}
@@ -827,7 +826,7 @@ function displayAttendanceHistory(historyData, scheduledSessions) {
 
 function addAttendanceStatistics(students, sessions, attendance) {
     const completedSessions = sessions.filter(s => s.status === 'completed');
-    
+
     if (completedSessions.length === 0) {
         return;
     }
@@ -835,7 +834,7 @@ function addAttendanceStatistics(students, sessions, attendance) {
     // Calculate statistics
     let totalAttendances = 0;
     let totalPossibleAttendances = students.length * completedSessions.length;
-    
+
     students.forEach(student => {
         completedSessions.forEach(session => {
             if (attendance[session.id] && attendance[session.id][student.id] === 'present') {
@@ -844,13 +843,13 @@ function addAttendanceStatistics(students, sessions, attendance) {
         });
     });
 
-    const attendanceRate = totalPossibleAttendances > 0 ? 
+    const attendanceRate = totalPossibleAttendances > 0 ?
         Math.round((totalAttendances / totalPossibleAttendances) * 100) : 0;
 
     // Add statistics above the table
     const historySection = document.querySelector('#attendance-history .history-section');
     const existingStats = historySection.querySelector('.attendance-stats-summary');
-    
+
     if (existingStats) {
         existingStats.remove();
     }
@@ -915,7 +914,7 @@ function showChangePassword() {
 function hideChangePassword() {
     const changePasswordSection = document.getElementById('change-password-section');
     changePasswordSection.style.display = 'none';
-    
+
     // Clear form
     document.getElementById('change-password-form').reset();
 }
@@ -923,7 +922,7 @@ function hideChangePassword() {
 function togglePassword(inputId) {
     const input = document.getElementById(inputId);
     const icon = document.querySelector(`button[onclick="togglePassword('${inputId}')"] i`);
-    
+
     if (input.type === 'password') {
         input.type = 'text';
         icon.classList.remove('fa-eye');
@@ -977,29 +976,29 @@ function savePersonalInfo() {
         method: 'POST',
         body: formData
     })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showMessage(data.message, 'success');
-            
-            // Update header info if needed
-            const headerName = document.querySelector('.tutor-info span');
-            if (headerName) {
-                headerName.textContent = `Chào mừng, ${fullname}`;
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showMessage(data.message, 'success');
+
+                // Update header info if needed
+                const headerName = document.querySelector('.tutor-info span');
+                if (headerName) {
+                    headerName.textContent = `Chào mừng, ${fullname}`;
+                }
+            } else {
+                showMessage(data.message || 'Cập nhật thất bại', 'error');
             }
-        } else {
-            showMessage(data.message || 'Cập nhật thất bại', 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showMessage('Lỗi kết nối. Vui lòng thử lại!', 'error');
-    })
-    .finally(() => {
-        // Restore button
-        saveBtn.innerHTML = originalText;
-        saveBtn.disabled = false;
-    });
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showMessage('Lỗi kết nối. Vui lòng thử lại!', 'error');
+        })
+        .finally(() => {
+            // Restore button
+            saveBtn.innerHTML = originalText;
+            saveBtn.disabled = false;
+        });
 }
 
 // Change password with API call
@@ -1049,24 +1048,24 @@ function changePassword() {
         method: 'POST',
         body: formData
     })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showMessage(data.message, 'success');
-            hideChangePassword();
-        } else {
-            showMessage(data.message || 'Đổi mật khẩu thất bại', 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showMessage('Lỗi kết nối. Vui lòng thử lại!', 'error');
-    })
-    .finally(() => {
-        // Restore button
-        changeBtn.innerHTML = originalText;
-        changeBtn.disabled = false;
-    });
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showMessage(data.message, 'success');
+                hideChangePassword();
+            } else {
+                showMessage(data.message || 'Đổi mật khẩu thất bại', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showMessage('Lỗi kết nối. Vui lòng thử lại!', 'error');
+        })
+        .finally(() => {
+            // Restore button
+            changeBtn.innerHTML = originalText;
+            changeBtn.disabled = false;
+        });
 }
 
 // Logout modal functions
@@ -1102,7 +1101,7 @@ function showMessage(message, type = 'info') {
     // Remove existing messages
     const existingMessages = document.querySelectorAll('.alert-message');
     existingMessages.forEach(msg => msg.remove());
-    
+
     // Create new message
     const messageDiv = document.createElement('div');
     messageDiv.className = `alert-message alert-${type}`;
@@ -1119,7 +1118,7 @@ function showMessage(message, type = 'info') {
         animation: slideInRight 0.3s ease-out;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     `;
-    
+
     if (type === 'success') {
         messageDiv.style.backgroundColor = '#28a745';
     } else if (type === 'error') {
@@ -1127,9 +1126,9 @@ function showMessage(message, type = 'info') {
     } else {
         messageDiv.style.backgroundColor = '#17a2b8';
     }
-    
+
     messageDiv.textContent = message;
-    
+
     // Add animation styles
     const style = document.createElement('style');
     style.textContent = `
@@ -1145,9 +1144,9 @@ function showMessage(message, type = 'info') {
         }
     `;
     document.head.appendChild(style);
-    
+
     document.body.appendChild(messageDiv);
-    
+
     // Auto remove after 3 seconds
     setTimeout(() => {
         if (messageDiv.parentNode) {
@@ -1167,7 +1166,7 @@ function showErrorStudentList() {
             </button>
         </div>
     `;
-    
+
     // Reset search when there's an error
     clearSearch();
     allStudents = [];

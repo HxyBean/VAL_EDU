@@ -83,46 +83,73 @@ class StudentController extends BaseController {
             exit();
         }
         
-        error_log("Update profile API called");
+        error_log("Update student profile API called");
         error_log("POST data: " . json_encode($_POST));
         error_log("Session user_id: " . $_SESSION['user_id']);
         
         $user_id = $_SESSION['user_id'];
-        $data = [
-            'full_name' => trim($_POST['full_name'] ?? ''),
-            'email' => trim($_POST['email'] ?? ''),
-            'phone' => trim($_POST['phone'] ?? '')
-        ];
         
-        // Validation
-        if (empty($data['full_name']) || empty($data['email'])) {
+        // Validate input data
+        $full_name = trim($_POST['full_name'] ?? '');
+        $email = trim($_POST['email'] ?? '');
+        $phone = trim($_POST['phone'] ?? '');
+        
+        // Server-side validation
+        if (empty($full_name) || empty($email)) {
             echo json_encode(['success' => false, 'message' => 'Tên và email không được để trống']);
             exit();
         }
         
-        if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             echo json_encode(['success' => false, 'message' => 'Email không hợp lệ']);
             exit();
         }
         
+        // Phone validation (optional but if provided, must be valid)
+        if (!empty($phone) && !preg_match('/^[0-9\s\-\+\(\)]{10,15}$/', $phone)) {
+            echo json_encode(['success' => false, 'message' => 'Số điện thoại không hợp lệ']);
+            exit();
+        }
+        
+        $data = [
+            'full_name' => $full_name,
+            'email' => $email,
+            'phone' => $phone
+        ];
+        
         try {
             $result = $this->studentModel->updateStudentProfile($user_id, $data);
-            if ($result) {
-                // Update session data
+            
+            if ($result === true) {
+                // Update session data only if update was successful
                 $_SESSION['user_name'] = $data['full_name'];
                 $_SESSION['user_email'] = $data['email'];
                 
-                echo json_encode(['success' => true, 'message' => 'Cập nhật thông tin thành công']);
+                echo json_encode([
+                    'success' => true, 
+                    'message' => 'Cập nhật thông tin thành công',
+                    'data' => [
+                        'full_name' => $data['full_name'],
+                        'email' => $data['email'],
+                        'phone' => $data['phone']
+                    ]
+                ]);
             } else {
-                echo json_encode(['success' => false, 'message' => 'Cập nhật thất bại - Không có dữ liệu nào được thay đổi']);
+                echo json_encode([
+                    'success' => false, 
+                    'message' => 'Không thể cập nhật thông tin. Vui lòng kiểm tra lại dữ liệu.'
+                ]);
             }
         } catch (Exception $e) {
             error_log("Error updating student profile: " . $e->getMessage());
-            echo json_encode(['success' => false, 'message' => 'Lỗi hệ thống: ' . $e->getMessage()]);
+            echo json_encode([
+                'success' => false, 
+                'message' => 'Lỗi hệ thống. Vui lòng thử lại sau.'
+            ]);
         }
         exit();
     }
-    
+
     // API endpoint for changing password
     public function changePassword() {
         // Set content type first
@@ -140,7 +167,7 @@ class StudentController extends BaseController {
             exit();
         }
         
-        error_log("Change password API called");
+        error_log("Change student password API called");
         error_log("POST data keys: " . implode(', ', array_keys($_POST)));
         error_log("Session user_id: " . $_SESSION['user_id']);
         
@@ -169,7 +196,7 @@ class StudentController extends BaseController {
             // Verify current password
             $student = $this->studentModel->getStudentById($user_id);
             if (!$student) {
-                echo json_encode(['success' => false, 'message' => 'Không tìm thấy thông tin học sinh']);
+                echo json_encode(['success' => false, 'message' => 'Không tìm thấy thông tin học viên']);
                 exit();
             }
             
@@ -183,107 +210,13 @@ class StudentController extends BaseController {
             if ($result) {
                 echo json_encode(['success' => true, 'message' => 'Đổi mật khẩu thành công']);
             } else {
-                echo json_encode(['success' => false, 'message' => 'Đổi mật khẩu thất bại - Không có dữ liệu nào được thay đổi']);
+                echo json_encode(['success' => false, 'message' => 'Đổi mật khẩu thất bại']);
             }
         } catch (Exception $e) {
-            error_log("Error changing password: " . $e->getMessage());
+            error_log("Error changing student password: " . $e->getMessage());
             echo json_encode(['success' => false, 'message' => 'Lỗi hệ thống: ' . $e->getMessage()]);
         }
         exit();
-    }
-    
-    public function sendParentConnection() {
-        header('Content-Type: application/json');
-        
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            echo json_encode(['success' => false, 'message' => 'Invalid request method']);
-            return;
-        }
-        
-        // Check if user is logged in and is a student
-        if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'student') {
-            echo json_encode(['success' => false, 'message' => 'Unauthorized access']);
-            return;
-        }
-        
-        try {
-            $student_id = $_SESSION['user_id'];
-            $parent_email = trim($_POST['parent_email'] ?? '');
-            $parent_phone = trim($_POST['parent_phone'] ?? '');
-            $parent_name = trim($_POST['parent_name'] ?? '');
-            $message = trim($_POST['message'] ?? '');
-            
-            // Validate required fields
-            if (empty($parent_email)) {
-                echo json_encode(['success' => false, 'message' => 'Email phụ huynh là bắt buộc']);
-                return;
-            }
-            
-            // Validate email format
-            if (!filter_var($parent_email, FILTER_VALIDATE_EMAIL)) {
-                echo json_encode(['success' => false, 'message' => 'Email không hợp lệ']);
-                return;
-            }
-            
-            // Use the studentModel's database connection
-            $db = $this->studentModel->getConnection();
-            
-            // Check if parent already exists
-            $checkParentQuery = "SELECT id FROM users WHERE email = :email AND role = 'parent'";
-            $checkParentStmt = $db->prepare($checkParentQuery);
-            $checkParentStmt->bindParam(':email', $parent_email);
-            $checkParentStmt->execute();
-            
-            $parent_id = null;
-            if ($checkParentStmt->rowCount() > 0) {
-                $parent = $checkParentStmt->fetch(PDO::FETCH_ASSOC);
-                $parent_id = $parent['id'];
-            } else {
-                // Create new parent account
-                $username = 'parent_' . uniqid();
-                $temp_password = bin2hex(random_bytes(8));
-                $hashed_password = password_hash($temp_password, PASSWORD_DEFAULT);
-                
-                $createParentQuery = "INSERT INTO users (username, password, email, full_name, phone, role, is_active, created_at) 
-                                     VALUES (:username, :password, :email, :full_name, :phone, 'parent', 1, NOW())";
-                $createParentStmt = $db->prepare($createParentQuery);
-                $createParentStmt->bindParam(':username', $username);
-                $createParentStmt->bindParam(':password', $hashed_password);
-                $createParentStmt->bindParam(':email', $parent_email);
-                $createParentStmt->bindParam(':full_name', $parent_name);
-                $createParentStmt->bindParam(':phone', $parent_phone);
-                
-                if ($createParentStmt->execute()) {
-                    $parent_id = $db->lastInsertId();
-                } else {
-                    echo json_encode(['success' => false, 'message' => 'Không thể tạo tài khoản phụ huynh']);
-                    return;
-                }
-            }
-            
-            // Log the connection request for now
-            error_log("Parent connection request: Student ID $student_id wants to connect with Parent ID $parent_id (Email: $parent_email)");
-            
-            echo json_encode([
-                'success' => true, 
-                'message' => 'Đã gửi yêu cầu kết nối thành công! Phụ huynh sẽ nhận được thông báo qua email.'
-            ]);
-            
-        } catch (Exception $e) {
-            error_log("Send parent connection error: " . $e->getMessage());
-            echo json_encode(['success' => false, 'message' => 'Lỗi hệ thống: ' . $e->getMessage()]);
-        }
-    }
-}
-?>
-    private function getDbConnection() {
-        if (!$this->db) {
-            // If db is not set, create a new connection
-            require_once(__DIR__ . '/../config/database.php');
-            $database = new Database();
-            $this->db = $database->getConnection();
-        }
-        return $this->db;
     }
 }
 ?>

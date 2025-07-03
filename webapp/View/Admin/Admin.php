@@ -192,7 +192,7 @@
                 <div class="search-bar">
                     <i class="fas fa-search"></i>
                     <input type="text" id="tutor-search" 
-                           placeholder="Tìm kiếm theo tên, email..." 
+                           placeholder="Tìm kiếm giáo viên..." 
                            onkeyup="searchTutors()">
                 </div>
                 <button class="btn-primary" onclick="showAddTutorModal()">
@@ -375,7 +375,6 @@
                             <th>Email</th>
                             <th>Số điện thoại</th>
                             <th>Số con</th>
-                            <th>Tổng thanh toán</th>
                             <th>Ngày tạo</th>
                             <th>Trạng thái</th>
                             <th>Hành động</th>
@@ -939,6 +938,19 @@
                 <span class="close" onclick="closeStudentDetailModal()">&times;</span>
             </div>
             <div class="modal-body" id="student-detail-content">
+                <!-- Content will be populated by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Parent Detail Modal -->
+    <div id="parent-detail-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-users"></i> Thông tin phụ huynh</h3>
+                <span class="close" onclick="closeParentDetailModal()">&times;</span>
+            </div>
+            <div class="modal-body" id="parent-detail-content">
                 <!-- Content will be populated by JavaScript -->
             </div>
         </div>

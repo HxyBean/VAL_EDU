@@ -993,7 +993,7 @@ function showCourseDetail(courseId) {
     const content = document.getElementById('course-detail-content');
 
     if (!modal || !content) {
-        console.error('Modal elements not found');
+        console.error('Course detail modal or content not found');
         return;
     }
 
@@ -1030,45 +1030,54 @@ function showCourseDetail(courseId) {
     // Fetch course details
     fetch(`/webapp/api/admin/course-details?id=${courseId}`)
         .then(response => {
-            console.log('API Response:', response);
+            console.log('Response status:', response.status);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
             return response.json();
         })
         .then(data => {
-            console.log('Course data:', data);
+            console.log('Course details response:', data);
             if (data.success && data.data) {
                 const course = data.data;
+                console.log('Students in course:', course.students);
+                console.log('Number of students:', course.students ? course.students.length : 0);
+
                 content.innerHTML = `
-                    <div class="course-details p-4">
+                    <div class="course-detail-content">
                         <div class="section mb-4">
                             <h4 class="mb-3">Thông tin cơ bản</h4>
                             <div class="row">
                                 <div class="col-md-6 mb-3">
-                                    <strong>Tên khóa học:</strong> ${course.class_name}
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <strong>Môn học:</strong> ${course.subject}
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <strong>Cấp độ:</strong> ${course.class_level}
+                                    <strong>Mã khóa học:</strong> ${generateCourseCode(course)}
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     <strong>Trạng thái:</strong> 
                                     <span class="status ${course.status}">${getStatusText(course.status)}</span>
                                 </div>
-                            </div>
-                        </div>
-
-                        <div class="section mb-4">
-                            <h4 class="mb-3">Lịch học & Tiến độ</h4>
-                            <div class="row">
                                 <div class="col-md-6 mb-3">
-                                    <strong>Lịch học:</strong> ${course.schedule_days} ${course.schedule_time}
+                                    <strong>Cấp độ:</strong> ${course.class_level || 'Không xác định'}
                                 </div>
                                 <div class="col-md-6 mb-3">
-                                    <strong>Thời lượng:</strong> ${course.schedule_duration} phút/buổi
+                                    <strong>Môn học:</strong> ${course.subject || 'Không xác định'}
                                 </div>
                                 <div class="col-md-6 mb-3">
-                                    <strong>Số buổi:</strong> ${course.completed_sessions}/${course.sessions_total}
+                                    <strong>Sĩ số tối đa:</strong> ${course.max_students || 0} học viên
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <strong>Học viên hiện tại:</strong> ${course.current_students || 0}/${course.max_students || 0}
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <strong>Thời gian học:</strong> ${formatSchedule(course)}
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <strong>Ngày khai giảng:</strong> ${formatDate(course.start_date)}
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <strong>Ngày kết thúc:</strong> ${formatDate(course.end_date)}
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <strong>Số buổi:</strong> ${course.completed_sessions || 0}/${course.sessions_total || 0}
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     <strong>Học phí:</strong> ${formatCurrency(course.price_per_session)}/buổi
@@ -1080,7 +1089,7 @@ function showCourseDetail(courseId) {
                             <h4 class="mb-3">Thông tin giảng viên</h4>
                             <div class="row">
                                 <div class="col-12 mb-3">
-                                    <strong>Giảng viên phụ trách:</strong> ${course.tutor_name}
+                                    <strong>Giảng viên phụ trách:</strong> ${course.tutor_name || 'Chưa phân công'}
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     <strong>Email:</strong> ${course.tutor_email || 'Chưa có'}
@@ -1092,33 +1101,54 @@ function showCourseDetail(courseId) {
                         </div>
 
                         <div class="section">
+                        
+                        ${course.description ? `
+                            <div class="section mt-4">
+                                <h4 class="mb-3">Mô tả khóa học</h4>
+                                <p>${course.description}</p>
+                            </div>
+                        ` : ''}
+
                             <h4 class="mb-3">Danh sách học viên (${course.students ? course.students.length : 0})</h4>
-                            ${course.students && course.students.length > 0 ? `
+                            ${course.students && Array.isArray(course.students) && course.students.length > 0 ? `
                                 <div class="table-responsive">
                                     <table class="table">
                                         <thead>
                                             <tr>
+                                                <th>STT</th>
                                                 <th>Họ tên</th>
                                                 <th>Email</th>
-                                                <th>SĐT</th>
-                                                <th>Ngày đăng ký</th>
+                                                <th>Tỷ lệ tham gia</th>
                                                 <th>Buổi tham gia</th>
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            ${course.students.map(student => `
+                                            ${course.students.map((student, index) => `
                                                 <tr>
-                                                    <td>${student.full_name}</td>
-                                                    <td>${student.email}</td>
-                                                    <td>${student.phone || 'N/A'}</td>
-                                                    <td>${formatDate(student.enrollment_date)}</td>
-                                                    <td>${student.attended_sessions}/${course.completed_sessions}</td>
+                                                    <td>${index + 1}</td>
+                                                    <td>${student.full_name || 'N/A'}</td>
+                                                    <td>${student.email || 'N/A'}</td>
+                                                    <td>
+                                                        <span class="badge ${student.attendance_rate >= 80 ? 'badge-success' : student.attendance_rate >= 60 ? 'badge-warning' : 'badge-danger'}">
+                                                            ${student.attendance_rate || 0}%
+                                                        </span>
+                                                    </td>
+                                                    <td>${student.actual_attended_sessions || 0}/${student.total_possible_sessions || 0}</td>
                                                 </tr>
                                             `).join('')}
                                         </tbody>
                                     </table>
                                 </div>
-                            ` : '<p class="text-center">Chưa có học viên đăng ký</p>'}
+                            ` : `
+                                <div class="text-center p-5">
+                                    <i class="fas fa-user-graduate fa-3x text-muted mb-3"></i>
+                                    <h5 class="text-muted">Chưa có học viên đăng ký</h5>
+                                    <p class="text-muted">Khóa học này chưa có học viên nào đăng ký tham gia.</p>
+                                    <button class="btn btn-primary" onclick="showAddStudentToCourseModal(${courseId})">
+                                        <i class="fas fa-plus"></i> Thêm học viên
+                                    </button>
+                                </div>
+                            `}
                         </div>
                     </div>
                 `;
@@ -1136,7 +1166,7 @@ function showCourseDetail(courseId) {
             content.innerHTML = `
                 <div class="error-state text-center p-5">
                     <i class="fas fa-exclamation-triangle text-danger fa-2x mb-3"></i>
-                    <p class="text-danger">Lỗi kết nối máy chủ</p>
+                    <p class="text-danger">Lỗi kết nối máy chủ: ${error.message}</p>
                 </div>
             `;
         });
@@ -2011,7 +2041,7 @@ function loadStudents() {
                         <td>${formatDate(student.created_at)}</td>
                         <td>
                             <span class="student-status ${student.is_active ? 'active' : 'inactive'}">
-                                ${student.is_active ? 'Đang hoạt động' : 'Ngừng hoạt động'}
+                                ${student.is_active ? 'Hoạt động' : 'Ngừng hoạt động'}
                             </span>
                         </td>
                         <td>
@@ -2876,44 +2906,51 @@ function loadParents() {
 }
 
 function displayParents(parents) {
-    const parentsTableBody = document.getElementById('parents-table-body');
-    if (!parentsTableBody) return;
+    const tableBody = document.getElementById('parents-table-body');
+    const loading = document.getElementById('parents-loading');
+    const noParents = document.getElementById('no-parents');
 
-    parentsTableBody.innerHTML = parents.map(parent => {
-        // Chuyển đổi is_active về boolean một cách rõ ràng
-        const isActive = parent.is_active == 1 || parent.is_active === true || parent.is_active === '1';
-        const statusClass = isActive ? 'active' : 'inactive';
-        const statusText = isActive ? 'Hoạt động' : 'Không hoạt động';
+    // Hide loading
+    if (loading) loading.style.display = 'none';
 
-        const createdDate = new Date(parent.created_at).toLocaleDateString('vi-VN');
-        const totalPaid = formatCurrency(parent.total_paid || 0);
+    if (!parents || parents.length === 0) {
+        if (noParents) noParents.style.display = 'block';
+        if (tableBody) tableBody.innerHTML = '';
+        return;
+    }
 
-        // Debug log
-        console.log(`Parent ${parent.id}: is_active = ${parent.is_active} (${typeof parent.is_active}), converted to ${isActive}`);
+    if (noParents) noParents.style.display = 'none';
 
-        return `
-            <tr>
-                <td>${parent.id}</td>
-                <td>${parent.full_name}</td>
-                <td>${parent.email}</td>
-                <td>${parent.phone || 'Chưa có'}</td>
-                <td>${parent.children_count || 0}</td>
-                <td>${totalPaid}</td>
-                <td>${createdDate}</td>
-                <td><span class="status ${statusClass}">${statusText}</span></td>
-                <td>
-                    <div class="action-buttons">
-                        <button class="btn-icon btn-view" onclick="viewParent(${parent.id})" title="Xem chi tiết">
-                            <i class="fas fa-eye"></i>
-                        </button>
-                        <button class="btn-icon btn-edit" onclick="editParent(${parent.id})" title="Chỉnh sửa">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                    </div>
-                </td>
-            </tr>
-        `;
-    }).join('');
+    if (!tableBody) {
+        console.error('Parents table body not found');
+        return;
+    }
+
+    tableBody.innerHTML = parents.map(parent => `
+        <tr>
+            <td>${parent.id}</td>
+            <td>${parent.full_name}</td>
+            <td>${parent.email}</td>
+            <td>${parent.phone || 'Chưa có'}</td>
+            <td>${parent.total_children || 0}</td>
+            <td>${formatDate(parent.created_at)}</td>
+            <td>
+                <span class="status ${parent.is_active == 1 ? 'active' : 'inactive'}">
+                    ${parent.is_active == 1 ? 'Hoạt động' : 'Không hoạt động'}
+                </span>
+            </td>
+            <td>
+                <div class="action-buttons">
+                    <button class="btn-icon btn-view" onclick="viewParent(${parent.id})" title="Xem chi tiết">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                    <button class="btn-icon btn-edit" onclick="editParent(${parent.id})" title="Chỉnh sửa">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                </div>
+            </td>
+        </tr>
+    `).join('');
 }
 
 function showNoParents() {
@@ -2953,263 +2990,373 @@ function searchParents() {
 // PARENT MODAL FUNCTIONS
 // ===========================================
 
-function showAddParentModal() {
-    const modal = document.getElementById('add-parent-modal');
-    if (modal) {
-        modal.style.display = 'block';
-        document.body.style.overflow = 'hidden';
 
-        // Reset form
-        const form = document.getElementById('add-parent-form');
-        if (form) form.reset();
+// View parent details
+function viewParent(parentId) {
+    console.log('Viewing parent details for ID:', parentId);
+
+    const modal = document.getElementById('parent-detail-modal');
+    const content = document.getElementById('parent-detail-content');
+
+    if (!modal || !content) {
+        console.error('Parent detail modal elements not found');
+        return;
     }
-}
-
-function closeAddParentModal() {
-    const modal = document.getElementById('add-parent-modal');
-    if (modal) {
-        modal.style.display = 'none';
-        document.body.style.overflow = 'auto';
-    }
-}
-
-function createParent(event) {
-    event.preventDefault();
-
-    const form = event.target;
-    const formData = new FormData(form);
 
     // Show loading state
-    const submitBtn = form.querySelector('button[type="submit"]');
-    const originalText = submitBtn.innerHTML;
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang tạo...';
-    submitBtn.disabled = true;
+    content.innerHTML = `
+        <div class="loading-state text-center p-5">
+            <i class="fas fa-spinner fa-spin fa-2x mb-3"></i>
+            <p>Đang tải thông tin phụ huynh...</p>
+        </div>
+    `;
 
-    fetch('/webapp/api/admin/create-parent', {
-        method: 'POST',
-        body: formData
-    })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                showMessage('Tạo phụ huynh thành công!', 'success');
-                closeAddParentModal();
-                loadParents(); // Reload the parents list
-            } else {
-                showMessage(data.message || 'Có lỗi xảy ra khi tạo phụ huynh', 'error');
+    // Show modal
+    modal.style.display = 'block';
+    document.body.style.overflow = 'hidden';
+
+    // Add show class for animation
+    setTimeout(() => {
+        modal.classList.add('show');
+    }, 10);
+
+    // Fetch parent details
+    fetch(`/webapp/api/admin/parent-details?parent_id=${parentId}`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
+            return response.json();
         })
-        .catch(error => {
-            console.error('Error creating parent:', error);
-            showMessage('Lỗi hệ thống khi tạo phụ huynh', 'error');
-        })
-        .finally(() => {
-            submitBtn.innerHTML = originalText;
-            submitBtn.disabled = false;
-        });
-}
-
-function viewParent(parentId) {
-    fetch(`/webapp/api/admin/parent-details?parent_id=${parentId}`, {
-        method: 'GET',
-        headers: {
-            'Accept': 'application/json'
-        }
-    })
-        .then(response => response.json())
         .then(data => {
             if (data.success && data.parent) {
                 displayParentDetails(data.parent);
             } else {
-                showMessage(data.message || 'Không thể tải thông tin phụ huynh', 'error');
+                content.innerHTML = `
+                    <div class="error-state text-center p-5">
+                        <i class="fas fa-exclamation-triangle fa-2x mb-3 text-danger"></i>
+                        <p class="text-danger">${data.message || 'Không thể tải thông tin phụ huynh'}</p>
+                    </div>
+                `;
             }
         })
         .catch(error => {
             console.error('Error loading parent details:', error);
-            showMessage('Lỗi khi tải thông tin phụ huynh', 'error');
+            content.innerHTML = `
+                <div class="error-state text-center p-5">
+                    <i class="fas fa-exclamation-triangle fa-2x mb-3 text-danger"></i>
+                    <p class="text-danger">Lỗi khi tải thông tin phụ huynh</p>
+                </div>
+            `;
         });
 }
 
 
+
+// Display parent details in modal
 function displayParentDetails(parent) {
-    const modal = document.getElementById('parent-detail-modal');
     const content = document.getElementById('parent-detail-content');
+    const statistics = parent.statistics || {};
 
-    if (!modal || !content) return;
-
-    // Chuyển đổi is_active một cách rõ ràng
-    const isActive = parent.is_active == 1 || parent.is_active === true || parent.is_active === '1';
-    const statusText = isActive ? 'Hoạt động' : 'Không hoạt động';
-    const statusClass = isActive ? 'active' : 'inactive';
-
-    const createdDate = new Date(parent.created_at).toLocaleDateString('vi-VN');
-    const totalPaid = formatCurrency(parent.total_paid || 0);
-
-    // Debug log
-    console.log(`Parent detail ${parent.id}: is_active = ${parent.is_active} (${typeof parent.is_active}), converted to ${isActive}`);
+    console.log('Parent data:', parent);
+    console.log('Children data:', parent.children);
 
     content.innerHTML = `
         <div class="parent-detail">
+            <!-- Parent Profile -->
             <div class="parent-profile">
                 <div class="parent-avatar">
-                    <i class="fas fa-user-circle"></i>
+                    <i class="fas fa-user-tie"></i>
                 </div>
-                <h2>${parent.full_name}</h2>
-                <span class="parent-status ${statusClass}">${statusText}</span>
-            </div>
-            
-            <div class="info-section">
-                <h3><i class="fas fa-info-circle"></i> Thông tin cơ bản</h3>
-                <div class="info-grid">
-                    <div class="info-item">
-                        <i class="fas fa-user"></i>
-                        <span class="label">Tên đăng nhập:</span>
-                        <span>${parent.username}</span>
-                    </div>
-                    <div class="info-item">
-                        <i class="fas fa-envelope"></i>
-                        <span class="label">Email:</span>
-                        <span>${parent.email}</span>
-                    </div>
-                    <div class="info-item">
-                        <i class="fas fa-phone"></i>
-                        <span class="label">Số điện thoại:</span>
-                        <span>${parent.phone || 'Chưa có'}</span>
-                    </div>
-                    <div class="info-item">
-                        <i class="fas fa-map-marker-alt"></i>
-                        <span class="label">Địa chỉ:</span>
-                        <span>${parent.address || 'Chưa có'}</span>
-                    </div>
-                    <div class="info-item">
-                        <i class="fas fa-calendar"></i>
-                        <span class="label">Ngày tạo:</span>
-                        <span>${createdDate}</span>
-                    </div>
-                    <div class="info-item">
-                        <i class="fas fa-toggle-on"></i>
-                        <span class="label">Trạng thái:</span>
-                        <span class="status ${statusClass}">${statusText}</span>
-                    </div>
+                <div class="parent-basic-info">
+                    <h2>${parent.full_name}</h2>
+                    <p><i class="fas fa-envelope"></i> ${parent.email}</p>
+                    <p><i class="fas fa-phone"></i> ${parent.phone || 'Chưa có'}</p>
+                    <p><i class="fas fa-calendar"></i> Tham gia: ${formatDate(parent.created_at)}</p>
+                    <span class="parent-status ${parent.is_active == 1 ? 'active' : 'inactive'}">
+                        ${parent.is_active == 1 ? 'Hoạt động' : 'Không hoạt động'}
+                    </span>
                 </div>
             </div>
-            
+
+            <!-- Statistics Summary -->
             <div class="info-section">
-                <h3><i class="fas fa-chart-bar"></i> Thống kê</h3>
+                <h3><i class="fas fa-chart-bar"></i> Thống Kê Tổng Quan</h3>
                 <div class="info-grid">
                     <div class="info-item">
                         <i class="fas fa-child"></i>
-                        <span class="label">Số con:</span>
-                        <span>${parent.children_count || 0}</span>
-                    </div>
-                    <div class="info-item">
-                        <i class="fas fa-money-bill"></i>
-                        <span class="label">Tổng thanh toán:</span>
-                        <span>${totalPaid}</span>
-                    </div>
-                    <div class="info-item">
-                        <i class="fas fa-receipt"></i>
-                        <span class="label">Số lần thanh toán:</span>
-                        <span>${parent.payment_count || 0}</span>
-                    </div>
-                </div>
-            </div>
-            
-            ${parent.children && parent.children.length > 0 ? `
-            <div class="info-section">
-                <h3><i class="fas fa-users"></i> Danh sách con (${parent.children.length})</h3>
-                <div class="children-grid">
-                    ${parent.children.map(child => `
-                        <div class="child-item">
-                            <div class="child-name">${child.full_name}</div>
-                            <div class="child-info">
-                                <span><i class="fas fa-envelope"></i> ${child.email}</span>
-                                <span><i class="fas fa-phone"></i> ${child.phone || 'Chưa có'}</span>
-                                <span><i class="fas fa-heart"></i> ${child.relationship_type === 'father' ? 'Cha' : child.relationship_type === 'mother' ? 'Mẹ' : 'Người giám hộ'}</span>
-                                <span><i class="fas fa-book"></i> ${child.enrolled_classes} lớp</span>
-                            </div>
+                        <div>
+                            <span class="label">Số con:</span>
+                            <strong>${statistics.total_children || 0}</strong>
                         </div>
-                    `).join('')}
+                    </div>
+                    <div class="info-item">
+                        <i class="fas fa-book-open"></i>
+                        <div>
+                            <span class="label">Tổng lớp học:</span>
+                            <strong>${statistics.total_classes || 0}</strong>
+                        </div>
+                    </div>
+                    <div class="info-item">
+                        <i class="fas fa-calendar-check"></i>
+                        <div>
+                            <span class="label">Buổi học đã tham gia:</span>
+                            <strong>${statistics.attended_sessions || 0}/${statistics.total_sessions || 0}</strong>
+                        </div>
+                    </div>
+                    <div class="info-item">
+                        <i class="fas fa-percentage"></i>
+                        <div>
+                            <span class="label">Tỷ lệ tham gia:</span>
+                            <strong>${statistics.average_attendance_rate || 0}%</strong>
+                        </div>
+                    </div>
+                    <div class="info-item">
+                        <i class="fas fa-dollar-sign"></i>
+                        <div>
+                            <span class="label">Tổng đã thanh toán:</span>
+                            <strong>${formatCurrency(statistics.total_paid || 0)}</strong>
+                        </div>
+                    </div>
                 </div>
             </div>
-            ` : `
+
+            <!-- Children Information -->
             <div class="info-section">
-                <div class="no-children">
-                    <i class="fas fa-child"></i>
-                    <h3>Chưa có con nào được liên kết</h3>
-                    <p>Phụ huynh này chưa có con nào trong hệ thống</p>
-                </div>
+                <h3><i class="fas fa-users"></i> Là Phụ Huynh Của (${parent.children ? parent.children.length : 0})</h3>
+                ${parent.children && parent.children.length > 0 ? `
+                    <div class="children-grid">
+                        ${parent.children.map((child, index) => {
+        console.log(`Rendering child ${index + 1}:`, child);
+        return `
+                                <div class="child-card" data-child-id="${child.id}">
+                                    <div class="child-header">
+                                        <div class="child-avatar">
+                                            <i class="fas fa-user-graduate"></i>
+                                        </div>
+                                        <div class="child-info">
+                                            <h4>${child.full_name}</h4>
+                                            <span class="relationship">${getRelationshipText(child.relationship_type)}</span>
+                                            ${child.is_primary == 1 ? '<span class="primary-badge">Phụ huynh chính</span>' : ''}
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="child-stats">
+                                        <div class="stat-item">
+                                            <span class="stat-number">${child.enrolled_classes || 0}</span>
+                                            <span class="stat-label">Lớp học</span>
+                                        </div>
+                                        <div class="stat-item">
+                                            <span class="stat-number">${child.attendance_rate || 0}%</span>
+                                            <span class="stat-label">Tỷ lệ tham gia</span>
+                                        </div>
+                                        <div class="stat-item">
+                                            <span class="stat-number">${formatCurrency(child.total_paid || 0)}</span>
+                                            <span class="stat-label">Đã thanh toán</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="child-contact">
+                                        <p><i class="fas fa-envelope"></i> ${child.email}</p>
+                                        <p><i class="fas fa-phone"></i> ${child.phone || 'Chưa có'}</p>
+                                        <p><i class="fas fa-calendar-plus"></i> Đăng ký: ${formatDate(child.registration_date)}</p>
+                                    </div>
+
+                                    <!-- Classes Information -->
+                                    <div class="child-classes">
+                                        <h5><i class="fas fa-book"></i> Lớp học đang theo (${child.classes ? child.classes.length : 0})</h5>
+                                        ${child.classes && child.classes.length > 0 ? `
+                                            <div class="classes-list">
+                                                ${child.classes.map(classInfo => `
+                                                    <div class="class-item">
+                                                        <div class="class-name">
+                                                            ${classInfo.class_name}.${classInfo.class_year} - ${classInfo.subject}
+                                                        </div>
+                                                        <div class="class-info">
+                                                            <span class="class-level">${classInfo.class_level}</span>
+                                                            <span class="class-status ${classInfo.status}">${getClassStatusText(classInfo.status)}</span>
+                                                        </div>
+                                                        <div class="class-schedule">
+                                                            <i class="fas fa-clock"></i> ${classInfo.schedule_days} ${classInfo.schedule_time ? classInfo.schedule_time.substring(0, 5) : ''} (${classInfo.schedule_duration || 0}p)
+                                                        </div>
+                                                        <div class="class-progress">
+                                                            <i class="fas fa-chart-line"></i> 
+                                                            Tham gia: ${classInfo.present_sessions || 0}/${classInfo.total_sessions_attended || 0} buổi 
+                                                            (${classInfo.class_attendance_rate || 0}%)
+                                                        </div>
+                                                        <div class="tutor-name">
+                                                            <i class="fas fa-user-tie"></i> ${classInfo.tutor_name}
+                                                        </div>
+                                                    </div>
+                                                `).join('')}
+                                            </div>
+                                        ` : `
+                                            <div class="no-classes">
+                                                <i class="fas fa-info-circle"></i>
+                                                <p>Chưa đăng ký lớp học nào</p>
+                                            </div>
+                                        `}
+                                    </div>
+
+                                    <!-- Recent Activity -->
+                                    ${child.recent_attendance && child.recent_attendance.length > 0 ? `
+                                        <div class="recent-activity">
+                                            <h6><i class="fas fa-history"></i> Hoạt động gần đây</h6>
+                                            <div class="attendance-summary">
+                                                <span class="last-session">
+                                                    <i class="fas fa-calendar"></i>
+                                                    ${formatDate(child.recent_attendance[0].session_date)}
+                                                    <span class="status ${child.recent_attendance[0].status}">
+                                                        ${getAttendanceStatusText(child.recent_attendance[0].status)}
+                                                    </span>
+                                                </span>
+                                            </div>
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            `;
+    }).join('')}
+                    </div>
+                ` : `
+                    <div class="no-children">
+                        <i class="fas fa-user-slash"></i>
+                        <h4>Chưa có thông tin con em</h4>
+                        <p>Phụ huynh này chưa được liên kết với học sinh nào trong hệ thống.</p>
+                    </div>
+                `}
             </div>
-            `}
         </div>
     `;
-
-    modal.style.display = 'block';
-    document.body.style.overflow = 'hidden';
 }
 
+// Helper functions
+function getRelationshipText(relationship) {
+    const map = {
+        'father': 'Cha',
+        'mother': 'Mẹ',
+        'guardian': 'Người giám hộ'
+    };
+    return map[relationship] || relationship;
+}
+
+function getClassStatusText(status) {
+    const map = {
+        'active': 'Đang học',
+        'completed': 'Hoàn thành',
+        'closed': 'Đã đóng'
+    };
+    return map[status] || status;
+}
+
+function getAttendanceStatusText(status) {
+    const map = {
+        'present': 'Có mặt',
+        'absent': 'Vắng mặt',
+        'late': 'Đi muộn'
+    };
+    return map[status] || status;
+}
+
+// Close parent detail modal
 function closeParentDetailModal() {
     const modal = document.getElementById('parent-detail-modal');
-    if (modal) {
+    if (!modal) return;
+
+    modal.classList.remove('show');
+    document.body.style.overflow = 'auto';
+
+    setTimeout(() => {
         modal.style.display = 'none';
-        document.body.style.overflow = 'auto';
-    }
+    }, 300);
 }
 
-function editParent(parentId) {
-    fetch(`/webapp/api/admin/parent-details?parent_id=${parentId}`, {
-        method: 'GET',
-        headers: {
-            'Accept': 'application/json'
-        }
-    })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success && data.parent) {
-                populateEditParentForm(data.parent);
-            } else {
-                showMessage(data.message || 'Không thể tải thông tin phụ huynh', 'error');
-            }
-        })
-        .catch(error => {
-            console.error('Error loading parent for edit:', error);
-            showMessage('Lỗi khi tải thông tin phụ huynh', 'error');
-        });
-}
 
 // Sửa function populateEditParentForm
 
-function populateEditParentForm(parent) {
-    // Chuyển đổi is_active một cách rõ ràng
-    const isActive = parent.is_active == 1 || parent.is_active === true || parent.is_active === '1';
-
-    document.getElementById('edit-parent-id').value = parent.id;
-    document.getElementById('edit-parent-fullname').value = parent.full_name;
-    document.getElementById('edit-parent-email').value = parent.email;
-    document.getElementById('edit-parent-phone').value = parent.phone || '';
-    document.getElementById('edit-parent-address').value = parent.address || '';
-    document.getElementById('edit-parent-status').value = isActive ? '1' : '0';
-
-    // Debug log
-    console.log(`Edit form populate - Parent ${parent.id}: is_active = ${parent.is_active}, setting select to ${isActive ? '1' : '0'}`);
+function editParent(parentId) {
+    console.log('=== EDIT PARENT DEBUG START ===');
+    console.log('Editing parent with ID:', parentId);
 
     const modal = document.getElementById('edit-parent-modal');
-    if (modal) {
-        modal.style.display = 'block';
-        document.body.style.overflow = 'hidden';
+    const form = document.getElementById('edit-parent-form');
+
+    if (!modal || !form) {
+        console.error('Required modal elements not found');
+        return;
     }
+
+    // Show modal immediately
+    modal.style.display = 'block';
+    document.body.style.overflow = 'hidden';
+
+    // Add show class for animation
+    setTimeout(() => {
+        modal.classList.add('show');
+    }, 10);
+
+    // Fetch parent details
+    fetch(`/webapp/api/admin/parent-details?parent_id=${parentId}`)
+        .then(response => {
+            console.log('Fetch response status:', response.status);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Received parent data:', data);
+            if (data.success && data.parent) {
+                populateEditParentForm(data.parent);
+            } else {
+                throw new Error(data.message || 'Failed to load parent data');
+            }
+        })
+        .catch(error => {
+            console.error('Error loading parent data:', error);
+            showMessage('Lỗi khi tải thông tin phụ huynh: ' + error.message, 'error');
+            closeEditParentModal();
+        });
 }
+
+function populateEditParentForm(parent) {
+    const form = document.getElementById('edit-parent-form');
+    if (!form) {
+        console.error('Edit parent form not found');
+        return;
+    }
+
+    console.log('Populating form with parent data:', parent);
+
+    // Populate form fields
+    document.getElementById('edit-parent-id').value = parent.id || '';
+    document.getElementById('edit-parent-fullname').value = parent.full_name || '';
+    document.getElementById('edit-parent-email').value = parent.email || '';
+    document.getElementById('edit-parent-phone').value = parent.phone || '';
+    document.getElementById('edit-parent-address').value = parent.address || '';
+    document.getElementById('edit-parent-status').value = parent.is_active || '1';
+
+    console.log('Form populated successfully');
+}
+
+// Function to show link student modal from edit parent modal
+function showLinkStudentModalForEdit() {
+    // Close edit parent modal first
+    closeEditParentModal();
+
+    // Show link student modal
+    showLinkStudentModal();
+}
+
 function updateParent(event) {
     event.preventDefault();
+    console.log('=== UPDATE PARENT DEBUG START ===');
 
     const form = event.target;
     const formData = new FormData(form);
 
-    // Debug logging
-    console.log('=== Update Parent Debug ===');
-    console.log('Form data:');
+    console.log('Form data being sent:');
     for (let [key, value] of formData.entries()) {
-        console.log(key, ':', value);
+        console.log(`${key}: ${value}`);
     }
 
     // Show loading state
@@ -3218,55 +3365,49 @@ function updateParent(event) {
     submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang cập nhật...';
     submitBtn.disabled = true;
 
+    // Call API
     fetch('/webapp/api/admin/update-parent', {
         method: 'POST',
         body: formData
     })
         .then(response => {
-            console.log('Response status:', response.status);
-            console.log('Response headers:', response.headers);
+            console.log('Update response status:', response.status);
+            console.log('Update response headers:', response.headers);
 
-            // Check if response is ok
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            // Check if response has content
-            const contentType = response.headers.get('content-type');
-            if (!contentType || !contentType.includes('application/json')) {
-                throw new Error('Response is not JSON');
-            }
-
-            return response.text(); // Get as text first
-        })
-        .then(text => {
-            console.log('Raw response text:', text);
-
-            // Try to parse JSON
-            if (!text.trim()) {
-                throw new Error('Empty response from server');
-            }
-
-            return JSON.parse(text);
+            return response.text().then(text => {
+                console.log('Raw response text:', text);
+                try {
+                    return JSON.parse(text);
+                } catch (e) {
+                    console.error('Failed to parse JSON:', e);
+                    throw new Error('Invalid JSON response: ' + text);
+                }
+            });
         })
         .then(data => {
-            console.log('Parsed response data:', data);
+            console.log('Update response data:', data);
+
             if (data.success) {
-                showMessage('Cập nhật phụ huynh thành công!', 'success');
+                showMessage(data.message || 'Cập nhật thông tin phụ huynh thành công!', 'success');
                 closeEditParentModal();
-                loadParents(); // Reload the parents list
+
+                // Reload parents data
+                loadParents();
             } else {
-                showMessage(data.message || 'Có lỗi xảy ra khi cập nhật phụ huynh', 'error');
+                showMessage(data.message || 'Cập nhật thất bại', 'error');
             }
         })
         .catch(error => {
-            console.error('Error updating parent:', error);
-            showMessage('Lỗi hệ thống khi cập nhật phụ huynh: ' + error.message, 'error');
+            console.error('Update error:', error);
+            showMessage('Lỗi kết nối hoặc server. Chi tiết: ' + error.message, 'error');
         })
         .finally(() => {
+            // Restore button
             submitBtn.innerHTML = originalText;
             submitBtn.disabled = false;
         });
+
+    console.log('=== UPDATE PARENT DEBUG END ===');
 }
 
 function closeEditParentModal() {

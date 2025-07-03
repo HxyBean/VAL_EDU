@@ -793,9 +793,13 @@ class AdminModel extends BaseModel {
         }
     }
 
-    public function getCourseDetails($courseId) {
-        try {
-            $sql = "SELECT c.*, 
+
+public function getCourseDetails($courseId) {
+    try {
+        error_log("Getting course details for ID: " . $courseId);
+        
+        // Get course basic info với tutor information
+        $sql = "SELECT c.*, 
                 COALESCE(u.full_name, 'Chưa phân công') as tutor_name,
                 u.email as tutor_email,
                 u.phone as tutor_phone,
@@ -824,7 +828,6 @@ class AdminModel extends BaseModel {
         $stmt->bind_param("i", $courseId);
         if (!$stmt->execute()) {
             error_log("Execute failed: " . $stmt->error);
-            $stmt->close();
             return null;
         }
 
@@ -833,7 +836,69 @@ class AdminModel extends BaseModel {
         $stmt->close();
 
         if (!$course) {
+            error_log("Course not found with ID: " . $courseId);
             return null;
+        }
+
+        // QUAN TRỌNG: Lấy chi tiết danh sách học viên
+        $sql = "SELECT 
+                    s.id,
+                    s.full_name,
+                    s.email,
+                    s.phone,
+                    s.created_at as registration_date,
+                    e.enrollment_date,
+                    e.status as enrollment_status,
+                    e.sessions_attended,
+                    -- Count số buổi học thực tế đã tham gia
+                    COUNT(DISTINCT CASE WHEN a.status = 'present' THEN a.id END) as actual_attended_sessions,
+                    -- Count tổng số buổi học đã hoàn thành
+                    COUNT(DISTINCT CASE WHEN sess.status = 'completed' THEN sess.id END) as total_possible_sessions,
+                    -- Tính tỷ lệ tham gia
+                    CASE 
+                        WHEN COUNT(DISTINCT CASE WHEN sess.status = 'completed' THEN sess.id END) > 0 
+                        THEN ROUND((COUNT(DISTINCT CASE WHEN a.status = 'present' THEN a.id END) * 100.0 / COUNT(DISTINCT CASE WHEN sess.status = 'completed' THEN sess.id END)), 1)
+                        ELSE 0 
+                    END as attendance_rate
+                FROM enrollments e
+                INNER JOIN users s ON e.student_id = s.id AND s.role = 'student'
+                LEFT JOIN sessions sess ON e.class_id = sess.class_id
+                LEFT JOIN attendance a ON sess.id = a.session_id AND a.student_id = s.id
+                WHERE e.class_id = ? AND e.status = 'active'
+                GROUP BY s.id, s.full_name, s.email, s.phone, s.created_at, 
+                         e.enrollment_date, e.status, e.sessions_attended
+                ORDER BY e.enrollment_date DESC";
+
+        $stmt = $this->db->prepare($sql);
+        if (!$stmt) {
+            error_log("Prepare failed for students: " . $this->db->error);
+            $course['students'] = []; // Đặt mảng rỗng nếu lỗi
+            return $course;
+        }
+
+        $stmt->bind_param("i", $courseId);
+        if (!$stmt->execute()) {
+            error_log("Execute failed for students: " . $stmt->error);
+            $course['students'] = []; // Đặt mảng rỗng nếu lỗi
+            return $course;
+        }
+
+        $result = $stmt->get_result();
+        $students = $result->fetch_all(MYSQLI_ASSOC);
+        $stmt->close();
+
+        // Thêm students vào course data
+        $course['students'] = $students;
+        $course['current_students'] = count($students);
+
+        error_log("Course details loaded successfully:");
+        error_log("- Course ID: " . $course['id']);
+        error_log("- Course Name: " . $course['class_name']);
+        error_log("- Students found: " . count($students));
+        
+        // Log từng học viên để debug
+        foreach ($students as $i => $student) {
+            error_log("Student " . ($i+1) . ": " . $student['full_name'] . " (ID: " . $student['id'] . ") - Attendance: " . $student['attendance_rate'] . "%");
         }
 
         return $course;
@@ -1424,202 +1489,532 @@ public function removeFromCourse($studentId, $courseId) {
 
     public function getAllParents($limit = 20, $offset = 0) {
         try {
-            $sql = "SELECT u.id, u.username, u.full_name, u.email, u.phone, u.created_at, u.is_active,
-                       COUNT(DISTINCT ps.student_id) as children_count,
-                       COUNT(DISTINCT p.id) as payment_count,
-                       SUM(CASE WHEN p.status = 'completed' THEN p.final_amount ELSE 0 END) as total_paid
+            error_log("Getting all parents with limit: $limit, offset: $offset");
+            
+            $sql = "SELECT 
+                    u.id, 
+                    u.username, 
+                    u.full_name, 
+                    u.email, 
+                    u.phone, 
+                    u.address,
+                    u.created_at, 
+                    u.is_active,
+                    COUNT(ps.student_id) as total_children
                 FROM users u
                 LEFT JOIN parent_student ps ON u.id = ps.parent_id
-                LEFT JOIN payments p ON ps.student_id = p.student_id
                 WHERE u.role = 'parent'
-                GROUP BY u.id, u.username, u.full_name, u.email, u.phone, u.created_at, u.is_active
-                ORDER BY u.created_at DESC
-                LIMIT ? OFFSET ?";
+                GROUP BY u.id, u.username, u.full_name, u.email, u.phone, u.address, u.created_at, u.is_active
+                ORDER BY u.created_at DESC";
         
-            $stmt = $this->db->prepare($sql);
-            if (!$stmt) {
-                throw new Exception("Prepare failed: " . $this->db->error);
+            if ($limit !== null && $offset !== null) {
+                $sql .= " LIMIT ? OFFSET ?";
+                $stmt = $this->db->prepare($sql);
+                if (!$stmt) {
+                    error_log("Prepare failed: " . $this->db->error);
+                    return [];
+                }
+                $stmt->bind_param("ii", $limit, $offset);
+            } else {
+                $stmt = $this->db->prepare($sql);
+                if (!$stmt) {
+                    error_log("Prepare failed: " . $this->db->error);
+                    return [];
+                }
             }
             
-            $stmt->bind_param("ii", $limit, $offset);
             if (!$stmt->execute()) {
-                throw new Exception("Execute failed: " . $stmt->error);
+                error_log("Execute failed: " . $stmt->error);
+                return [];
             }
             
             $result = $stmt->get_result();
             $parents = $result->fetch_all(MYSQLI_ASSOC);
             $stmt->close();
             
+            error_log("Found " . count($parents) . " parents");
+            foreach ($parents as $parent) {
+                error_log("Parent: " . $parent['full_name'] . " - Children: " . $parent['total_children']);
+            }
+            
             return $parents;
+            
         } catch (Exception $e) {
-            error_log("Error getting all parents: " . $e->getMessage());
-            throw $e;
+            error_log("Error getting parents: " . $e->getMessage());
+            return [];
         }
     }
 
     public function getParentDetails($parentId) {
         try {
+            error_log("=== GETTING PARENT DETAILS FOR ID: " . $parentId . " ===");
+            
             // Get parent basic info
-            $sql = "SELECT u.id, u.username, u.full_name, u.email, u.phone, 
-                       u.address, u.created_at, u.is_active,
-                       COUNT(DISTINCT ps.student_id) as children_count,
-                       COUNT(DISTINCT p.id) as payment_count,
-                       SUM(CASE WHEN p.status = 'completed' THEN p.final_amount ELSE 0 END) as total_paid
+            $sql = "SELECT u.id, u.username, u.full_name, u.email, u.phone, u.address,
+                       u.birthdate, u.created_at, u.is_active
                 FROM users u
-                LEFT JOIN parent_student ps ON u.id = ps.parent_id
-                LEFT JOIN payments p ON ps.student_id = p.student_id
-                WHERE u.id = ? AND u.role = 'parent'
-                GROUP BY u.id, u.username, u.full_name, u.email, u.phone, u.address, u.created_at, u.is_active";
+                WHERE u.id = ? AND u.role = 'parent'";
         
             $stmt = $this->db->prepare($sql);
             if (!$stmt) {
-                throw new Exception("Prepare failed: " . $this->db->error);
+                error_log("Prepare failed: " . $this->db->error);
+                return null;
             }
-
+        
             $stmt->bind_param("i", $parentId);
             if (!$stmt->execute()) {
-                throw new Exception("Execute failed: " . $stmt->error);
+                error_log("Execute failed: " . $stmt->error);
+                return null;
             }
-
+        
             $result = $stmt->get_result();
             $parent = $result->fetch_assoc();
             $stmt->close();
-
+        
             if (!$parent) {
-                throw new Exception("Parent not found");
+                error_log("Parent not found with ID: " . $parentId);
+                return null;
             }
-
-            // Get parent's children
-            $sql = "SELECT u.id, u.full_name, u.email, u.phone, ps.relationship_type, ps.is_primary,
-                       COUNT(DISTINCT e.class_id) as enrolled_classes,
-                       COUNT(DISTINCT p.id) as payment_count
+        
+            error_log("Parent found: " . $parent['full_name']);
+        
+            // STEP 1: Get all children linked to this parent
+            $sql = "SELECT 
+                    ps.id as link_id,
+                    ps.parent_id, 
+                    ps.student_id, 
+                    ps.relationship_type, 
+                    ps.is_primary,
+                    s.id as student_table_id,
+                    s.username, 
+                    s.full_name, 
+                    s.email, 
+                    s.phone, 
+                    s.created_at as registration_date, 
+                    s.is_active
                 FROM parent_student ps
-                INNER JOIN users u ON ps.student_id = u.id
-                LEFT JOIN enrollments e ON u.id = e.student_id AND e.status = 'active'
-                LEFT JOIN payments p ON u.id = p.student_id AND p.status = 'completed'
-                WHERE ps.parent_id = ?
-                GROUP BY u.id, u.full_name, u.email, u.phone, ps.relationship_type, ps.is_primary
-                ORDER BY ps.is_primary DESC, u.full_name ASC";
+                INNER JOIN users s ON ps.student_id = s.id
+                WHERE ps.parent_id = ? AND s.role = 'student'
+                ORDER BY ps.is_primary DESC, s.full_name ASC";
         
             $stmt = $this->db->prepare($sql);
             if (!$stmt) {
-                throw new Exception("Prepare failed: " . $this->db->error);
+                error_log("Prepare failed for children: " . $this->db->error);
+                return null;
             }
-
+        
             $stmt->bind_param("i", $parentId);
             if (!$stmt->execute()) {
-                throw new Exception("Execute failed: " . $stmt->error);
+                error_log("Execute failed for children: " . $stmt->error);
+                return null;
             }
-
+        
             $result = $stmt->get_result();
-            $parent['children'] = $result->fetch_all(MYSQLI_ASSOC);
-            $stmt->close();
-
-            return $parent;
-
-        } catch (Exception $e) {
-            error_log("Error getting parent details: " . $e->getMessage());
-            throw $e;
-        }
-    }
-
-    public function updateParent($parentId, $data) {
-        try {
-            error_log("AdminModel::updateParent called - ID: $parentId");
-            error_log("Update data: " . json_encode($data));
-            
-            $this->db->begin_transaction();
-
-            // Check if email already exists for other parents
-            $stmt = $this->db->prepare("SELECT id FROM users WHERE email = ? AND id != ? AND role = 'parent'");
-            if (!$stmt) {
-                throw new Exception("Prepare failed: " . $this->db->error);
-            }
-            
-            $stmt->bind_param("si", $data['email'], $parentId);
-            if (!$stmt->execute()) {
-                throw new Exception("Execute failed: " . $stmt->error);
-            }
-            
-            if ($stmt->get_result()->num_rows > 0) {
-                $stmt->close();
-                throw new Exception("Email already exists for another parent");
+            $children = [];
+        
+            while ($row = $result->fetch_assoc()) {
+                $children[] = $row;
+                error_log("Found child: ID=" . $row['student_id'] . ", Name=" . $row['full_name']);
             }
             $stmt->close();
-
-            // Update parent information
-            $sql = "UPDATE users SET 
-                    full_name = ?, 
-                    email = ?, 
-                    phone = ?, 
-                    address = ?,
-                    is_active = ?,
-                    updated_at = NOW()
-                    WHERE id = ? AND role = 'parent'";
-
+        
+            error_log("Total children found: " . count($children));
+        
+            // STEP 2: Process each child individually with fresh data
+            $processedChildren = [];
+        
+            foreach ($children as $index => $child) {
+                $childId = $child['student_id'];
+                error_log("=== Processing child " . ($index + 1) . "/" . count($children) . ": ID=" . $childId . ", Name=" . $child['full_name'] . " ===");
+            
+                // Create a fresh array for this child
+                $processedChild = [
+                    'id' => $childId,
+                    'student_id' => $childId,
+                    'link_id' => $child['link_id'],
+                    'username' => $child['username'],
+                    'full_name' => $child['full_name'],
+                    'email' => $child['email'],
+                    'phone' => $child['phone'],
+                    'registration_date' => $child['registration_date'],
+                    'is_active' => $child['is_active'],
+                    'relationship_type' => $child['relationship_type'],
+                    'is_primary' => $child['is_primary'],
+                    // Initialize all stats
+                    'enrolled_classes' => 0,
+                    'active_classes' => 0,
+                    'total_sessions' => 0,
+                    'attended_sessions' => 0,
+                    'absent_sessions' => 0,
+                    'attendance_rate' => 0,
+                    'total_paid' => 0,
+                    'classes' => [],
+                    'recent_attendance' => []
+                ];
+            
+                // Get enrollment statistics for this specific child
+                $sql = "SELECT 
+                        COUNT(DISTINCT e.class_id) as enrolled_classes,
+                        COUNT(DISTINCT CASE WHEN c.status = 'active' THEN e.class_id END) as active_classes
+                    FROM enrollments e
+                    INNER JOIN classes c ON e.class_id = c.id
+                    WHERE e.student_id = ? AND e.status = 'active'";
+            
+                $stmt = $this->db->prepare($sql);
+                if ($stmt) {
+                    $stmt->bind_param("i", $childId);
+                    if ($stmt->execute()) {
+                        $result = $stmt->get_result();
+                        $enrollmentData = $result->fetch_assoc();
+                        $processedChild['enrolled_classes'] = intval($enrollmentData['enrolled_classes'] ?? 0);
+                        $processedChild['active_classes'] = intval($enrollmentData['active_classes'] ?? 0);
+                        error_log("Child $childId enrollment: " . $processedChild['enrolled_classes'] . " classes");
+                    } else {
+                        error_log("Failed to get enrollment for child $childId: " . $stmt->error);
+                    }
+                    $stmt->close();
+                }
+            
+                // Get attendance statistics for this child
+                $sql = "SELECT 
+                        COUNT(DISTINCT a.id) as total_sessions,
+                        COUNT(DISTINCT CASE WHEN a.status = 'present' THEN a.id END) as attended_sessions,
+                        COUNT(DISTINCT CASE WHEN a.status = 'absent' THEN a.id END) as absent_sessions
+                    FROM enrollments e
+                    INNER JOIN classes c ON e.class_id = c.id AND c.status = 'active'
+                    INNER JOIN sessions sess ON c.id = sess.class_id AND sess.status = 'completed'
+                    INNER JOIN attendance a ON sess.id = a.session_id AND a.student_id = e.student_id
+                    WHERE e.student_id = ? AND e.status = 'active'";
+            
+                $stmt = $this->db->prepare($sql);
+                if ($stmt) {
+                    $stmt->bind_param("i", $childId);
+                    if ($stmt->execute()) {
+                        $result = $stmt->get_result();
+                        $attendanceData = $result->fetch_assoc();
+                        $processedChild['total_sessions'] = intval($attendanceData['total_sessions'] ?? 0);
+                        $processedChild['attended_sessions'] = intval($attendanceData['attended_sessions'] ?? 0);
+                        $processedChild['absent_sessions'] = intval($attendanceData['absent_sessions'] ?? 0);
+                        
+                        if ($processedChild['total_sessions'] > 0) {
+                            $processedChild['attendance_rate'] = round(($processedChild['attended_sessions'] / $processedChild['total_sessions']) * 100, 1);
+                        }
+                        
+                        error_log("Child $childId attendance: " . $processedChild['attended_sessions'] . "/" . $processedChild['total_sessions'] . " (" . $processedChild['attendance_rate'] . "%)");
+                    } else {
+                        error_log("Failed to get attendance for child $childId: " . $stmt->error);
+                    }
+                    $stmt->close();
+                }
+            
+                // Get payment total for this child
+                $sql = "SELECT COALESCE(SUM(p.final_amount), 0) as total_paid
+                    FROM payments p
+                    WHERE p.student_id = ? AND p.status = 'completed'";
+            
+                $stmt = $this->db->prepare($sql);
+                if ($stmt) {
+                    $stmt->bind_param("i", $childId);
+                    if ($stmt->execute()) {
+                        $result = $stmt->get_result();
+                        $paymentData = $result->fetch_assoc();
+                        $processedChild['total_paid'] = floatval($paymentData['total_paid'] ?? 0);
+                        error_log("Child $childId total paid: " . $processedChild['total_paid']);
+                    } else {
+                        error_log("Failed to get payments for child $childId: " . $stmt->error);
+                    }
+                    $stmt->close();
+                }
+            
+                // Get current active classes for this child
+                $sql = "SELECT 
+                        c.id,
+                        c.class_name,
+                        c.class_year,
+                        c.class_level,
+                        c.subject,
+                        c.status,
+                        c.start_date,
+                        c.end_date,
+                        c.schedule_time,
+                        c.schedule_days,
+                        c.schedule_duration,
+                        c.sessions_total,
+                        c.sessions_completed,
+                        e.enrollment_date,
+                        e.status as enrollment_status,
+                        COALESCE(tutor.full_name, 'Chưa phân công') as tutor_name
+                    FROM enrollments e
+                    INNER JOIN classes c ON e.class_id = c.id
+                    LEFT JOIN class_tutors ct ON c.id = ct.class_id AND ct.status = 'active'
+                    LEFT JOIN users tutor ON ct.tutor_id = tutor.id
+                    WHERE e.student_id = ? AND e.status = 'active' AND c.status = 'active'
+                    ORDER BY e.enrollment_date DESC";
+            
             $stmt = $this->db->prepare($sql);
-            if (!$stmt) {
-                throw new Exception("Prepare failed: " . $this->db->error);
+            if ($stmt) {
+                $stmt->bind_param("i", $childId);
+                if ($stmt->execute()) {
+                    $result = $stmt->get_result();
+                    $classes = [];
+                    
+                    while ($classRow = $result->fetch_assoc()) {
+                        // Get attendance details for this specific class and child
+                        $sql2 = "SELECT 
+                                    COUNT(DISTINCT a.id) as total_sessions_attended,
+                                    COUNT(DISTINCT CASE WHEN a.status = 'present' THEN a.id END) as present_sessions,
+                                    COUNT(DISTINCT CASE WHEN a.status = 'absent' THEN a.id END) as absent_sessions
+                                FROM sessions sess
+                                INNER JOIN attendance a ON sess.id = a.session_id
+                                WHERE sess.class_id = ? AND a.student_id = ? AND sess.status = 'completed'";
+                        
+                        $stmt2 = $this->db->prepare($sql2);
+                        if ($stmt2) {
+                            $stmt2->bind_param("ii", $classRow['id'], $childId);
+                            if ($stmt2->execute()) {
+                                $result2 = $stmt2->get_result();
+                                $classAttendance = $result2->fetch_assoc();
+                                $classRow['total_sessions_attended'] = intval($classAttendance['total_sessions_attended'] ?? 0);
+                                $classRow['present_sessions'] = intval($classAttendance['present_sessions'] ?? 0);
+                                $classRow['absent_sessions'] = intval($classAttendance['absent_sessions'] ?? 0);
+                                
+                                if ($classRow['total_sessions_attended'] > 0) {
+                                    $classRow['class_attendance_rate'] = round(($classRow['present_sessions'] / $classRow['total_sessions_attended']) * 100, 1);
+                                } else {
+                                    $classRow['class_attendance_rate'] = 0;
+                                }
+                            }
+                            $stmt2->close();
+                        }
+                        
+                        $classes[] = $classRow;
+                    }
+                    
+                    $processedChild['classes'] = $classes;
+                    error_log("Child $childId has " . count($classes) . " classes");
+                } else {
+                    error_log("Failed to get classes for child $childId: " . $stmt->error);
+                    $processedChild['classes'] = [];
+                }
+                $stmt->close();
             }
-
-            $stmt->bind_param("ssssii", 
-                $data['full_name'], 
-                $data['email'], 
-                $data['phone'],
-                $data['address'] ?? '',
-                $data['is_active'] ?? 1,
-                $parentId
-            );
-
-            if (!$stmt->execute()) {
-                throw new Exception("Execute failed: " . $stmt->error);
-            }
-
-            $affected_rows = $stmt->affected_rows;
-            $stmt->close();
             
-            error_log("Update affected rows: " . $affected_rows);
-
-            if ($affected_rows === 0) {
-                throw new Exception("No changes made or parent not found");
+            // Get recent attendance for this child
+            $sql = "SELECT 
+                        sess.session_date,
+                        a.status,
+                        c.class_name,
+                        c.subject
+                    FROM attendance a
+                    INNER JOIN sessions sess ON a.session_id = sess.id
+                    INNER JOIN classes c ON sess.class_id = c.id
+                    INNER JOIN enrollments e ON c.id = e.class_id AND e.student_id = a.student_id
+                    WHERE a.student_id = ? AND e.status = 'active'
+                    ORDER BY sess.session_date DESC
+                    LIMIT 5";
+            
+            $stmt = $this->db->prepare($sql);
+            if ($stmt) {
+                $stmt->bind_param("i", $childId);
+                if ($stmt->execute()) {
+                    $result = $stmt->get_result();
+                    $recentAttendance = [];
+                    while ($attendanceRow = $result->fetch_assoc()) {
+                        $recentAttendance[] = $attendanceRow;
+                    }
+                    $processedChild['recent_attendance'] = $recentAttendance;
+                    error_log("Child $childId has " . count($recentAttendance) . " recent attendance records");
+                } else {
+                    error_log("Failed to get recent attendance for child $childId: " . $stmt->error);
+                    $processedChild['recent_attendance'] = [];
+                }
+                $stmt->close();
             }
+            
+            // Add this processed child to the array
+            $processedChildren[] = $processedChild;
+            
+            error_log("=== Completed processing child " . ($index + 1) . ": " . $child['full_name'] . " ===");
+            error_log("Final stats - Classes: " . $processedChild['enrolled_classes'] . ", Attendance: " . $processedChild['attendance_rate'] . "%, Paid: " . $processedChild['total_paid']);
+        }
+        
+        $parent['children'] = $processedChildren;
+        
+        // Calculate overall statistics for the parent
+        $totalChildren = count($processedChildren);
+        $totalClasses = 0;
+        $totalSessions = 0;
+        $totalAttendedSessions = 0;
+        $totalPaid = 0;
+        
+        foreach ($processedChildren as $child) {
+            $totalClasses += $child['enrolled_classes'];
+            $totalSessions += $child['total_sessions'];
+            $totalAttendedSessions += $child['attended_sessions'];
+            $totalPaid += $child['total_paid'];
+        }
+        
+        $avgAttendanceRate = $totalSessions > 0 ? round(($totalAttendedSessions / $totalSessions) * 100, 1) : 0;
+        
+        $parent['statistics'] = [
+            'total_children' => $totalChildren,
+            'total_classes' => $totalClasses,
+            'total_sessions' => $totalSessions,
+            'attended_sessions' => $totalAttendedSessions,
+            'total_paid' => $totalPaid,
+            'average_attendance_rate' => $avgAttendanceRate
+        ];
+        
+        error_log("=== FINAL PARENT SUMMARY ===");
+        error_log("Parent: " . $parent['full_name']);
+        error_log("Total children processed: " . count($processedChildren));
+        error_log("Overall statistics: " . json_encode($parent['statistics']));
+        
+        foreach ($processedChildren as $i => $child) {
+            error_log("Child " . ($i + 1) . ": " . $child['full_name'] . " - Classes: " . $child['enrolled_classes'] . ", Attendance: " . $child['attendance_rate'] . "%");
+        }
+        
+        return $parent;
 
+    } catch (Exception $e) {
+        error_log("Error getting parent details: " . $e->getMessage());
+        error_log("Stack trace: " . $e->getTraceAsString());
+        return null;
+    }
+}
+
+
+public function updateParent($parentId, $data) {
+    try {
+        error_log("=== AdminModel::updateParent DEBUG START ===");
+        error_log("Parent ID: " . $parentId);
+        error_log("Update data: " . json_encode($data));
+        
+        // Validate input
+        if (!$parentId || $parentId <= 0) {
+            throw new Exception("Invalid parent ID");
+        }
+        
+        $this->db->begin_transaction();
+
+        // Check if parent exists
+        $check_sql = "SELECT id, full_name, email FROM users WHERE id = ? AND role = 'parent'";
+        $check_stmt = $this->db->prepare($check_sql);
+        if (!$check_stmt) {
+            throw new Exception("Prepare check failed: " . $this->db->error);
+        }
+        
+        $check_stmt->bind_param("i", $parentId);
+        if (!$check_stmt->execute()) {
+            throw new Exception("Execute check failed: " . $check_stmt->error);
+        }
+        
+        $check_result = $check_stmt->get_result();
+        if ($check_result->num_rows === 0) {
+            $check_stmt->close();
+            throw new Exception("Parent not found with ID: $parentId");
+        }
+        $current_data = $check_result->fetch_assoc();
+        $check_stmt->close();
+        
+        error_log("Current parent data: " . json_encode($current_data));
+
+        // Check if email already exists for other parents (exclude current parent)
+        $email_check_sql = "SELECT id FROM users WHERE email = ? AND id != ? AND role = 'parent'";
+        $email_stmt = $this->db->prepare($email_check_sql);
+        if (!$email_stmt) {
+            throw new Exception("Prepare email check failed: " . $this->db->error);
+        }
+        
+        $email_stmt->bind_param("si", $data['email'], $parentId);
+        if (!$email_stmt->execute()) {
+            throw new Exception("Execute email check failed: " . $email_stmt->error);
+        }
+        
+        $email_result = $email_stmt->get_result();
+        if ($email_result->num_rows > 0) {
+            $email_stmt->close();
+            throw new Exception("Email đã tồn tại cho phụ huynh khác");
+        }
+        $email_stmt->close();
+
+        // Update parent information
+        $sql = "UPDATE users SET 
+                full_name = ?, 
+                email = ?, 
+                phone = ?, 
+                address = ?,
+                is_active = ?,
+                updated_at = NOW()
+                WHERE id = ? AND role = 'parent'";
+
+        $stmt = $this->db->prepare($sql);
+        if (!$stmt) {
+            throw new Exception("Prepare update failed: " . $this->db->error);
+        }
+
+        $stmt->bind_param("ssssii", 
+            $data['full_name'], 
+            $data['email'], 
+            $data['phone'],
+            $data['address'],
+            $data['is_active'],
+            $parentId
+        );
+
+        if (!$stmt->execute()) {
+            throw new Exception("Execute update failed: " . $stmt->error);
+        }
+
+        $affected_rows = $stmt->affected_rows;
+        $stmt->close();
+        
+        error_log("Update affected rows: " . $affected_rows);
+
+        if ($affected_rows >= 0) { // 0 is also success (no changes needed)
             $this->db->commit();
             error_log("Parent update successful");
             return true;
-
-        } catch (Exception $e) {
+        } else {
             $this->db->rollback();
-            error_log("Error updating parent: " . $e->getMessage());
-            throw $e;
+            throw new Exception("No rows were updated");
         }
+
+    } catch (Exception $e) {
+        if ($this->db->in_transaction) {
+            $this->db->rollback();
+        }
+        error_log("Error in updateParent: " . $e->getMessage());
+        error_log("Stack trace: " . $e->getTraceAsString());
+        throw $e;
     }
+}
 
-    public function createParent($data) {
-        try {
-            $this->db->begin_transaction();
+public function createParent($data) {
+    try {
+        $this->db->begin_transaction();
 
-            // Check if username exists
-            $stmt = $this->db->prepare("SELECT id FROM users WHERE username = ?");
-            $stmt->bind_param("s", $data['username']);
-            $stmt->execute();
-            if ($stmt->get_result()->num_rows > 0) {
-                throw new Exception("Username already exists");
-            }
-            $stmt->close();
+        // Check if username exists
+        $stmt = $this->db->prepare("SELECT id FROM users WHERE username = ?");
+        $stmt->bind_param("s", $data['username']);
+        $stmt->execute();
+        if ($stmt->get_result()->num_rows > 0) {
+            throw new Exception("Username already exists");
+        }
+        $stmt->close();
 
-            // Check if email exists
-            $stmt = $this->db->prepare("SELECT id FROM users WHERE email = ?");
-            $stmt->bind_param("s", $data['email']);
-            $stmt->execute();
-            if ($stmt->get_result()->num_rows > 0) {
-                throw new Exception("Email already exists");
-            }
-            $stmt->close();
+        // Check if email exists
+        $stmt = $this->db->prepare("SELECT id FROM users WHERE email = ?");
+        $stmt->bind_param("s", $data['email']);
+        $stmt->execute();
+        if ($stmt->get_result()->num_rows > 0) {
+            throw new Exception("Email already exists");
+        }
+        $stmt->close();
 
-            // Insert new parent
-            $sql = "INSERT INTO users (username, email, password, full_name, role, phone, address) 
-                    VALUES (?, ?, ?, ?, ?, ?, ?)";
+        // Insert new parent
+        $sql = "INSERT INTO users (username, email, password, full_name, role, phone, address) 
+                VALUES (?, ?, ?, ?, ?, ?, ?)";
             $stmt = $this->db->prepare($sql);
             
             $hashed_password = password_hash($data['password'], PASSWORD_DEFAULT);
@@ -1643,14 +2038,14 @@ public function removeFromCourse($studentId, $courseId) {
             $this->db->commit();
             return true;
 
-        } catch (Exception $e) {
-            $this->db->rollback();
-            error_log("Error creating parent: " . $e->getMessage());
-            throw $e;
-        }
+    } catch (Exception $e) {
+        $this->db->rollback();
+        error_log("Error creating parent: " . $e->getMessage());
+        throw $e;
     }
+}
 
-    public function searchStudentsForLink($searchTerm, $parentId) {
+public function searchStudentsForLink($searchTerm, $parentId) {
         try {
             $sql = "SELECT u.id, u.username, u.full_name, u.email, u.phone, u.created_at,
                        CASE WHEN ps.parent_id IS NOT NULL THEN 1 ELSE 0 END as already_linked
@@ -1720,6 +2115,8 @@ public function removeFromCourse($studentId, $courseId) {
                 throw new Exception("Student is already linked to this parent");
             }
             $stmt->close();
+
+           
 
             // If this is set as primary, remove primary status from other relationships for this student
             if ($isPrimary) {

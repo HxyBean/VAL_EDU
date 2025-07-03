@@ -1060,11 +1060,19 @@ class AdminController extends BaseController {
             $parentId = intval($_GET['parent_id'] ?? 0);
             
             if (!$parentId) {
-                throw new Exception("Parent ID is required");
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => 'Invalid parent ID']);
+                exit();
             }
 
             $parent = $this->adminModel->getParentDetails($parentId);
             
+            if (!$parent) {
+                http_response_code(404);
+                echo json_encode(['success' => false, 'message' => 'Parent not found']);
+                exit();
+            }
+
             echo json_encode([
                 'success' => true,
                 'parent' => $parent
@@ -1072,15 +1080,16 @@ class AdminController extends BaseController {
 
         } catch (Exception $e) {
             error_log("Error getting parent details: " . $e->getMessage());
+            http_response_code(500);
             echo json_encode([
                 'success' => false,
-                'message' => $e->getMessage()
+                'message' => 'Lỗi hệ thống: ' . $e->getMessage()
             ]);
         }
         exit();
     }
 
-    // API endpoint for updating parent - giống như updateStudent
+    // API endpoint for updating parent
     public function updateParent() {
         // Enable error reporting for debugging
         ini_set('display_errors', 0);
@@ -1091,7 +1100,8 @@ class AdminController extends BaseController {
         // Log all incoming data for debugging
         error_log("=== UPDATE PARENT CONTROLLER DEBUG ===");
         error_log("REQUEST_METHOD: " . $_SERVER['REQUEST_METHOD']);
-        error_log("POST data: " . json_encode($_POST));
+        error_log("Raw POST data: " . file_get_contents('php://input'));
+        error_log("POST array: " . json_encode($_POST));
         error_log("SESSION user_id: " . ($_SESSION['user_id'] ?? 'null'));
         error_log("SESSION user_role: " . ($_SESSION['user_role'] ?? 'null'));
         
@@ -1101,18 +1111,18 @@ class AdminController extends BaseController {
                 echo json_encode(['success' => false, 'message' => 'Unauthorized']);
                 exit();
             }
-
+    
             if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
                 http_response_code(405);
                 echo json_encode(['success' => false, 'message' => 'Method not allowed']);
                 exit();
             }
-
+    
             $parentId = intval($_POST['parent_id'] ?? 0);
             if (!$parentId) {
                 throw new Exception("Parent ID is required");
             }
-
+    
             $data = [
                 'full_name' => trim($_POST['full_name'] ?? ''),
                 'email' => trim($_POST['email'] ?? ''),
@@ -1120,18 +1130,18 @@ class AdminController extends BaseController {
                 'address' => trim($_POST['address'] ?? ''),
                 'is_active' => intval($_POST['is_active'] ?? 1)
             ];
-
+    
             error_log("Parsed data: " . json_encode($data));
-
+    
             // Validation
             if (empty($data['full_name']) || empty($data['email'])) {
-                throw new Exception("Full name and email are required");
+                throw new Exception("Họ tên và email không được để trống");
             }
-
+    
             if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
-                throw new Exception("Invalid email format");
+                throw new Exception("Email không hợp lệ");
             }
-
+    
             error_log("Calling adminModel->updateParent with ID: $parentId");
             $result = $this->adminModel->updateParent($parentId, $data);
             error_log("updateParent result: " . var_export($result, true));
@@ -1139,15 +1149,15 @@ class AdminController extends BaseController {
             if ($result) {
                 echo json_encode([
                     'success' => true,
-                    'message' => 'Parent updated successfully'
+                    'message' => 'Cập nhật thông tin phụ huynh thành công'
                 ]);
             } else {
                 echo json_encode([
                     'success' => false,
-                    'message' => 'Failed to update parent'
+                    'message' => 'Không thể cập nhật thông tin phụ huynh'
                 ]);
             }
-
+    
         } catch (Exception $e) {
             error_log("EXCEPTION in updateParent: " . $e->getMessage());
             error_log("Stack trace: " . $e->getTraceAsString());

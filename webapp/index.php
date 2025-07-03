@@ -411,6 +411,28 @@ if (strpos($path, '/api/') === 0) {
             }
             exit();
             
+        case '/parent/update-profile':
+            if (isset($_SESSION['user_id']) && $_SESSION['user_role'] === 'parent') {
+                require_once('Controller/ParentController.php');
+                $controller = new ParentController();
+                $controller->updateProfile();
+            } else {
+                http_response_code(401);
+                echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+            }
+            exit();
+            
+        case '/parent/change-password':
+            if (isset($_SESSION['user_id']) && $_SESSION['user_role'] === 'parent') {
+                require_once('Controller/ParentController.php');
+                $controller = new ParentController();
+                $controller->changePassword();
+            } else {
+                http_response_code(401);
+                echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+            }
+            exit();
+            
         default:
             error_log("API endpoint not found: " . $apiPath);
             http_response_code(404);
