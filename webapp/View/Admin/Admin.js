@@ -2396,7 +2396,11 @@ function enrollStudent(studentId, courseId) {
     })
         .then(response => {
             if (!response.ok) {
+<<<<<<< Updated upstream
                 throw new Error(`Đã đăng ký lớp này: ${response.status}`);
+=======
+                throw new Error(`Lớp đã đăng ký: ${response.status}`);
+>>>>>>> Stashed changes
             }
             return response.json();
         })
