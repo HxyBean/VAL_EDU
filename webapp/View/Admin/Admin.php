@@ -406,9 +406,6 @@
                            placeholder="Tìm kiếm phụ huynh..." 
                            oninput="searchParents()">
                 </div>
-                <button class="btn-primary" onclick="showAddParentModal()">
-                    <i class="fas fa-plus"></i> Thêm Phụ Huynh Mới
-                </button>
             </div>
 
             <div class="table-container">

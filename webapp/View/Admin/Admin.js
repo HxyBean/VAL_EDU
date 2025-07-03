@@ -2396,7 +2396,7 @@ function enrollStudent(studentId, courseId) {
     })
         .then(response => {
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                throw new Error(`Đã đăng ký lớp này: ${response.status}`);
             }
             return response.json();
         })
