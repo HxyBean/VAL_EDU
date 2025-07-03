@@ -435,3 +435,120 @@ function showSection(sectionId) {
         navLink.classList.add('active');
     }
 }
+
+// QR Payment functions
+function showQRPayment(paymentId, studentName, className, amount, paymentMethod) {
+    console.log('Showing QR payment for:', paymentId);
+    
+    // Store payment ID for confirmation
+    document.getElementById('qr-payment-modal').dataset.paymentId = paymentId;
+    
+    // Populate payment information
+    document.getElementById('qr-student-name').textContent = studentName;
+    document.getElementById('qr-class-name').textContent = className;
+    document.getElementById('qr-amount').textContent = formatCurrency(amount);
+    document.getElementById('qr-method').textContent = getPaymentMethodText(paymentMethod);
+    
+    // Generate payment content
+    const paymentContent = `VALEDU ${paymentId} ${studentName.replace(/\s+/g, '')}`;
+    document.getElementById('qr-content').textContent = paymentContent;
+    
+    // Reset status
+    document.getElementById('payment-status').style.display = 'none';
+    document.getElementById('confirm-payment-btn').disabled = false;
+    
+    // Show modal
+    document.getElementById('qr-payment-modal').style.display = 'block';
+}
+
+function closeQRPaymentModal() {
+    document.getElementById('qr-payment-modal').style.display = 'none';
+}
+
+function simulateQRPayment() {
+    const modal = document.getElementById('qr-payment-modal');
+    const paymentId = modal.dataset.paymentId;
+    
+    if (!paymentId) {
+        showMessage('Lỗi: Không tìm thấy thông tin thanh toán', 'error');
+        return;
+    }
+    
+    // Show processing status
+    const statusDiv = document.getElementById('payment-status');
+    const confirmBtn = document.getElementById('confirm-payment-btn');
+    
+    statusDiv.style.display = 'block';
+    statusDiv.innerHTML = `
+        <i class="fas fa-spinner fa-spin"></i>
+        <p>Đang xử lý thanh toán...</p>
+    `;
+    confirmBtn.disabled = true;
+    
+    // Simulate payment processing delay
+    setTimeout(() => {
+        // Call API to confirm payment
+        fetch('/webapp/api/parent/confirm-qr-payment', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `payment_id=${paymentId}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                statusDiv.innerHTML = `
+                    <i class="fas fa-check-circle"></i>
+                    <p>Thanh toán thành công!</p>
+                `;
+                
+                setTimeout(() => {
+                    closeQRPaymentModal();
+                    showMessage('Thanh toán đã được xác nhận thành công!', 'success');
+                    
+                    // Refresh page to update payment status
+                    location.reload();
+                }, 2000);
+            } else {
+                statusDiv.innerHTML = `
+                    <i class="fas fa-times-circle" style="color: #dc3545;"></i>
+                    <p style="color: #dc3545;">Thanh toán thất bại: ${data.message}</p>
+                `;
+                confirmBtn.disabled = false;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            statusDiv.innerHTML = `
+                <i class="fas fa-times-circle" style="color: #dc3545;"></i>
+                <p style="color: #dc3545;">Lỗi kết nối. Vui lòng thử lại.</p>
+            `;
+            confirmBtn.disabled = false;
+        });
+    }, 2000); // 2 second delay to simulate processing
+}
+
+function getPaymentMethodText(method) {
+    const methods = {
+        'cash': 'Tiền mặt',
+        'bank_transfer': 'Chuyển khoản',
+        'credit_card': 'Thẻ tín dụng'
+    };
+    return methods[method] || method;
+}
+
+function formatCurrency(amount) {
+    return new Intl.NumberFormat('vi-VN', {
+        style: 'currency',
+        currency: 'VND'
+    }).format(amount);
+}
+
+// Close modal when clicking outside
+window.addEventListener('click', function(event) {
+    const modal = document.getElementById('qr-payment-modal');
+    if (event.target === modal) {
+        closeQRPaymentModal();
+    }
+});

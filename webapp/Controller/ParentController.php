@@ -166,7 +166,7 @@ class ParentController extends BaseController {
             $child_id = $_GET['child_id'] ?? '';
             
             if ($child_id) {
-                $payments = $this->parentModel->getChildPayments($child_id);
+                $payments = $this->parentModel->getChildPaymentHistory($child_id);
                 echo json_encode(['success' => true, 'data' => $payments]);
             } else {
                 echo json_encode(['success' => false, 'message' => 'Thiếu thông tin học sinh']);

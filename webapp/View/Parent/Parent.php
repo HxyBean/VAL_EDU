@@ -295,6 +295,7 @@
                                     <th>Số Tiền</th>
                                     <th>Phương Thức</th>
                                     <th>Trạng Thái</th>
+                                    <th>Thao Tác</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -316,6 +317,15 @@
                                                 echo $statusLabels[$payment['status']] ?? $payment['status'];
                                                 ?>
                                             </span>
+                                        </td>
+                                        <td>
+                                            <?php if ($payment['status'] === 'pending'): ?>
+                                                <button class="pay-btn" onclick="showQRPayment(<?= $payment['id'] ?>, '<?= htmlspecialchars($payment['student_name']) ?>', '<?= htmlspecialchars($payment['class_name']) ?>', <?= $payment['final_amount'] ?? $payment['amount'] ?>, '<?= $payment['payment_method'] ?>')">
+                                                    <i class="fas fa-qrcode"></i> Thanh toán
+                                                </button>
+                                            <?php else: ?>
+                                                <span class="text-muted">Đã xử lý</span>
+                                            <?php endif; ?>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
@@ -514,6 +524,169 @@
             </div>
         </div>
     </div>
+
+    <!-- QR Payment Modal -->
+    <div id="qr-payment-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Thanh toán QR Code</h3>
+                <span class="close" onclick="closeQRPaymentModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="payment-info">
+                    <div class="payment-details">
+                        <h4 id="qr-payment-title">Thông tin thanh toán</h4>
+                        <div class="payment-row">
+                            <span>Học viên:</span>
+                            <span id="qr-student-name"></span>
+                        </div>
+                        <div class="payment-row">
+                            <span>Lớp học:</span>
+                            <span id="qr-class-name"></span>
+                        </div>
+                        <div class="payment-row">
+                            <span>Số tiền:</span>
+                            <strong id="qr-amount"></strong>
+                        </div>
+                        <div class="payment-row">
+                            <span>Phương thức:</span>
+                            <span id="qr-method"></span>
+                        </div>
+                    </div>
+                    
+                    <div class="qr-code-container">
+                        <div class="qr-code">
+                            <div class="qr-placeholder">
+                                <i class="fas fa-qrcode"></i>
+                                <p>Mã QR thanh toán</p>
+                                <small>Quét mã để thanh toán</small>
+                            </div>
+                        </div>
+                        <div class="bank-info">
+                            <p><strong>Ngân hàng:</strong> VietcomBank</p>
+                            <p><strong>Số tài khoản:</strong> 0123456789</p>
+                            <p><strong>Chủ tài khoản:</strong> VALEDU EDUCATION</p>
+                            <p><strong>Nội dung:</strong> <span id="qr-content"></span></p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="payment-status" id="payment-status" style="display: none;">
+                    <i class="fas fa-check-circle"></i>
+                    <p>Đang chờ thanh toán...</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeQRPaymentModal()">Hủy</button>
+                <button type="button" class="btn btn-primary" onclick="simulateQRPayment()" id="confirm-payment-btn">
+                    <i class="fas fa-credit-card"></i> Xác nhận đã thanh toán
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .payment-info {
+            display: flex;
+            gap: 30px;
+            margin-bottom: 20px;
+        }
+        
+        .payment-details {
+            flex: 1;
+        }
+        
+        .payment-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .qr-code-container {
+            flex: 1;
+            text-align: center;
+        }
+        
+        .qr-code {
+            width: 200px;
+            height: 200px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            margin: 0 auto 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(45deg, #f0f0f0 25%, transparent 25%), 
+                        linear-gradient(-45deg, #f0f0f0 25%, transparent 25%), 
+                        linear-gradient(45deg, transparent 75%, #f0f0f0 75%), 
+                        linear-gradient(-45deg, transparent 75%, #f0f0f0 75%);
+            background-size: 20px 20px;
+            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+        }
+        
+        .qr-placeholder {
+            text-align: center;
+            color: #666;
+        }
+        
+        .qr-placeholder i {
+            font-size: 48px;
+            margin-bottom: 10px;
+            display: block;
+        }
+        
+        .bank-info {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: left;
+        }
+        
+        .bank-info p {
+            margin: 5px 0;
+            font-size: 14px;
+        }
+        
+        .payment-status {
+            text-align: center;
+            padding: 20px;
+            background: #e8f5e8;
+            border-radius: 8px;
+            color: #28a745;
+        }
+        
+        .payment-status i {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+        
+        .pay-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+        
+        .pay-btn:hover {
+            background: #218838;
+        }
+        
+        .pay-btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+        
+        .text-muted {
+            color: #6c757d;
+            font-style: italic;
+        }
+    </style>
 
     <script>
         // Pass PHP data to JavaScript
