@@ -4,16 +4,13 @@ $navigation = [
     'admin' => [
         ['id' => 'overview', 'icon' => 'fas fa-globe', 'label' => 'Tổng Quan', 'active' => true],
         ['id' => 'manage_students', 'icon' => 'fas fa-users', 'label' => 'Quản Lý Học Viên'],
+        ['id' => 'manage_parent', 'icon' => 'fas fa-users', 'label' => 'Quản Lý Phụ Huynh'],
         ['id' => 'manage_teachers', 'icon' => 'fas fa-chalkboard-teacher', 'label' => 'Quản Lý Giáo Viên'],
         ['id' => 'manage_courses', 'icon' => 'fas fa-book-open', 'label' => 'Quản Lý Khóa Học'],
         ['id' => 'settings', 'icon' => 'fas fa-cog', 'label' => 'Cài Đặt']
     ],
     'tutor' => [
-        ['id' => 'overview', 'icon' => 'fas fa-home', 'label' => 'Tổng Quan', 'active' => true],
-        ['id' => 'my_classes', 'icon' => 'fas fa-chalkboard', 'label' => 'Lớp Của Tôi'],
-        ['id' => 'schedule', 'icon' => 'fas fa-calendar-alt', 'label' => 'Lịch Dạy'],
-        ['id' => 'students', 'icon' => 'fas fa-user-graduate', 'label' => 'Học Viên'],
-        ['id' => 'attendance', 'icon' => 'fas fa-clipboard-check', 'label' => 'Điểm Danh'],
+        ['id' => 'overview', 'icon' => 'fas fa-home', 'label' => 'Lớp Của Tôi', 'active' => true],
         ['id' => 'settings', 'icon' => 'fas fa-cog', 'label' => 'Cài Đặt']
     ],
     'student' => [
@@ -25,7 +22,6 @@ $navigation = [
         ['id' => 'overview', 'icon' => 'fas fa-home', 'label' => 'Tổng Quan', 'active' => true],
         ['id' => 'my_children', 'icon' => 'fas fa-child', 'label' => 'Con Của Tôi'],
         ['id' => 'payments', 'icon' => 'fas fa-credit-card', 'label' => 'Thanh Toán'],
-        ['id' => 'attendance', 'icon' => 'fas fa-check-circle', 'label' => 'Điểm Danh'],
         ['id' => 'settings', 'icon' => 'fas fa-cog', 'label' => 'Cài Đặt']
     ]
 ];

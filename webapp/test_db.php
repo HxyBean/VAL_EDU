@@ -8,7 +8,7 @@ try {
     echo "<h2>Database Connection Test</h2>";
     echo "<p style='color: green;'>✅ Connected successfully to ValEduDatabase!</p>";
     
-    // Test query to show usersok
+    // Test query to show users
     $result = $conn->query("SELECT id, username, full_name, role FROM users");
     
     if ($result && $result->num_rows > 0) {
@@ -42,7 +42,7 @@ try {
         echo "</div>";
         
     } else {
-        echo "<p style='color: red;'>❌ 12No users found in database!</p>";
+        echo "<p style='color: red;'>❌ No users found in database!</p>";
     }
     
 } catch (Exception $e) {

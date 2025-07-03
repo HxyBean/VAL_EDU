@@ -4,7 +4,8 @@ let classDistributionChart = null;
 let allCourses = [];
 let filteredCourses = [];
 let tutors = [];
-
+let selectedStudentId = null;
+let currentParentId = null;
 // Initialize everything when DOM loads
 document.addEventListener('DOMContentLoaded', function () {
     console.log('Admin.js initializing...');
@@ -1462,7 +1463,7 @@ function updateCourse(event) {
 
     // Validate required fields
     const requiredFields = ['class_name', 'class_year', 'class_level', 'subject', 'max_students', 'sessions_total', 'price_per_session', 'schedule_time', 'schedule_duration', 'start_date', 'end_date'];
-    
+
     for (const field of requiredFields) {
         if (!formData.get(field)) {
             showMessage(`Vui lòng điền đầy đủ thông tin: ${field}`, 'error');
@@ -1475,12 +1476,12 @@ function updateCourse(event) {
     form.querySelectorAll('input[name="schedule_days"]:checked').forEach(checkbox => {
         scheduleDays.push(checkbox.value);
     });
-    
+
     if (scheduleDays.length === 0) {
         showMessage('Vui lòng chọn ít nhất một ngày học trong tuần', 'error');
         return;
     }
-    
+
     formData.set('schedule_days', scheduleDays.join(','));
 
     // Show loading state
@@ -1497,7 +1498,7 @@ function updateCourse(event) {
     })
         .then(async response => {
             console.log('Update response:', response);
-            
+
             // Get response text first
             const text = await response.text();
             console.log('Response text:', text);
@@ -1555,7 +1556,7 @@ function showAddTutorModal() {
     if (discountPercentageInput) {
         discountPercentageInput.value = '5';
     }
-    
+
     // Auto-generate discount code
     generateDiscountCode();
 
@@ -1571,7 +1572,7 @@ function generateDiscountCode() {
     for (let i = 0; i < 8; i++) {
         code += chars.charAt(Math.floor(Math.random() * chars.length));
     }
-    
+
     document.getElementById('tutor-discount-code').value = code;
 }
 
@@ -1628,15 +1629,15 @@ function createTutor(event) {
 // Load and display tutors
 function searchTutors() {
     const searchTerm = document.getElementById('tutor-search').value.toLowerCase();
-    
+
     if (!tutors || tutors.length === 0) {
         // If no tutors loaded, try to load them first
         loadTutors();
         return;
     }
-    
+
     let filteredTutors;
-    
+
     if (searchTerm.trim() === '') {
         filteredTutors = tutors;
     } else {
@@ -1647,13 +1648,13 @@ function searchTutors() {
                 tutor.phone || '',
                 tutor.username || ''
             ];
-            
-            return searchFields.some(field => 
+
+            return searchFields.some(field =>
                 field.toLowerCase().includes(searchTerm)
             );
         });
     }
-    
+
     displayTutors(filteredTutors);
 }
 
@@ -2160,20 +2161,20 @@ function populateEditStudentForm(student) {
 function searchStudents() {
     const searchTerm = document.getElementById('student-search').value.toLowerCase();
     const tableBody = document.getElementById('students-table-body');
-    
+
     if (!tableBody) return;
-    
+
     // Get all table rows
     const rows = tableBody.querySelectorAll('tr');
-    
+
     if (rows.length === 0) {
         // If no students loaded, try to load them first
         loadStudents();
         return;
     }
-    
+
     let visibleCount = 0;
-    
+
     rows.forEach(row => {
         if (searchTerm.trim() === '') {
             row.style.display = '';
@@ -2185,13 +2186,13 @@ function searchStudents() {
                 const studentId = cells[1].textContent.toLowerCase();
                 const studentName = cells[2].textContent.toLowerCase();
                 const studentEmail = cells[3].textContent.toLowerCase();
-                
+
                 const searchFields = [studentId, studentName, studentEmail];
-                
-                const isMatch = searchFields.some(field => 
+
+                const isMatch = searchFields.some(field =>
                     field.includes(searchTerm)
                 );
-                
+
                 if (isMatch) {
                     row.style.display = '';
                     visibleCount++;
@@ -2201,7 +2202,7 @@ function searchStudents() {
             }
         }
     });
-    
+
     // Show/hide empty state based on search results
     const noStudentsElement = document.getElementById('no-students');
     if (noStudentsElement) {
@@ -2611,7 +2612,7 @@ function closeCourse(courseId, event) {
     if (event) {
         event.stopPropagation();
     }
-    
+
     if (!confirm('Bạn có chắc chắn muốn đóng khóa học này không?')) {
         return;
     }
@@ -2621,7 +2622,7 @@ function closeCourse(courseId, event) {
     // Find the button that triggered this action
     const button = event ? event.target : document.querySelector(`button[onclick*="closeCourse(${courseId})"]`);
     let originalText = 'Đóng';
-    
+
     if (button) {
         originalText = button.innerHTML;
         button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang đóng...';
@@ -2637,30 +2638,30 @@ function closeCourse(courseId, event) {
             course_id: courseId
         })
     })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-        return response.json();
-    })
-    .then(data => {
-        if (data.success) {
-            showMessage('Đóng khóa học thành công!', 'success');
-            loadCourses(); // Refresh courses list
-        } else {
-            throw new Error(data.message || 'Không thể đóng khóa học');
-        }
-    })
-    .catch(error => {
-        console.error('Error closing course:', error);
-        showMessage('Lỗi khi đóng khóa học: ' + error.message, 'error');
-    })
-    .finally(() => {
-        if (button) {
-            button.innerHTML = originalText;
-            button.disabled = false;
-        }
-    });
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                showMessage('Đóng khóa học thành công!', 'success');
+                loadCourses(); // Refresh courses list
+            } else {
+                throw new Error(data.message || 'Không thể đóng khóa học');
+            }
+        })
+        .catch(error => {
+            console.error('Error closing course:', error);
+            showMessage('Lỗi khi đóng khóa học: ' + error.message, 'error');
+        })
+        .finally(() => {
+            if (button) {
+                button.innerHTML = originalText;
+                button.disabled = false;
+            }
+        });
 }
 
 function reopenCourse(courseId, event) {
@@ -2668,7 +2669,7 @@ function reopenCourse(courseId, event) {
     if (event) {
         event.stopPropagation();
     }
-    
+
     if (!confirm('Bạn có chắc chắn muốn mở lại khóa học này không?')) {
         return;
     }
@@ -2678,7 +2679,7 @@ function reopenCourse(courseId, event) {
     // Find the button that triggered this action
     const button = event ? event.target : document.querySelector(`button[onclick*="reopenCourse(${courseId})"]`);
     let originalText = 'Mở lại';
-    
+
     if (button) {
         originalText = button.innerHTML;
         button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang mở...';
@@ -2694,41 +2695,41 @@ function reopenCourse(courseId, event) {
             course_id: courseId
         })
     })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-        return response.json();
-    })
-    .then(data => {
-        if (data.success) {
-            showMessage('Mở lại khóa học thành công!', 'success');
-            loadCourses(); // Refresh courses list
-        } else {
-            throw new Error(data.message || 'Không thể mở lại khóa học');
-        }
-    })
-    .catch(error => {
-        console.error('Error reopening course:', error);
-        showMessage('Lỗi khi mở lại khóa học: ' + error.message, 'error');
-    })
-    .finally(() => {
-        if (button) {
-            button.innerHTML = originalText;
-            button.disabled = false;
-        }
-    });
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                showMessage('Mở lại khóa học thành công!', 'success');
+                loadCourses(); // Refresh courses list
+            } else {
+                throw new Error(data.message || 'Không thể mở lại khóa học');
+            }
+        })
+        .catch(error => {
+            console.error('Error reopening course:', error);
+            showMessage('Lỗi khi mở lại khóa học: ' + error.message, 'error');
+        })
+        .finally(() => {
+            if (button) {
+                button.innerHTML = originalText;
+                button.disabled = false;
+            }
+        });
 }
 
 function searchCourses() {
     const searchTerm = document.getElementById('course-search').value.toLowerCase();
-    
+
     if (!allCourses || allCourses.length === 0) {
         return;
     }
-    
+
     let coursesToFilter = allCourses;
-    
+
     // Apply year filter first if it's set
     const yearFilter = document.getElementById('year-filter').value;
     if (yearFilter) {
@@ -2738,7 +2739,7 @@ function searchCourses() {
             return courseYear.toString() === yearFilter;
         });
     }
-    
+
     // Then apply search filter
     if (searchTerm.trim() === '') {
         filteredCourses = coursesToFilter;
@@ -2751,20 +2752,20 @@ function searchCourses() {
                 course.tutor_name || '',
                 course.description || ''
             ];
-            
-            return searchFields.some(field => 
+
+            return searchFields.some(field =>
                 field.toLowerCase().includes(searchTerm)
             );
         });
     }
-    
+
     displayCourses(filteredCourses);
     updateCourseStats(filteredCourses);
 }
 
 function filterCoursesByYear(year) {
     console.log('Filtering courses by year:', year);
-    
+
     if (!allCourses || allCourses.length === 0) {
         filteredCourses = [];
         displayCourses(filteredCourses);
@@ -2773,7 +2774,7 @@ function filterCoursesByYear(year) {
     }
 
     let coursesToFilter = allCourses;
-    
+
     // Apply year filter
     if (!year || year === '') {
         coursesToFilter = allCourses;
@@ -2784,7 +2785,7 @@ function filterCoursesByYear(year) {
             return courseYear.toString() === year.toString();
         });
     }
-    
+
     // Apply search filter if there's a search term
     const searchTerm = document.getElementById('course-search').value.toLowerCase();
     if (searchTerm.trim() !== '') {
@@ -2796,8 +2797,8 @@ function filterCoursesByYear(year) {
                 course.tutor_name || '',
                 course.description || ''
             ];
-            
-            return searchFields.some(field => 
+
+            return searchFields.some(field =>
                 field.toLowerCase().includes(searchTerm)
             );
         });
@@ -2807,4 +2808,720 @@ function filterCoursesByYear(year) {
 
     displayCourses(filteredCourses);
     updateCourseStats(filteredCourses);
+}
+
+// Thêm các functions sau vào Admin.js
+
+// ===========================================
+// PARENT MANAGEMENT FUNCTIONS
+// ===========================================
+
+// Thêm vào function loadParents
+
+function loadParents() {
+    console.log('🔄 Starting loadParents function...');
+
+    const parentsTableBody = document.getElementById('parents-table-body');
+    if (!parentsTableBody) {
+        console.error('Parents table body not found');
+        return;
+    }
+
+    // Show loading state
+    const loadingElement = document.getElementById('parents-loading');
+    const noParentsElement = document.getElementById('no-parents');
+
+    if (loadingElement) loadingElement.style.display = 'block';
+    if (noParentsElement) noParentsElement.style.display = 'none';
+    parentsTableBody.innerHTML = '';
+
+    fetch('/webapp/api/admin/get-parents', {
+        method: 'GET',
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        },
+        credentials: 'same-origin'
+    })
+        .then(response => {
+            console.log('Response status:', response.status);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Parents data received:', data);
+
+            // Debug: Log is_active values from API
+            if (data.success && data.parents) {
+                data.parents.forEach(parent => {
+                    console.log(`API Response - Parent ${parent.id}: is_active = ${parent.is_active} (${typeof parent.is_active})`);
+                });
+            }
+
+            if (loadingElement) loadingElement.style.display = 'none';
+
+            if (data.success && data.parents && data.parents.length > 0) {
+                displayParents(data.parents);
+            } else {
+                showNoParents();
+            }
+        })
+        .catch(error => {
+            console.error('Error loading parents:', error);
+            if (loadingElement) loadingElement.style.display = 'none';
+            showErrorParents(error.message);
+        });
+}
+
+function displayParents(parents) {
+    const parentsTableBody = document.getElementById('parents-table-body');
+    if (!parentsTableBody) return;
+
+    parentsTableBody.innerHTML = parents.map(parent => {
+        // Chuyển đổi is_active về boolean một cách rõ ràng
+        const isActive = parent.is_active == 1 || parent.is_active === true || parent.is_active === '1';
+        const statusClass = isActive ? 'active' : 'inactive';
+        const statusText = isActive ? 'Hoạt động' : 'Không hoạt động';
+
+        const createdDate = new Date(parent.created_at).toLocaleDateString('vi-VN');
+        const totalPaid = formatCurrency(parent.total_paid || 0);
+
+        // Debug log
+        console.log(`Parent ${parent.id}: is_active = ${parent.is_active} (${typeof parent.is_active}), converted to ${isActive}`);
+
+        return `
+            <tr>
+                <td>${parent.id}</td>
+                <td>${parent.full_name}</td>
+                <td>${parent.email}</td>
+                <td>${parent.phone || 'Chưa có'}</td>
+                <td>${parent.children_count || 0}</td>
+                <td>${totalPaid}</td>
+                <td>${createdDate}</td>
+                <td><span class="status ${statusClass}">${statusText}</span></td>
+                <td>
+                    <div class="action-buttons">
+                        <button class="btn-icon btn-view" onclick="viewParent(${parent.id})" title="Xem chi tiết">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="btn-icon btn-edit" onclick="editParent(${parent.id})" title="Chỉnh sửa">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+function showNoParents() {
+    const parentsTableBody = document.getElementById('parents-table-body');
+    const noParentsElement = document.getElementById('no-parents');
+
+    if (parentsTableBody) parentsTableBody.innerHTML = '';
+    if (noParentsElement) noParentsElement.style.display = 'block';
+}
+
+function showErrorParents(message) {
+    const parentsTableBody = document.getElementById('parents-table-body');
+    if (!parentsTableBody) return;
+
+    parentsTableBody.innerHTML = `
+        <tr>
+            <td colspan="9" class="error-state">
+                <i class="fas fa-exclamation-triangle"></i>
+                <p>Lỗi tải dữ liệu: ${message}</p>
+                <button onclick="loadParents()" class="btn-primary">Thử lại</button>
+            </td>
+        </tr>
+    `;
+}
+
+function searchParents() {
+    const searchTerm = document.getElementById('parent-search').value.toLowerCase();
+    const tableRows = document.querySelectorAll('#parents-table-body tr');
+
+    tableRows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        row.style.display = text.includes(searchTerm) ? '' : 'none';
+    });
+}
+
+// ===========================================
+// PARENT MODAL FUNCTIONS
+// ===========================================
+
+function showAddParentModal() {
+    const modal = document.getElementById('add-parent-modal');
+    if (modal) {
+        modal.style.display = 'block';
+        document.body.style.overflow = 'hidden';
+
+        // Reset form
+        const form = document.getElementById('add-parent-form');
+        if (form) form.reset();
+    }
+}
+
+function closeAddParentModal() {
+    const modal = document.getElementById('add-parent-modal');
+    if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = 'auto';
+    }
+}
+
+function createParent(event) {
+    event.preventDefault();
+
+    const form = event.target;
+    const formData = new FormData(form);
+
+    // Show loading state
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang tạo...';
+    submitBtn.disabled = true;
+
+    fetch('/webapp/api/admin/create-parent', {
+        method: 'POST',
+        body: formData
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showMessage('Tạo phụ huynh thành công!', 'success');
+                closeAddParentModal();
+                loadParents(); // Reload the parents list
+            } else {
+                showMessage(data.message || 'Có lỗi xảy ra khi tạo phụ huynh', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error creating parent:', error);
+            showMessage('Lỗi hệ thống khi tạo phụ huynh', 'error');
+        })
+        .finally(() => {
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+        });
+}
+
+function viewParent(parentId) {
+    fetch(`/webapp/api/admin/parent-details?parent_id=${parentId}`, {
+        method: 'GET',
+        headers: {
+            'Accept': 'application/json'
+        }
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.parent) {
+                displayParentDetails(data.parent);
+            } else {
+                showMessage(data.message || 'Không thể tải thông tin phụ huynh', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error loading parent details:', error);
+            showMessage('Lỗi khi tải thông tin phụ huynh', 'error');
+        });
+}
+
+
+function displayParentDetails(parent) {
+    const modal = document.getElementById('parent-detail-modal');
+    const content = document.getElementById('parent-detail-content');
+
+    if (!modal || !content) return;
+
+    // Chuyển đổi is_active một cách rõ ràng
+    const isActive = parent.is_active == 1 || parent.is_active === true || parent.is_active === '1';
+    const statusText = isActive ? 'Hoạt động' : 'Không hoạt động';
+    const statusClass = isActive ? 'active' : 'inactive';
+
+    const createdDate = new Date(parent.created_at).toLocaleDateString('vi-VN');
+    const totalPaid = formatCurrency(parent.total_paid || 0);
+
+    // Debug log
+    console.log(`Parent detail ${parent.id}: is_active = ${parent.is_active} (${typeof parent.is_active}), converted to ${isActive}`);
+
+    content.innerHTML = `
+        <div class="parent-detail">
+            <div class="parent-profile">
+                <div class="parent-avatar">
+                    <i class="fas fa-user-circle"></i>
+                </div>
+                <h2>${parent.full_name}</h2>
+                <span class="parent-status ${statusClass}">${statusText}</span>
+            </div>
+            
+            <div class="info-section">
+                <h3><i class="fas fa-info-circle"></i> Thông tin cơ bản</h3>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <i class="fas fa-user"></i>
+                        <span class="label">Tên đăng nhập:</span>
+                        <span>${parent.username}</span>
+                    </div>
+                    <div class="info-item">
+                        <i class="fas fa-envelope"></i>
+                        <span class="label">Email:</span>
+                        <span>${parent.email}</span>
+                    </div>
+                    <div class="info-item">
+                        <i class="fas fa-phone"></i>
+                        <span class="label">Số điện thoại:</span>
+                        <span>${parent.phone || 'Chưa có'}</span>
+                    </div>
+                    <div class="info-item">
+                        <i class="fas fa-map-marker-alt"></i>
+                        <span class="label">Địa chỉ:</span>
+                        <span>${parent.address || 'Chưa có'}</span>
+                    </div>
+                    <div class="info-item">
+                        <i class="fas fa-calendar"></i>
+                        <span class="label">Ngày tạo:</span>
+                        <span>${createdDate}</span>
+                    </div>
+                    <div class="info-item">
+                        <i class="fas fa-toggle-on"></i>
+                        <span class="label">Trạng thái:</span>
+                        <span class="status ${statusClass}">${statusText}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="info-section">
+                <h3><i class="fas fa-chart-bar"></i> Thống kê</h3>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <i class="fas fa-child"></i>
+                        <span class="label">Số con:</span>
+                        <span>${parent.children_count || 0}</span>
+                    </div>
+                    <div class="info-item">
+                        <i class="fas fa-money-bill"></i>
+                        <span class="label">Tổng thanh toán:</span>
+                        <span>${totalPaid}</span>
+                    </div>
+                    <div class="info-item">
+                        <i class="fas fa-receipt"></i>
+                        <span class="label">Số lần thanh toán:</span>
+                        <span>${parent.payment_count || 0}</span>
+                    </div>
+                </div>
+            </div>
+            
+            ${parent.children && parent.children.length > 0 ? `
+            <div class="info-section">
+                <h3><i class="fas fa-users"></i> Danh sách con (${parent.children.length})</h3>
+                <div class="children-grid">
+                    ${parent.children.map(child => `
+                        <div class="child-item">
+                            <div class="child-name">${child.full_name}</div>
+                            <div class="child-info">
+                                <span><i class="fas fa-envelope"></i> ${child.email}</span>
+                                <span><i class="fas fa-phone"></i> ${child.phone || 'Chưa có'}</span>
+                                <span><i class="fas fa-heart"></i> ${child.relationship_type === 'father' ? 'Cha' : child.relationship_type === 'mother' ? 'Mẹ' : 'Người giám hộ'}</span>
+                                <span><i class="fas fa-book"></i> ${child.enrolled_classes} lớp</span>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+            ` : `
+            <div class="info-section">
+                <div class="no-children">
+                    <i class="fas fa-child"></i>
+                    <h3>Chưa có con nào được liên kết</h3>
+                    <p>Phụ huynh này chưa có con nào trong hệ thống</p>
+                </div>
+            </div>
+            `}
+        </div>
+    `;
+
+    modal.style.display = 'block';
+    document.body.style.overflow = 'hidden';
+}
+
+function closeParentDetailModal() {
+    const modal = document.getElementById('parent-detail-modal');
+    if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = 'auto';
+    }
+}
+
+function editParent(parentId) {
+    fetch(`/webapp/api/admin/parent-details?parent_id=${parentId}`, {
+        method: 'GET',
+        headers: {
+            'Accept': 'application/json'
+        }
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.parent) {
+                populateEditParentForm(data.parent);
+            } else {
+                showMessage(data.message || 'Không thể tải thông tin phụ huynh', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error loading parent for edit:', error);
+            showMessage('Lỗi khi tải thông tin phụ huynh', 'error');
+        });
+}
+
+// Sửa function populateEditParentForm
+
+function populateEditParentForm(parent) {
+    // Chuyển đổi is_active một cách rõ ràng
+    const isActive = parent.is_active == 1 || parent.is_active === true || parent.is_active === '1';
+
+    document.getElementById('edit-parent-id').value = parent.id;
+    document.getElementById('edit-parent-fullname').value = parent.full_name;
+    document.getElementById('edit-parent-email').value = parent.email;
+    document.getElementById('edit-parent-phone').value = parent.phone || '';
+    document.getElementById('edit-parent-address').value = parent.address || '';
+    document.getElementById('edit-parent-status').value = isActive ? '1' : '0';
+
+    // Debug log
+    console.log(`Edit form populate - Parent ${parent.id}: is_active = ${parent.is_active}, setting select to ${isActive ? '1' : '0'}`);
+
+    const modal = document.getElementById('edit-parent-modal');
+    if (modal) {
+        modal.style.display = 'block';
+        document.body.style.overflow = 'hidden';
+    }
+}
+function updateParent(event) {
+    event.preventDefault();
+
+    const form = event.target;
+    const formData = new FormData(form);
+
+    // Debug logging
+    console.log('=== Update Parent Debug ===');
+    console.log('Form data:');
+    for (let [key, value] of formData.entries()) {
+        console.log(key, ':', value);
+    }
+
+    // Show loading state
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang cập nhật...';
+    submitBtn.disabled = true;
+
+    fetch('/webapp/api/admin/update-parent', {
+        method: 'POST',
+        body: formData
+    })
+        .then(response => {
+            console.log('Response status:', response.status);
+            console.log('Response headers:', response.headers);
+
+            // Check if response is ok
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            // Check if response has content
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                throw new Error('Response is not JSON');
+            }
+
+            return response.text(); // Get as text first
+        })
+        .then(text => {
+            console.log('Raw response text:', text);
+
+            // Try to parse JSON
+            if (!text.trim()) {
+                throw new Error('Empty response from server');
+            }
+
+            return JSON.parse(text);
+        })
+        .then(data => {
+            console.log('Parsed response data:', data);
+            if (data.success) {
+                showMessage('Cập nhật phụ huynh thành công!', 'success');
+                closeEditParentModal();
+                loadParents(); // Reload the parents list
+            } else {
+                showMessage(data.message || 'Có lỗi xảy ra khi cập nhật phụ huynh', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error updating parent:', error);
+            showMessage('Lỗi hệ thống khi cập nhật phụ huynh: ' + error.message, 'error');
+        })
+        .finally(() => {
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+        });
+}
+
+function closeEditParentModal() {
+    const modal = document.getElementById('edit-parent-modal');
+    if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = 'auto';
+    }
+}
+
+// Add parent management to the initialization
+document.addEventListener('DOMContentLoaded', function () {
+    // ... existing initialization code ...
+
+    // Add navigation event listener for parents
+    const parentsNavLink = document.querySelector('[href="#manage_parent"]');
+    if (parentsNavLink) {
+        parentsNavLink.addEventListener('click', function () {
+            setTimeout(() => {
+                loadParents();
+            }, 100);
+        });
+    }
+});
+
+// Show link student modal
+function showLinkStudentModal() {
+    currentParentId = document.getElementById('edit-parent-id').value;
+    if (!currentParentId) {
+        showMessage('Vui lòng chọn phụ huynh trước', 'error');
+        return;
+    }
+
+    const modal = document.getElementById('link-student-modal');
+    if (modal) {
+        modal.style.display = 'block';
+        document.body.style.overflow = 'hidden';
+
+        // Reset form
+        resetLinkStudentForm();
+
+        // Focus on search input
+        setTimeout(() => {
+            const searchInput = document.getElementById('student-search-input');
+            if (searchInput) searchInput.focus();
+        }, 100);
+    }
+}
+
+// Close link student modal
+function closeLinkStudentModal() {
+    const modal = document.getElementById('link-student-modal');
+    if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = 'auto';
+        resetLinkStudentForm();
+    }
+}
+
+// Reset link student form
+function resetLinkStudentForm() {
+    selectedStudentId = null;
+    document.getElementById('student-search-input').value = '';
+    document.getElementById('students-search-results').innerHTML = '';
+    document.getElementById('relationship-section').style.display = 'none';
+    document.getElementById('relationship-type').value = '';
+    document.getElementById('is-primary-parent').checked = false;
+    document.getElementById('link-student-btn').disabled = true;
+
+    // Hide loading and no results
+    document.getElementById('students-loading').style.display = 'none';
+    document.getElementById('no-students-found').style.display = 'none';
+}
+
+// Search students for linking
+function searchStudentsForLink() {
+    const searchTerm = document.getElementById('student-search-input').value.trim();
+    const resultsContainer = document.getElementById('students-search-results');
+    const loadingElement = document.getElementById('students-loading');
+    const noResultsElement = document.getElementById('no-students-found');
+
+    // Hide relationship section when searching
+    document.getElementById('relationship-section').style.display = 'none';
+    selectedStudentId = null;
+    document.getElementById('link-student-btn').disabled = true;
+
+    if (searchTerm.length < 2) {
+        resultsContainer.innerHTML = '';
+        loadingElement.style.display = 'none';
+        noResultsElement.style.display = 'none';
+        return;
+    }
+
+    // Show loading
+    loadingElement.style.display = 'block';
+    noResultsElement.style.display = 'none';
+    resultsContainer.innerHTML = '';
+
+    fetch('/webapp/api/admin/search-students', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `search_term=${encodeURIComponent(searchTerm)}&parent_id=${currentParentId}`
+    })
+        .then(response => response.json())
+        .then(data => {
+            loadingElement.style.display = 'none';
+
+            if (data.success && data.students && data.students.length > 0) {
+                displayStudentsForLink(data.students);
+                noResultsElement.style.display = 'none';
+            } else {
+                resultsContainer.innerHTML = '';
+                noResultsElement.style.display = 'block';
+            }
+        })
+        .catch(error => {
+            console.error('Error searching students:', error);
+            loadingElement.style.display = 'none';
+            noResultsElement.style.display = 'block';
+            showMessage('Lỗi khi tìm kiếm học viên', 'error');
+        });
+}
+
+// Display students for linking
+function displayStudentsForLink(students) {
+    const resultsContainer = document.getElementById('students-search-results');
+
+    resultsContainer.innerHTML = students.map(student => {
+        const initials = student.full_name
+            .split(' ')
+            .map(word => word.charAt(0))
+            .join('')
+            .substring(0, 2)
+            .toUpperCase();
+
+        const studentCode = `HV${String(student.id).padStart(4, '0')}`;
+
+        return `
+            <div class="student-item" onclick="selectStudentForLink(${student.id}, '${student.full_name}')">
+                <div class="student-avatar">${initials}</div>
+                <div class="student-info">
+                    <div class="student-name">${student.full_name}</div>
+                    <div class="student-details">
+                        <span class="student-id">${studentCode}</span> • 
+                        ${student.email} • 
+                        ${student.phone || 'Chưa có SĐT'}
+                        ${student.already_linked ? ' • <span style="color: #dc3545;">Đã liên kết</span>' : ''}
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// Select student for linking
+function selectStudentForLink(studentId, studentName) {
+    // Remove previous selection
+    document.querySelectorAll('.student-item').forEach(item => {
+        item.classList.remove('selected');
+    });
+
+    // Add selection to clicked item
+    event.currentTarget.classList.add('selected');
+
+    selectedStudentId = studentId;
+
+    // Show relationship section
+    document.getElementById('relationship-section').style.display = 'block';
+
+    // Update relationship section header
+    const relationshipSection = document.getElementById('relationship-section');
+    const existingHeader = relationshipSection.querySelector('h4');
+    if (existingHeader) {
+        existingHeader.textContent = `Liên kết với học viên: ${studentName}`;
+    }
+
+    // Enable link button when relationship is selected
+    updateLinkButtonState();
+}
+
+// Update link button state
+function updateLinkButtonState() {
+    const relationshipType = document.getElementById('relationship-type').value;
+    const linkBtn = document.getElementById('link-student-btn');
+
+    if (selectedStudentId && relationshipType) {
+        linkBtn.disabled = false;
+    } else {
+        linkBtn.disabled = true;
+    }
+}
+
+// Add event listener for relationship type change
+document.addEventListener('DOMContentLoaded', function () {
+    const relationshipSelect = document.getElementById('relationship-type');
+    if (relationshipSelect) {
+        relationshipSelect.addEventListener('change', updateLinkButtonState);
+    }
+});
+
+// Link student to parent
+function linkStudentToParent() {
+    if (!selectedStudentId || !currentParentId) {
+        showMessage('Vui lòng chọn học viên và phụ huynh', 'error');
+        return;
+    }
+
+    const relationshipType = document.getElementById('relationship-type').value;
+    const isPrimary = document.getElementById('is-primary-parent').checked;
+
+    if (!relationshipType) {
+        showMessage('Vui lòng chọn mối quan hệ', 'error');
+        return;
+    }
+
+    const linkBtn = document.getElementById('link-student-btn');
+    const originalText = linkBtn.innerHTML;
+    linkBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang liên kết...';
+    linkBtn.disabled = true;
+
+    const formData = new FormData();
+    formData.append('parent_id', currentParentId);
+    formData.append('student_id', selectedStudentId);
+    formData.append('relationship_type', relationshipType);
+    formData.append('is_primary', isPrimary ? '1' : '0');
+
+    fetch('/webapp/api/admin/link-parent-student', {
+        method: 'POST',
+        body: formData
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showMessage('Liên kết học viên thành công!', 'success');
+                closeLinkStudentModal();
+
+                // Reload parent details if parent detail modal is open
+                if (document.getElementById('parent-detail-modal').style.display === 'block') {
+                    viewParent(currentParentId);
+                }
+
+                // Reload parents list
+                loadParents();
+            } else {
+                showMessage(data.message || 'Có lỗi xảy ra khi liên kết học viên', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error linking student:', error);
+            showMessage('Lỗi hệ thống khi liên kết học viên', 'error');
+        })
+        .finally(() => {
+            linkBtn.innerHTML = originalText;
+            linkBtn.disabled = false;
+        });
 }

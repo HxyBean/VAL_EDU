@@ -1016,5 +1016,313 @@ class AdminController extends BaseController {
         }
         exit();
     }
+
+    // API endpoint for getting all parents
+    public function getParents() {
+        header('Content-Type: application/json');
+        
+        try {
+            if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
+                http_response_code(401);
+                echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+                exit();
+            }
+
+            $parents = $this->adminModel->getAllParents();
+            
+            echo json_encode([
+                'success' => true,
+                'parents' => $parents
+            ]);
+
+        } catch (Exception $e) {
+            error_log("Error in getParents: " . $e->getMessage());
+            http_response_code(400);
+            echo json_encode([
+                'success' => false,
+                'message' => $e->getMessage()
+            ]);
+        }
+        exit();
+    }
+
+    // API endpoint for getting parent details
+    public function getParentDetails() {
+        header('Content-Type: application/json');
+        
+        try {
+            if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
+                http_response_code(401);
+                echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+                exit();
+            }
+
+            $parentId = intval($_GET['parent_id'] ?? 0);
+            
+            if (!$parentId) {
+                throw new Exception("Parent ID is required");
+            }
+
+            $parent = $this->adminModel->getParentDetails($parentId);
+            
+            echo json_encode([
+                'success' => true,
+                'parent' => $parent
+            ]);
+
+        } catch (Exception $e) {
+            error_log("Error getting parent details: " . $e->getMessage());
+            echo json_encode([
+                'success' => false,
+                'message' => $e->getMessage()
+            ]);
+        }
+        exit();
+    }
+
+    // API endpoint for updating parent - giống như updateStudent
+    public function updateParent() {
+        // Enable error reporting for debugging
+        ini_set('display_errors', 0);
+        error_reporting(E_ALL);
+        
+        header('Content-Type: application/json');
+        
+        // Log all incoming data for debugging
+        error_log("=== UPDATE PARENT CONTROLLER DEBUG ===");
+        error_log("REQUEST_METHOD: " . $_SERVER['REQUEST_METHOD']);
+        error_log("POST data: " . json_encode($_POST));
+        error_log("SESSION user_id: " . ($_SESSION['user_id'] ?? 'null'));
+        error_log("SESSION user_role: " . ($_SESSION['user_role'] ?? 'null'));
+        
+        try {
+            if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
+                http_response_code(401);
+                echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+                exit();
+            }
+
+            if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+                http_response_code(405);
+                echo json_encode(['success' => false, 'message' => 'Method not allowed']);
+                exit();
+            }
+
+            $parentId = intval($_POST['parent_id'] ?? 0);
+            if (!$parentId) {
+                throw new Exception("Parent ID is required");
+            }
+
+            $data = [
+                'full_name' => trim($_POST['full_name'] ?? ''),
+                'email' => trim($_POST['email'] ?? ''),
+                'phone' => trim($_POST['phone'] ?? ''),
+                'address' => trim($_POST['address'] ?? ''),
+                'is_active' => intval($_POST['is_active'] ?? 1)
+            ];
+
+            error_log("Parsed data: " . json_encode($data));
+
+            // Validation
+            if (empty($data['full_name']) || empty($data['email'])) {
+                throw new Exception("Full name and email are required");
+            }
+
+            if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
+                throw new Exception("Invalid email format");
+            }
+
+            error_log("Calling adminModel->updateParent with ID: $parentId");
+            $result = $this->adminModel->updateParent($parentId, $data);
+            error_log("updateParent result: " . var_export($result, true));
+            
+            if ($result) {
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'Parent updated successfully'
+                ]);
+            } else {
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Failed to update parent'
+                ]);
+            }
+
+        } catch (Exception $e) {
+            error_log("EXCEPTION in updateParent: " . $e->getMessage());
+            error_log("Stack trace: " . $e->getTraceAsString());
+            
+            http_response_code(500);
+            echo json_encode([
+                'success' => false,
+                'message' => $e->getMessage(),
+                'debug' => [
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine()
+                ]
+            ]);
+        }
+        exit();
+    }
+
+    // API endpoint for creating parent
+    public function createParent() {
+        header('Content-Type: application/json');
+        
+        try {
+            if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
+                http_response_code(401);
+                echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+                exit();
+            }
+
+            if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+                http_response_code(405);
+                echo json_encode(['success' => false, 'message' => 'Method not allowed']);
+                exit();
+            }
+
+            $data = [
+                'username' => trim($_POST['username'] ?? ''),
+                'full_name' => trim($_POST['full_name'] ?? ''),
+                'email' => trim($_POST['email'] ?? ''),
+                'password' => $_POST['password'] ?? '',
+                'phone' => trim($_POST['phone'] ?? ''),
+                'address' => trim($_POST['address'] ?? '')
+            ];
+
+            // Validation
+            if (empty($data['username']) || empty($data['full_name']) || 
+                empty($data['email']) || empty($data['password'])) {
+                throw new Exception("All required fields must be filled");
+            }
+
+            if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
+                throw new Exception("Invalid email format");
+            }
+
+            if (strlen($data['password']) < 6) {
+                throw new Exception("Password must be at least 6 characters");
+            }
+
+            $result = $this->adminModel->createParent($data);
+            
+            if ($result) {
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'Parent created successfully'
+                ]);
+            } else {
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Failed to create parent'
+                ]);
+            }
+
+        } catch (Exception $e) {
+            error_log("Error creating parent: " . $e->getMessage());
+            echo json_encode([
+                'success' => false,
+                'message' => $e->getMessage()
+            ]);
+        }
+        exit();
+    }
+
+    // API endpoint for searching students
+    public function searchStudents() {
+        header('Content-Type: application/json');
+        
+        try {
+            if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
+                http_response_code(401);
+                echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+                exit();
+            }
+
+            if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+                http_response_code(405);
+                echo json_encode(['success' => false, 'message' => 'Method not allowed']);
+                exit();
+            }
+
+            $searchTerm = trim($_POST['search_term'] ?? '');
+            $parentId = intval($_POST['parent_id'] ?? 0);
+
+            if (empty($searchTerm)) {
+                echo json_encode(['success' => false, 'message' => 'Search term is required']);
+                exit();
+            }
+
+            $students = $this->adminModel->searchStudentsForLink($searchTerm, $parentId);
+            
+            echo json_encode([
+                'success' => true,
+                'students' => $students
+            ]);
+
+        } catch (Exception $e) {
+            error_log("Error searching students: " . $e->getMessage());
+            echo json_encode([
+                'success' => false,
+                'message' => $e->getMessage()
+            ]);
+        }
+        exit();
+    }
+
+    // API endpoint for linking parent and student
+    public function linkParentStudent() {
+        header('Content-Type: application/json');
+        
+        try {
+            if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
+                http_response_code(401);
+                echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+                exit();
+            }
+
+            if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+                http_response_code(405);
+                echo json_encode(['success' => false, 'message' => 'Method not allowed']);
+                exit();
+            }
+
+            $parentId = intval($_POST['parent_id'] ?? 0);
+            $studentId = intval($_POST['student_id'] ?? 0);
+            $relationshipType = trim($_POST['relationship_type'] ?? '');
+            $isPrimary = intval($_POST['is_primary'] ?? 0);
+
+            if (!$parentId || !$studentId) {
+                throw new Exception("Parent ID and Student ID are required");
+            }
+
+            if (!in_array($relationshipType, ['father', 'mother', 'guardian'])) {
+                throw new Exception("Invalid relationship type");
+            }
+
+            $result = $this->adminModel->linkParentStudent($parentId, $studentId, $relationshipType, $isPrimary);
+            
+            if ($result) {
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'Student linked to parent successfully'
+                ]);
+            } else {
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Failed to link student to parent'
+                ]);
+            }
+
+        } catch (Exception $e) {
+            error_log("Error linking parent and student: " . $e->getMessage());
+            echo json_encode([
+                'success' => false,
+                'message' => $e->getMessage()
+            ]);
+        }
+        exit();
+    }
 }
 ?>
