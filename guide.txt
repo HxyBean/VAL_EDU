@@ -1,0 +1,33 @@
+Xây dựng website quản lý trung tâm (trung tâm tiếng anh)
+Yêu cầu:
+- Admin có thể mở các lớp học tiếng anh theo năm (Lớp 3 năm 2018 khác lớp 3 
+năm 2019). Có thể đóng lớp (không được xóa thông tin cũ)
+- Mỗi lứa tuổi có thể có nhiều lớp (VD: lớp 3 có 3 lớp => lớp 3.1, lớp 3.2, lớp 3.3.)
+- Admin có thể Quản lý được số lượng giáo viên, giáo viên của từng lớp, số lượng 
+học sinh trong mỗi lớp, thông tin của phụ huynh học sinh.
+- Khi giáo viên đăng nhập vào biết được mình dạy các lớp nào, dạy bao nhiêu buổi 
+của mỗi lớp, điểm danh học sinh (để thông báo với phụ huynh khi cần, để thu 
+tiền).
+- Khi học sinh đăng nhập vào sẽ biết được mình thuộc lớp nào, đã học bao nhiêu 
+buổi, nghỉ bao nhiêu buổi
+- Khi phụ huynh đăng nhập vào sẽ biết được con mình đang theo học lớp nào (có 
+thể biết giáo viên nào dạy phụ thuộc vào cấu hình của admin), học bao nhiêu buổi, 
+nghỉ bao nhiểu buổi (cụ thể là buổi nào) số tiền học mỗi tháng chưa đóng, tổng số
+tiền chưa đóng (có thể học nhiều tháng mà chưa đóng).
+- Khi chuẩn bị mở lớp mới, admin có thể thêm được thông tin trên trang chủ để
+quảng cáo (popup hoặc slider, …..) để các phụ huynh được biết.
+- Tiền thu của mỗi học sinh có thể khác nhau (nhiều gia đình quen biết có thể thu 
+tiền ít hơn => có thể tính theo % để giảm tiền học). Phụ huynh cũng có thể nhìn 
+thấy tổng tiền và tiền đã giảm.
+- Admin có thể thống kê được số tiền đã trả cho giáo viên, số tiền học sinh đóng (dự
+kiến dựa theo số buổi học của học sinh – lúc này học sinh có thể chưa nộp tiền), đã 
+thu của học sinh (khi phụ huynh đóng tiền sẽ có phần nhập số tiền đóng – có thể
+phụ huynh sẽ không đóng hết) theo tháng, quý, năm, khoảng thời gian nhập vào
+- Admin nắm được lượng học sinh tăng giảm theo từng tháng. 
+Yêu cầu thêm:
+- Có thể nhắn tin (tự động) cho một phụ huynh hoặc một nhóm phụ huynh thông 
+báo số buổi vắng + số tiền chưa đóng dựa vào các ứng dụng khác như Facebook, 
+Zalo.
+- Có thể gửi thông báo nghỉ học cho phụ huynh mỗi lớp trên zalo, facebook hoặc tin 
+nhắn điện thoại khi khẩn cấp
+111
