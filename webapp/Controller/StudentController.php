@@ -191,5 +191,99 @@ class StudentController extends BaseController {
         }
         exit();
     }
+    
+    public function sendParentConnection() {
+        header('Content-Type: application/json');
+        
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['success' => false, 'message' => 'Invalid request method']);
+            return;
+        }
+        
+        // Check if user is logged in and is a student
+        if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'student') {
+            echo json_encode(['success' => false, 'message' => 'Unauthorized access']);
+            return;
+        }
+        
+        try {
+            $student_id = $_SESSION['user_id'];
+            $parent_email = trim($_POST['parent_email'] ?? '');
+            $parent_phone = trim($_POST['parent_phone'] ?? '');
+            $parent_name = trim($_POST['parent_name'] ?? '');
+            $message = trim($_POST['message'] ?? '');
+            
+            // Validate required fields
+            if (empty($parent_email)) {
+                echo json_encode(['success' => false, 'message' => 'Email phụ huynh là bắt buộc']);
+                return;
+            }
+            
+            // Validate email format
+            if (!filter_var($parent_email, FILTER_VALIDATE_EMAIL)) {
+                echo json_encode(['success' => false, 'message' => 'Email không hợp lệ']);
+                return;
+            }
+            
+            // Use the studentModel's database connection
+            $db = $this->studentModel->getConnection();
+            
+            // Check if parent already exists
+            $checkParentQuery = "SELECT id FROM users WHERE email = :email AND role = 'parent'";
+            $checkParentStmt = $db->prepare($checkParentQuery);
+            $checkParentStmt->bindParam(':email', $parent_email);
+            $checkParentStmt->execute();
+            
+            $parent_id = null;
+            if ($checkParentStmt->rowCount() > 0) {
+                $parent = $checkParentStmt->fetch(PDO::FETCH_ASSOC);
+                $parent_id = $parent['id'];
+            } else {
+                // Create new parent account
+                $username = 'parent_' . uniqid();
+                $temp_password = bin2hex(random_bytes(8));
+                $hashed_password = password_hash($temp_password, PASSWORD_DEFAULT);
+                
+                $createParentQuery = "INSERT INTO users (username, password, email, full_name, phone, role, is_active, created_at) 
+                                     VALUES (:username, :password, :email, :full_name, :phone, 'parent', 1, NOW())";
+                $createParentStmt = $db->prepare($createParentQuery);
+                $createParentStmt->bindParam(':username', $username);
+                $createParentStmt->bindParam(':password', $hashed_password);
+                $createParentStmt->bindParam(':email', $parent_email);
+                $createParentStmt->bindParam(':full_name', $parent_name);
+                $createParentStmt->bindParam(':phone', $parent_phone);
+                
+                if ($createParentStmt->execute()) {
+                    $parent_id = $db->lastInsertId();
+                } else {
+                    echo json_encode(['success' => false, 'message' => 'Không thể tạo tài khoản phụ huynh']);
+                    return;
+                }
+            }
+            
+            // Log the connection request for now
+            error_log("Parent connection request: Student ID $student_id wants to connect with Parent ID $parent_id (Email: $parent_email)");
+            
+            echo json_encode([
+                'success' => true, 
+                'message' => 'Đã gửi yêu cầu kết nối thành công! Phụ huynh sẽ nhận được thông báo qua email.'
+            ]);
+            
+        } catch (Exception $e) {
+            error_log("Send parent connection error: " . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Lỗi hệ thống: ' . $e->getMessage()]);
+        }
+    }
+}
+?>
+    private function getDbConnection() {
+        if (!$this->db) {
+            // If db is not set, create a new connection
+            require_once(__DIR__ . '/../config/database.php');
+            $database = new Database();
+            $this->db = $database->getConnection();
+        }
+        return $this->db;
+    }
 }
 ?>

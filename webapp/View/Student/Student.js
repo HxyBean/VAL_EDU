@@ -1,11 +1,14 @@
+// Prevent multiple execution of this script
+if (typeof window.studentScriptLoaded === 'undefined') {
+    window.studentScriptLoaded = true;
 
 // Show class detail with real data
 function showClassDetail(classId) {
     console.log('Showing class detail for ID:', classId);
-    console.log('Available student data:', studentData);
+    console.log('Available student data:', window.studentData);
     
     // Find the class data from studentData passed from PHP
-    const classData = studentData.courses.find(course => course.id == classId);
+    const classData = window.studentData.courses.find(course => course.id == classId);
     if (!classData) {
         console.error('Class data not found for ID:', classId);
         showMessage('Không tìm thấy thông tin lớp học', 'error');
@@ -29,7 +32,7 @@ function showClassDetail(classId) {
     document.getElementById('detail-total-sessions').textContent = classData.sessions_total || classData.total_sessions_scheduled || 0;
 
     // Filter attendance for this class
-    const classAttendance = studentData.attendance.filter(att => att.class_id == classId);
+    const classAttendance = window.studentData.attendance.filter(att => att.class_id == classId);
     console.log('Class attendance:', classAttendance);
     
     const presentCount = classAttendance.filter(att => att.status === 'present').length;
@@ -353,16 +356,131 @@ function showMessage(message, type = 'info') {
     }, 3000);
 }
 
-// Add CSS for status colors
-const style = document.createElement('style');
-style.textContent = `
-    .text-success {
-        color: #28a745 !important;
-        font-weight: 600;
+// Add CSS for status colors (only if not already added)
+if (!document.getElementById('student-status-styles')) {
+    const statusStyles = document.createElement('style');
+    statusStyles.id = 'student-status-styles';
+    statusStyles.textContent = `
+        .text-success {
+            color: #28a745 !important;
+            font-weight: 600;
+        }
+        .text-danger {
+            color: #dc3545 !important;
+            font-weight: 600;
+        }
+    `;
+    document.head.appendChild(statusStyles);
+}
+
+// Parent Connection Functions
+function showAddParentModal() {
+    const modal = document.getElementById('add-parent-modal');
+    if (modal) {
+        modal.style.display = 'block';
+        document.body.style.overflow = 'hidden';
     }
-    .text-danger {
-        color: #dc3545 !important;
-        font-weight: 600;
+}
+
+function closeAddParentModal() {
+    const modal = document.getElementById('add-parent-modal');
+    if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = 'auto';
+        
+        // Reset form
+        const form = document.getElementById('parent-invite-form');
+        if (form) {
+            form.reset();
+        }
     }
-`;
-document.head.appendChild(style);
+}
+
+function sendConnectionRequest() {
+    const form = document.getElementById('parent-invite-form');
+    if (!form) return;
+    
+    const formData = new FormData();
+    
+    formData.append('parent_email', form.parent_email.value);
+    formData.append('parent_phone', form.parent_phone.value || '');
+    formData.append('parent_name', form.parent_name.value || '');
+    formData.append('message', form.message.value || '');
+    
+    // Show loading state
+    const submitBtn = form.querySelector('button[type="submit"]');
+    if (!submitBtn) return;
+    
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang gửi...';
+    submitBtn.disabled = true;
+    
+    fetch('/webapp/student/send-parent-connection', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            showMessage(data.message, 'success');
+            closeAddParentModal();
+            // Optionally reload page to show updated connections
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showMessage(data.message || 'Không thể gửi yêu cầu kết nối', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showMessage('Lỗi kết nối: ' + error.message, 'error');
+    })
+    .finally(() => {
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+    });
+}
+
+// Initialize event listeners only once
+function initializeEventListeners() {
+    // Handle invite form submission
+    const form = document.getElementById('parent-invite-form');
+    if (form && !form.dataset.listenerAdded) {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const email = this.parent_email.value;
+            if (!email) {
+                showMessage('Vui lòng nhập email phụ huynh', 'error');
+                return;
+            }
+            
+            sendConnectionRequest();
+        });
+        form.dataset.listenerAdded = 'true';
+    }
+    
+    // Close modal on outside click
+    if (!window.studentModalClickListenerAdded) {
+        window.addEventListener('click', function(event) {
+            const modal = document.getElementById('add-parent-modal');
+            if (event.target === modal) {
+                closeAddParentModal();
+            }
+        });
+        window.studentModalClickListenerAdded = true;
+    }
+}
+
+// Initialize when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeEventListeners);
+} else {
+    initializeEventListeners();
+}
+
+} // End of script loaded check

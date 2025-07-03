@@ -1461,8 +1461,6 @@ function updateCourse(event) {
     const form = event.target;
     const formData = new FormData(form);
 
-<<<<<<< Updated upstream
-=======
     // Validate required fields
     const requiredFields = ['class_name', 'class_year', 'class_level', 'subject', 'max_students', 'sessions_total', 'price_per_session', 'schedule_time', 'schedule_duration', 'start_date', 'end_date'];
 
@@ -1473,21 +1471,17 @@ function updateCourse(event) {
         }
     }
 
->>>>>>> Stashed changes
     // Get selected schedule days
     const scheduleDays = [];
     form.querySelectorAll('input[name="schedule_days"]:checked').forEach(checkbox => {
         scheduleDays.push(checkbox.value);
     });
-<<<<<<< Updated upstream
-=======
 
     if (scheduleDays.length === 0) {
         showMessage('Vui lòng chọn ít nhất một ngày học trong tuần', 'error');
         return;
     }
 
->>>>>>> Stashed changes
     formData.set('schedule_days', scheduleDays.join(','));
 
     // Show loading state
@@ -1496,37 +1490,37 @@ function updateCourse(event) {
     submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang lưu...';
     submitBtn.disabled = true;
 
-    console.log('Form data:', Object.fromEntries(formData));
+    console.log('Sending update data:', Object.fromEntries(formData));
 
     fetch('/webapp/api/admin/update-course', {
         method: 'POST',
-        body: formData,
-        headers: {
-            'Accept': 'application/json'
-        }
+        body: formData
     })
         .then(async response => {
             console.log('Update response:', response);
-<<<<<<< Updated upstream
-=======
 
             // Get response text first
->>>>>>> Stashed changes
             const text = await response.text();
             console.log('Response text:', text);
 
+            // Try to parse as JSON
+            let data;
             try {
-                const data = text ? JSON.parse(text) : {};
-                if (!response.ok) {
-                    throw new Error(data.message || `Server responded with ${response.status}`);
-                }
-                return data;
-            } catch (e) {
-                console.error('Parse error:', e);
-                throw new Error(`Server error: ${text || response.statusText}`);
+                data = text ? JSON.parse(text) : {};
+            } catch (parseError) {
+                console.error('JSON parse error:', parseError);
+                throw new Error(`Server returned invalid JSON: ${text || 'Empty response'}`);
             }
+
+            // Check if response was successful
+            if (!response.ok) {
+                throw new Error(data.message || `HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            return data;
         })
         .then(data => {
+            console.log('Update response data:', data);
             if (data.success) {
                 showMessage('Cập nhật khóa học thành công!', 'success');
                 closeEditCourseModal();
@@ -1536,7 +1530,7 @@ function updateCourse(event) {
             }
         })
         .catch(error => {
-            console.error('Error:', error);
+            console.error('Update error:', error);
             showMessage('Lỗi khi cập nhật khóa học: ' + error.message, 'error');
         })
         .finally(() => {
@@ -1557,8 +1551,6 @@ function showAddTutorModal() {
     modal.style.display = 'block';
     document.body.style.overflow = 'hidden';
 
-<<<<<<< Updated upstream
-=======
     // Set default values and generate discount code
     const discountPercentageInput = document.getElementById('tutor-discount-percentage');
     if (discountPercentageInput) {
@@ -1568,14 +1560,11 @@ function showAddTutorModal() {
     // Auto-generate discount code
     generateDiscountCode();
 
->>>>>>> Stashed changes
     setTimeout(() => {
         modal.classList.add('show');
     }, 10);
 }
 
-<<<<<<< Updated upstream
-=======
 function generateDiscountCode() {
     // Generate a unique 8-character discount code
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -1587,7 +1576,6 @@ function generateDiscountCode() {
     document.getElementById('tutor-discount-code').value = code;
 }
 
->>>>>>> Stashed changes
 // Close Add Tutor Modal
 function closeAddTutorModal() {
     const modal = document.getElementById('add-tutor-modal');
@@ -1639,8 +1627,6 @@ function createTutor(event) {
         });
 }
 // Load and display tutors
-<<<<<<< Updated upstream
-=======
 function searchTutors() {
     const searchTerm = document.getElementById('tutor-search').value.toLowerCase();
 
@@ -1673,7 +1659,6 @@ function searchTutors() {
 }
 
 // Make sure tutors are loaded and stored in global variable
->>>>>>> Stashed changes
 function loadTutors() {
     const tutorsGrid = document.querySelector('.teachers-grid');
     if (!tutorsGrid) return;
@@ -1690,6 +1675,7 @@ function loadTutors() {
         .then(response => response.json())
         .then(data => {
             if (data.success && data.tutors) {
+                tutors = data.tutors; // Store in global variable for search
                 displayTutors(data.tutors);
             } else {
                 throw new Error(data.message || 'Không thể tải danh sách giáo viên');
@@ -1995,8 +1981,6 @@ function closeEditTutorModal() {
         const form = document.getElementById('edit-tutor-form');
         if (form) form.reset();
     }, 300);
-<<<<<<< Updated upstream
-=======
 }
 
 // Load and display students
@@ -2396,11 +2380,7 @@ function enrollStudent(studentId, courseId) {
     })
         .then(response => {
             if (!response.ok) {
-<<<<<<< Updated upstream
-                throw new Error(`Đã đăng ký lớp này: ${response.status}`);
-=======
                 throw new Error(`Lớp đã đăng ký: ${response.status}`);
->>>>>>> Stashed changes
             }
             return response.json();
         })
@@ -3544,5 +3524,4 @@ function linkStudentToParent() {
             linkBtn.innerHTML = originalText;
             linkBtn.disabled = false;
         });
->>>>>>> Stashed changes
 }

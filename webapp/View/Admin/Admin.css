@@ -486,47 +486,114 @@ body {
     font-size: 11px;
 }
 
+/* Icon Button Styles */
+.btn-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    color: white;
+}
+
+.btn-icon i {
+    font-size: 14px;
+}
+
+.btn-icon.btn-edit {
+    background: #108AB1;
+}
+
+.btn-icon.btn-edit:hover {
+    background: #073A4B;
+    transform: translateY(-2px);
+    box-shadow: 0 3px 8px rgba(16, 138, 177, 0.2);
+}
+
+.btn-icon.btn-view {
+    background: #17a2b8;
+}
+
+.btn-icon.btn-view:hover {
+    background: #138496;
+    transform: translateY(-2px);
+    box-shadow: 0 3px 8px rgba(23, 162, 184, 0.2);
+}
+
+.action-buttons {
+    display: flex;
+    gap: 8px;
+}
+
 /* Table Styles */
 .table-container {
     background: white;
     border-radius: 12px;
     overflow: hidden;
-    box-shadow: 0 4px 15px #ddd;
-    border: 2px solid #e9ecef;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    margin-top: 25px;
+    border: 1px solid #e9ecef;
 }
 
 .data-table {
     width: 100%;
-    border-collapse: collapse;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 14px;
 }
 
-.data-table th,
-.data-table td {
-    padding: 15px;
-    text-align: left;
-    border-bottom: 1px solid #e9ecef;
+.data-table thead {
+    background: #073A4B;
 }
 
 .data-table th {
-    background: #073A4B;
     color: white;
-    font-weight: 600;
+    font-weight: 500;
+    padding: 16px;
+    text-align: left;
     font-size: 14px;
+    transition: background-color 0.3s;
+}
+
+.data-table th:first-child {
+    padding-left: 25px;
+}
+
+.data-table th:last-child {
+    padding-right: 25px;
 }
 
 .data-table td {
-    font-size: 14px;
-    color: #333;
+    padding: 16px;
+    border-bottom: 1px solid #e9ecef;
+    color: #444;
+    transition: all 0.3s ease;
+}
+
+.data-table td:first-child {
+    padding-left: 25px;
+}
+
+.data-table td:last-child {
+    padding-right: 25px;
+}
+
+.data-table tbody tr {
+    transition: all 0.3s ease;
 }
 
 .data-table tbody tr:hover {
-    background: #f0f7ff;
-    /* Changed from #f1f8ff */
+    background-color: #f8fafe;
+    transform: translateY(-1px);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
 }
 
-.data-table tbody tr:nth-child(even) {
-    background: #fafcff;
-    /* Changed from #fafbfc */
+.data-table tbody tr:last-child td {
+    border-bottom: none;
 }
 
 .status {
@@ -545,7 +612,56 @@ body {
 .status.inactive {
     background: #f8d7da;
     color: #721c24;
-    border: 1px solid #f1b0b7;
+    border: 1px solid #f5c6cb;
+}
+
+/* Status Badge Styles */
+.student-status {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.student-status.active {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.student-status.inactive {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+/* Action Buttons */
+.action-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-edit-student {
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    background: #108AB1;
+    color: white;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.3s ease;
+}
+
+.btn-edit-student:hover {
+    background: #073A4B;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(16, 138, 177, 0.2);
 }
 
 /* Teacher Grid Styles */
@@ -562,7 +678,7 @@ body {
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
     transition: all 0.3s ease;
     text-align: center;
-    border: 2px solid #e9ecef;
+    border: 1px solid #e9ecef;
 }
 
 .teacher-card:hover {
@@ -1912,8 +2028,6 @@ body {
     color: #666;
     font-style: italic;
     padding: 20px;
-<<<<<<< Updated upstream
-=======
 }
 
 /* Available Courses Modal Styles */
@@ -2203,5 +2317,4 @@ body {
 #link-student-btn:enabled:hover {
     background: #108AB1;
     border-color: #108AB1;
->>>>>>> Stashed changes
 }

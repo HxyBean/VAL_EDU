@@ -7,7 +7,6 @@ $navigation = [
         ['id' => 'manage_parent', 'icon' => 'fas fa-users', 'label' => 'Quản Lý Phụ Huynh'],
         ['id' => 'manage_teachers', 'icon' => 'fas fa-chalkboard-teacher', 'label' => 'Quản Lý Giáo Viên'],
         ['id' => 'manage_courses', 'icon' => 'fas fa-book-open', 'label' => 'Quản Lý Khóa Học'],
-        ['id' => 'view_reports', 'icon' => 'fas fa-chart-bar', 'label' => 'Báo Cáo'],
         ['id' => 'settings', 'icon' => 'fas fa-cog', 'label' => 'Cài Đặt']
     ],
     'tutor' => [
@@ -16,10 +15,6 @@ $navigation = [
     ],
     'student' => [
         ['id' => 'overview', 'icon' => 'fas fa-home', 'label' => 'Tổng Quan', 'active' => true],
-        ['id' => 'my_courses', 'icon' => 'fas fa-book', 'label' => 'Khóa Học Của Tôi'],
-        ['id' => 'schedule', 'icon' => 'fas fa-calendar', 'label' => 'Lịch Học'],
-        ['id' => 'attendance', 'icon' => 'fas fa-check-circle', 'label' => 'Điểm Danh'],
-        ['id' => 'payments', 'icon' => 'fas fa-credit-card', 'label' => 'Thanh Toán'],
         ['id' => 'settings', 'icon' => 'fas fa-cog', 'label' => 'Cài Đặt']
     ],
     'parent' => [

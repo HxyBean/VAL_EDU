@@ -412,10 +412,6 @@ function showMessage(message, type = 'info') {
     }, 3000);
 }
 
-<<<<<<< Updated upstream
-// Initialize dashboard
-console.log('Parent.js loaded successfully');
-=======
 // Show section function
 function showSection(sectionId) {
     // Hide all sections
@@ -439,4 +435,3 @@ function showSection(sectionId) {
         navLink.classList.add('active');
     }
 }
->>>>>>> Stashed changes

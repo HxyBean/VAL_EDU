@@ -256,8 +256,6 @@ if (strpos($path, '/api/') === 0) {
             }
             exit();
             
-<<<<<<< Updated upstream
-=======
         case '/admin/get-students':
             if (isset($_SESSION['user_id']) && $_SESSION['user_role'] === 'admin') {
                 require_once('Controller/AdminController.php');
@@ -413,7 +411,6 @@ if (strpos($path, '/api/') === 0) {
             }
             exit();
             
->>>>>>> Stashed changes
         default:
             error_log("API endpoint not found: " . $apiPath);
             http_response_code(404);
@@ -543,5 +540,36 @@ switch ($path) {
             }
         }
         break;
+}
+
+// Handle student routes
+if (strpos($path, '/student') === 0) {
+    require_once(__DIR__ . '/Controller/StudentController.php');
+    $controller = new StudentController();
+    
+    switch ($path) {
+        case '/student':
+        case '/student/':
+        case '/student/dashboard':
+            $controller->dashboard();
+            break;
+            
+        case '/student/update-profile':
+            $controller->updateProfile();
+            break;
+            
+        case '/student/change-password':
+            $controller->changePassword();
+            break;
+            
+        case '/student/send-parent-connection':
+            $controller->sendParentConnection();
+            break;
+            
+        default:
+            $controller->dashboard();
+            break;
+    }
+    exit;
 }
 ?>

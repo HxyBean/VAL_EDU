@@ -464,6 +464,37 @@
         </section>
     </main>
 
+    <!-- Accept Connection Modal -->
+    <div id="accept-connection-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-user-check"></i> Xác nhận kết nối</h3>
+                <span class="close" onclick="closeAcceptConnectionModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div id="connection-student-info">
+                    <!-- Student info will be populated here -->
+                </div>
+                <p>Bạn có muốn kết nối với học sinh này để theo dõi tiến độ học tập không?</p>
+                <div class="connection-permissions">
+                    <h4>Quyền truy cập sau khi kết nối:</h4>
+                    <ul>
+                        <li><i class="fas fa-check text-success"></i> Xem lịch học và điểm danh</li>
+                        <li><i class="fas fa-check text-success"></i> Theo dõi tiến độ học tập</li>
+                        <li><i class="fas fa-check text-success"></i> Nhận thông báo về học phí</li>
+                        <li><i class="fas fa-check text-success"></i> Xem báo cáo học tập</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeAcceptConnectionModal()">Hủy</button>
+                <button class="btn btn-success" onclick="confirmAcceptConnection()">
+                    <i class="fas fa-handshake"></i> Xác nhận kết nối
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Logout Confirmation Modal -->
     <div id="logout-modal" class="modal" style="display: none;">
         <div class="modal-content">
