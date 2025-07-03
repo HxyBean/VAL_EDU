@@ -27,16 +27,26 @@ class ParentController extends BaseController {
         error_log("Parent Dashboard - User Name: " . $user_name);
         error_log("Parent Dashboard - Username: " . $username);
         
-        // Get parent-specific data from database
+        // Initialize default values
         $parentData = null;
         $children = [];
         $payments = [];
-        $stats = [];
+        $stats = [
+            'total_children' => 0,
+            'total_classes' => 0,
+            'total_sessions' => 0,
+            'attended_sessions' => 0,
+            'total_payments' => 0,
+            'total_paid' => 0,
+            'average_attendance_rate' => 0
+        ];
         $notifications = [];
+        $connection_requests = [];
         
         try {
             // Get parent profile information
             $parentData = $this->parentModel->getParentById($user_id);
+            error_log("Parent data loaded: " . ($parentData ? 'YES' : 'NO'));
             
             // If we have parent data from DB and no user_name in session, use it
             if ($parentData && empty($user_name)) {
@@ -46,18 +56,25 @@ class ParentController extends BaseController {
             
             // Get parent's children
             $children = $this->parentModel->getParentChildren($user_id);
+            error_log("Children loaded: " . count($children));
             
             // Get payment records for all children
             $payments = $this->parentModel->getChildrenPayments($user_id);
+            error_log("Payments loaded: " . count($payments));
             
             // Get parent statistics
             $stats = $this->parentModel->getParentStats($user_id);
+            error_log("Stats loaded: " . json_encode($stats));
             
             // Get recent notifications
             $notifications = $this->parentModel->getParentNotifications($user_id, 10);
+            error_log("Notifications loaded: " . count($notifications));
             
         } catch (Exception $e) {
-            error_log("Error getting parent data: " . $e->getMessage());
+            error_log("CRITICAL ERROR in parent dashboard: " . $e->getMessage());
+            error_log("Stack trace: " . $e->getTraceAsString());
+            
+            // Don't let the error crash the page, use default values
         }
         
         $data = [
@@ -70,14 +87,25 @@ class ParentController extends BaseController {
             'children' => $children,
             'payments' => $payments,
             'stats' => $stats,
-            'notifications' => $notifications
+            'notifications' => $notifications,
+            'connection_requests' => $connection_requests
         ];
         
         // Debug logging
         error_log("Data passed to parent view - user_name: " . ($data['user_name'] ?? 'NULL'));
+        error_log("Children count: " . count($children));
+        error_log("Final stats: " . json_encode($stats));
         
-        // Render the Parent view
-        $this->renderView('Parent/Parent', $data);
+        try {
+            // Render the Parent view
+            $this->renderView('Parent/Parent', $data);
+        } catch (Exception $e) {
+            error_log("ERROR rendering parent view: " . $e->getMessage());
+            // Fallback error page
+            echo "<h1>Dashboard Error</h1>";
+            echo "<p>Sorry, there was an error loading your dashboard. Please try again later.</p>";
+            echo "<p><a href='/webapp/logout'>Logout</a></p>";
+        }
     }
     
     // API endpoints for parent dashboard
@@ -145,6 +173,89 @@ class ParentController extends BaseController {
             }
             exit();
         }
+    }
+    
+    public function getChildDetails() {
+        header('Content-Type: application/json');
+        
+        try {
+            if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'parent') {
+                http_response_code(401);
+                echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+                exit();
+            }
+
+            $childId = intval($_GET['child_id'] ?? 0);
+            $parentId = $_SESSION['user_id'];
+            
+            if (!$childId) {
+                throw new Exception("Child ID is required");
+            }
+
+            $child = $this->parentModel->getChildDetails($childId, $parentId);
+            
+            if (!$child) {
+                throw new Exception("Child not found or access denied");
+            }
+            
+            echo json_encode([
+                'success' => true,
+                'child' => $child
+            ]);
+
+        } catch (Exception $e) {
+            error_log("Error getting child details: " . $e->getMessage());
+            echo json_encode([
+                'success' => false,
+                'message' => $e->getMessage()
+            ]);
+        }
+        exit();
+    }
+
+    public function getChildAttendanceByClass() {
+        header('Content-Type: application/json');
+        
+        try {
+            if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'parent') {
+                http_response_code(401);
+                echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+                exit();
+            }
+
+            $childId = intval($_GET['child_id'] ?? 0);
+            $classId = intval($_GET['class_id'] ?? 0);
+            $parentId = $_SESSION['user_id'];
+            
+            if (!$childId) {
+                throw new Exception("Child ID is required");
+            }
+            
+            // Verify parent has access to this child
+            $child = $this->parentModel->getChildDetails($childId, $parentId);
+            if (!$child) {
+                throw new Exception("Access denied");
+            }
+
+            if ($classId) {
+                $attendance = $this->parentModel->getChildAttendanceByClass($childId, $classId);
+            } else {
+                $attendance = $this->parentModel->getChildAttendanceHistory($childId);
+            }
+            
+            echo json_encode([
+                'success' => true,
+                'attendance' => $attendance
+            ]);
+
+        } catch (Exception $e) {
+            error_log("Error getting child attendance: " . $e->getMessage());
+            echo json_encode([
+                'success' => false,
+                'message' => $e->getMessage()
+            ]);
+        }
+        exit();
     }
 }
 ?>

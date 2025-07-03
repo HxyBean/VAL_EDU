@@ -1091,5 +1091,640 @@ public function updateTutor($tutorId, $data) {
         throw $e;
     }
 }
+<<<<<<< Updated upstream
+=======
+
+public function getStudentDetails($studentId) {
+    try {
+        // Get student basic info
+        $sql = "SELECT u.id, u.username, u.full_name, u.email, u.phone, 
+                u.created_at, u.is_active,
+                (SELECT COUNT(*) FROM enrollments e 
+                 WHERE e.student_id = u.id AND e.status = 'active') as active_classes
+                FROM users u 
+                WHERE u.id = ? AND u.role = 'student'";
+        
+        $stmt = $this->db->prepare($sql);
+        if (!$stmt) {
+            throw new Exception("Prepare failed: " . $this->db->error);
+        }
+
+        $stmt->bind_param("i", $studentId);
+        if (!$stmt->execute()) {
+            throw new Exception("Execute failed: " . $stmt->error);
+        }
+
+        $result = $stmt->get_result();
+        $student = $result->fetch_assoc();
+        $stmt->close();
+
+        if (!$student) {
+            return null;
+        }
+
+        // Get student's active enrollments
+        $sql = "SELECT c.*, e.enrollment_date, e.status as enrollment_status
+                FROM enrollments e
+                INNER JOIN classes c ON e.class_id = c.id
+                WHERE e.student_id = ? AND e.status = 'active'
+                ORDER BY e.enrollment_date DESC";
+        
+        $stmt = $this->db->prepare($sql);
+        if (!$stmt) {
+            throw new Exception("Prepare failed: " . $this->db->error);
+        }
+
+        $stmt->bind_param("i", $studentId);
+        if (!$stmt->execute()) {
+            throw new Exception("Execute failed: " . $stmt->error);
+        }
+
+        $result = $stmt->get_result();
+        $student['enrollments'] = $result->fetch_all(MYSQLI_ASSOC);
+        $stmt->close();
+
+        return $student;
+
+    } catch (Exception $e) {
+        error_log("Error getting student details: " . $e->getMessage());
+        throw $e;
+    }
+}
+
+public function updateStudent($studentId, $data) {
+    try {
+        $this->db->begin_transaction();
+
+        // Check if email already exists for other students
+        $stmt = $this->db->prepare("SELECT id FROM users WHERE email = ? AND id != ? AND role = 'student'");
+        $stmt->bind_param("si", $data['email'], $studentId);
+        $stmt->execute();
+        if ($stmt->get_result()->num_rows > 0) {
+            throw new Exception('Email đã tồn tại');
+        }
+        $stmt->close();
+
+        // Update student information
+        $sql = "UPDATE users SET 
+                full_name = ?,
+                email = ?,
+                phone = ?,
+                is_active = ?,
+                updated_at = NOW()
+                WHERE id = ? AND role = 'student'";
+
+        $stmt = $this->db->prepare($sql);
+        if (!$stmt) {
+            throw new Exception("Prepare failed: " . $this->db->error);
+        }
+
+        $stmt->bind_param("sssii", 
+            $data['full_name'],
+            $data['email'],
+            $data['phone'],
+            $data['is_active'],
+            $studentId
+        );
+
+        if (!$stmt->execute()) {
+            throw new Exception("Execute failed: " . $stmt->error);
+        }
+
+        $affected_rows = $stmt->affected_rows;
+        $stmt->close();
+
+        if ($affected_rows === 0) {
+            throw new Exception("Không tìm thấy học viên với ID: $studentId");
+        }
+
+        $this->db->commit();
+        return true;
+
+    } catch (Exception $e) {
+        $this->db->rollback();
+        error_log("Error updating student: " . $e->getMessage());
+        throw $e;
+    }
+}
+
+public function getAvailableCourses() {
+    try {
+        $sql = "SELECT c.*, 
+                COUNT(DISTINCT e.student_id) as enrolled_students,
+                (c.max_students - COUNT(DISTINCT e.student_id)) as available_slots
+                FROM classes c
+                LEFT JOIN enrollments e ON c.id = e.class_id AND e.status = 'active'
+                WHERE c.status = 'active'
+                GROUP BY c.id
+                HAVING available_slots > 0
+                ORDER BY c.start_date ASC";
+
+        $stmt = $this->db->prepare($sql);
+        if (!$stmt) {
+            throw new Exception("Prepare failed: " . $this->db->error);
+        }
+
+        if (!$stmt->execute()) {
+            throw new Exception("Execute failed: " . $stmt->error);
+        }
+
+        $result = $stmt->get_result();
+        $courses = $result->fetch_all(MYSQLI_ASSOC);
+        $stmt->close();
+
+        // Add some processing for each course
+        foreach ($courses as &$course) {
+            $course['available_slots'] = $course['max_students'] - $course['enrolled_students'];
+            $course['schedule_info'] = $this->formatScheduleInfo($course);
+            $course['price_formatted'] = number_format($course['price_per_session'], 0, ',', '.') . ' VNĐ';
+        }
+
+        return $courses;
+
+    } catch (Exception $e) {
+        error_log("Error getting available courses: " . $e->getMessage());
+        throw $e;
+    }
+}
+
+private function formatScheduleInfo($course) {
+    $days = $course['schedule_days'] ?? '';
+    $time = $course['schedule_time'] ? date('H:i', strtotime($course['schedule_time'])) : '';
+    $duration = $course['schedule_duration'] ?? '';
+    
+    return sprintf("%s %s (%d phút)", $days, $time, $duration);
+}
+
+public function enrollStudent($studentId, $courseId) {
+    try {
+        $this->db->begin_transaction();
+
+        // Check if student exists
+        $stmt = $this->db->prepare("SELECT id FROM users WHERE id = ? AND role = 'student' AND is_active = 1");
+        $stmt->bind_param("i", $studentId);
+        $stmt->execute();
+        if ($stmt->get_result()->num_rows === 0) {
+            throw new Exception("Không tìm thấy học viên hoặc học viên không còn hoạt động");
+        }
+        $stmt->close();
+
+        // Check if course exists and has available slots
+        $sql = "SELECT c.*, 
+                (SELECT COUNT(*) FROM enrollments e 
+                 WHERE e.class_id = c.id AND e.status = 'active') as enrolled_students
+                FROM classes c
+                WHERE c.id = ? AND c.status = 'active'";
+        
+        $stmt = $this->db->prepare($sql);
+        $stmt->bind_param("i", $courseId);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $course = $result->fetch_assoc();
+        $stmt->close();
+
+        if (!$course) {
+            throw new Exception("Khóa học không tồn tại hoặc đã đóng");
+        }
+
+        if ($course['enrolled_students'] >= $course['max_students']) {
+            throw new Exception("Lớp học đã đầy");
+        }
+
+        // Check if student is already enrolled
+        $stmt = $this->db->prepare(
+            "SELECT id FROM enrollments 
+             WHERE student_id = ? AND class_id = ? AND status = 'active'"
+        );
+        $stmt->bind_param("ii", $studentId, $courseId);
+        $stmt->execute();
+        if ($stmt->get_result()->num_rows > 0) {
+            throw new Exception("Học viên đã đăng ký khóa học này");
+        }
+        $stmt->close();
+
+        // Create enrollment
+        $sql = "INSERT INTO enrollments (student_id, class_id, enrollment_date, status) 
+                VALUES (?, ?, CURDATE(), 'active')";
+        $stmt = $this->db->prepare($sql);
+        $stmt->bind_param("ii", $studentId, $courseId);
+        
+        if (!$stmt->execute()) {
+            throw new Exception("Không thể thêm học viên vào lớp");
+        }
+        $stmt->close();
+
+        $this->db->commit();
+        return true;
+
+    } catch (Exception $e) {
+        $this->db->rollback();
+        error_log("Error enrolling student: " . $e->getMessage());
+        throw $e;
+    }
+}
+
+public function removeFromCourse($studentId, $courseId) {
+    try {
+        $this->db->begin_transaction();
+
+        // Validate input
+        if (!$studentId || !$courseId) {
+            throw new Exception("Thông tin không hợp lệ");
+        }
+
+        // Check if enrollment exists and is active
+        $sql = "SELECT id FROM enrollments 
+                WHERE student_id = ? AND class_id = ? AND status = 'active'";
+        
+        $stmt = $this->db->prepare($sql);
+        if (!$stmt) {
+            throw new Exception("Lỗi truy vấn: " . $this->db->error);
+        }
+
+        $stmt->bind_param("ii", $studentId, $courseId);
+        
+        if (!$stmt->execute()) {
+            throw new Exception("Lỗi thực thi: " . $stmt->error);
+        }
+        
+        $result = $stmt->get_result();
+        if ($result->num_rows === 0) {
+            $stmt->close();
+            throw new Exception("Học viên không có trong lớp học này");
+        }
+        $stmt->close();
+
+        // Update enrollment status to 'dropped'
+        $sql = "UPDATE enrollments 
+                SET status = 'dropped', 
+                    updated_at = NOW() 
+                WHERE student_id = ? 
+                AND class_id = ? 
+                AND status = 'active'";
+
+        $stmt = $this->db->prepare($sql);
+        if (!$stmt) {
+            throw new Exception("Lỗi truy vấn: " . $this->db->error);
+        }
+
+        $stmt->bind_param("ii", $studentId, $courseId);
+        
+        if (!$stmt->execute()) {
+            throw new Exception("Lỗi cập nhật: " . $stmt->error);
+        }
+        
+        $affected_rows = $stmt->affected_rows;
+        $stmt->close();
+
+        if ($affected_rows === 0) {
+            throw new Exception("Không thể xóa học viên khỏi lớp học");
+        }
+
+        $this->db->commit();
+        return true;
+
+    } catch (Exception $e) {
+        $this->db->rollback();
+        error_log("Error removing student from course: " . $e->getMessage());
+        throw $e;
+    }
+}
+
+    // Add this method for debugging purposes
+    public function getConnection() {
+        return $this->db;
+    }
+
+    public function getAllParents($limit = 20, $offset = 0) {
+        try {
+            $sql = "SELECT u.id, u.username, u.full_name, u.email, u.phone, u.created_at, u.is_active,
+                       COUNT(DISTINCT ps.student_id) as children_count,
+                       COUNT(DISTINCT p.id) as payment_count,
+                       SUM(CASE WHEN p.status = 'completed' THEN p.final_amount ELSE 0 END) as total_paid
+                FROM users u
+                LEFT JOIN parent_student ps ON u.id = ps.parent_id
+                LEFT JOIN payments p ON ps.student_id = p.student_id
+                WHERE u.role = 'parent'
+                GROUP BY u.id, u.username, u.full_name, u.email, u.phone, u.created_at, u.is_active
+                ORDER BY u.created_at DESC
+                LIMIT ? OFFSET ?";
+        
+            $stmt = $this->db->prepare($sql);
+            if (!$stmt) {
+                throw new Exception("Prepare failed: " . $this->db->error);
+            }
+            
+            $stmt->bind_param("ii", $limit, $offset);
+            if (!$stmt->execute()) {
+                throw new Exception("Execute failed: " . $stmt->error);
+            }
+            
+            $result = $stmt->get_result();
+            $parents = $result->fetch_all(MYSQLI_ASSOC);
+            $stmt->close();
+            
+            return $parents;
+        } catch (Exception $e) {
+            error_log("Error getting all parents: " . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    public function getParentDetails($parentId) {
+        try {
+            // Get parent basic info
+            $sql = "SELECT u.id, u.username, u.full_name, u.email, u.phone, 
+                       u.address, u.created_at, u.is_active,
+                       COUNT(DISTINCT ps.student_id) as children_count,
+                       COUNT(DISTINCT p.id) as payment_count,
+                       SUM(CASE WHEN p.status = 'completed' THEN p.final_amount ELSE 0 END) as total_paid
+                FROM users u
+                LEFT JOIN parent_student ps ON u.id = ps.parent_id
+                LEFT JOIN payments p ON ps.student_id = p.student_id
+                WHERE u.id = ? AND u.role = 'parent'
+                GROUP BY u.id, u.username, u.full_name, u.email, u.phone, u.address, u.created_at, u.is_active";
+        
+            $stmt = $this->db->prepare($sql);
+            if (!$stmt) {
+                throw new Exception("Prepare failed: " . $this->db->error);
+            }
+
+            $stmt->bind_param("i", $parentId);
+            if (!$stmt->execute()) {
+                throw new Exception("Execute failed: " . $stmt->error);
+            }
+
+            $result = $stmt->get_result();
+            $parent = $result->fetch_assoc();
+            $stmt->close();
+
+            if (!$parent) {
+                throw new Exception("Parent not found");
+            }
+
+            // Get parent's children
+            $sql = "SELECT u.id, u.full_name, u.email, u.phone, ps.relationship_type, ps.is_primary,
+                       COUNT(DISTINCT e.class_id) as enrolled_classes,
+                       COUNT(DISTINCT p.id) as payment_count
+                FROM parent_student ps
+                INNER JOIN users u ON ps.student_id = u.id
+                LEFT JOIN enrollments e ON u.id = e.student_id AND e.status = 'active'
+                LEFT JOIN payments p ON u.id = p.student_id AND p.status = 'completed'
+                WHERE ps.parent_id = ?
+                GROUP BY u.id, u.full_name, u.email, u.phone, ps.relationship_type, ps.is_primary
+                ORDER BY ps.is_primary DESC, u.full_name ASC";
+        
+            $stmt = $this->db->prepare($sql);
+            if (!$stmt) {
+                throw new Exception("Prepare failed: " . $this->db->error);
+            }
+
+            $stmt->bind_param("i", $parentId);
+            if (!$stmt->execute()) {
+                throw new Exception("Execute failed: " . $stmt->error);
+            }
+
+            $result = $stmt->get_result();
+            $parent['children'] = $result->fetch_all(MYSQLI_ASSOC);
+            $stmt->close();
+
+            return $parent;
+
+        } catch (Exception $e) {
+            error_log("Error getting parent details: " . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    public function updateParent($parentId, $data) {
+        try {
+            error_log("AdminModel::updateParent called - ID: $parentId");
+            error_log("Update data: " . json_encode($data));
+            
+            $this->db->begin_transaction();
+
+            // Check if email already exists for other parents
+            $stmt = $this->db->prepare("SELECT id FROM users WHERE email = ? AND id != ? AND role = 'parent'");
+            if (!$stmt) {
+                throw new Exception("Prepare failed: " . $this->db->error);
+            }
+            
+            $stmt->bind_param("si", $data['email'], $parentId);
+            if (!$stmt->execute()) {
+                throw new Exception("Execute failed: " . $stmt->error);
+            }
+            
+            if ($stmt->get_result()->num_rows > 0) {
+                $stmt->close();
+                throw new Exception("Email already exists for another parent");
+            }
+            $stmt->close();
+
+            // Update parent information
+            $sql = "UPDATE users SET 
+                    full_name = ?, 
+                    email = ?, 
+                    phone = ?, 
+                    address = ?,
+                    is_active = ?,
+                    updated_at = NOW()
+                    WHERE id = ? AND role = 'parent'";
+
+            $stmt = $this->db->prepare($sql);
+            if (!$stmt) {
+                throw new Exception("Prepare failed: " . $this->db->error);
+            }
+
+            $stmt->bind_param("ssssii", 
+                $data['full_name'], 
+                $data['email'], 
+                $data['phone'],
+                $data['address'] ?? '',
+                $data['is_active'] ?? 1,
+                $parentId
+            );
+
+            if (!$stmt->execute()) {
+                throw new Exception("Execute failed: " . $stmt->error);
+            }
+
+            $affected_rows = $stmt->affected_rows;
+            $stmt->close();
+            
+            error_log("Update affected rows: " . $affected_rows);
+
+            if ($affected_rows === 0) {
+                throw new Exception("No changes made or parent not found");
+            }
+
+            $this->db->commit();
+            error_log("Parent update successful");
+            return true;
+
+        } catch (Exception $e) {
+            $this->db->rollback();
+            error_log("Error updating parent: " . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    public function createParent($data) {
+        try {
+            $this->db->begin_transaction();
+
+            // Check if username exists
+            $stmt = $this->db->prepare("SELECT id FROM users WHERE username = ?");
+            $stmt->bind_param("s", $data['username']);
+            $stmt->execute();
+            if ($stmt->get_result()->num_rows > 0) {
+                throw new Exception("Username already exists");
+            }
+            $stmt->close();
+
+            // Check if email exists
+            $stmt = $this->db->prepare("SELECT id FROM users WHERE email = ?");
+            $stmt->bind_param("s", $data['email']);
+            $stmt->execute();
+            if ($stmt->get_result()->num_rows > 0) {
+                throw new Exception("Email already exists");
+            }
+            $stmt->close();
+
+            // Insert new parent
+            $sql = "INSERT INTO users (username, email, password, full_name, role, phone, address) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?)";
+            $stmt = $this->db->prepare($sql);
+            
+            $hashed_password = password_hash($data['password'], PASSWORD_DEFAULT);
+            $role = 'parent';
+            
+            $stmt->bind_param("sssssss",
+                $data['username'],
+                $data['email'],
+                $hashed_password,
+                $data['full_name'],
+                $role,
+                $data['phone'] ?? '',
+                $data['address'] ?? ''
+            );
+
+            if (!$stmt->execute()) {
+                throw new Exception("Failed to create parent: " . $stmt->error);
+            }
+
+            $stmt->close();
+            $this->db->commit();
+            return true;
+
+        } catch (Exception $e) {
+            $this->db->rollback();
+            error_log("Error creating parent: " . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    public function searchStudentsForLink($searchTerm, $parentId) {
+        try {
+            $sql = "SELECT u.id, u.username, u.full_name, u.email, u.phone, u.created_at,
+                       CASE WHEN ps.parent_id IS NOT NULL THEN 1 ELSE 0 END as already_linked
+                FROM users u
+                LEFT JOIN parent_student ps ON u.id = ps.student_id AND ps.parent_id = ?
+                WHERE u.role = 'student' 
+                AND u.is_active = 1
+                AND (
+                    u.full_name LIKE ? OR 
+                    u.email LIKE ? OR 
+                    u.username LIKE ? OR
+                    CONCAT('HV', LPAD(u.id, 4, '0')) LIKE ?
+                )
+                ORDER BY already_linked ASC, u.full_name ASC
+                LIMIT 20";
+        
+            $searchPattern = '%' . $searchTerm . '%';
+            
+            $stmt = $this->db->prepare($sql);
+            if (!$stmt) {
+                throw new Exception("Prepare failed: " . $this->db->error);
+            }
+            
+            $stmt->bind_param("issss", $parentId, $searchPattern, $searchPattern, $searchPattern, $searchPattern);
+            if (!$stmt->execute()) {
+                throw new Exception("Execute failed: " . $stmt->error);
+            }
+            
+            $result = $stmt->get_result();
+            $students = $result->fetch_all(MYSQLI_ASSOC);
+            $stmt->close();
+            
+            return $students;
+        } catch (Exception $e) {
+            error_log("Error searching students for link: " . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    public function linkParentStudent($parentId, $studentId, $relationshipType, $isPrimary) {
+        try {
+            $this->db->begin_transaction();
+
+            // Verify parent exists and is active
+            $stmt = $this->db->prepare("SELECT id FROM users WHERE id = ? AND role = 'parent' AND is_active = 1");
+            $stmt->bind_param("i", $parentId);
+            $stmt->execute();
+            if ($stmt->get_result()->num_rows === 0) {
+                throw new Exception("Parent not found or inactive");
+            }
+            $stmt->close();
+
+            // Verify student exists and is active
+            $stmt = $this->db->prepare("SELECT id FROM users WHERE id = ? AND role = 'student' AND is_active = 1");
+            $stmt->bind_param("i", $studentId);
+            $stmt->execute();
+            if ($stmt->get_result()->num_rows === 0) {
+                throw new Exception("Student not found or inactive");
+            }
+            $stmt->close();
+
+            // Check if relationship already exists
+            $stmt = $this->db->prepare("SELECT id FROM parent_student WHERE parent_id = ? AND student_id = ?");
+            $stmt->bind_param("ii", $parentId, $studentId);
+            $stmt->execute();
+            if ($stmt->get_result()->num_rows > 0) {
+                throw new Exception("Student is already linked to this parent");
+            }
+            $stmt->close();
+
+            // If this is set as primary, remove primary status from other relationships for this student
+            if ($isPrimary) {
+                $stmt = $this->db->prepare("UPDATE parent_student SET is_primary = 0 WHERE student_id = ?");
+                $stmt->bind_param("i", $studentId);
+                $stmt->execute();
+                $stmt->close();
+            }
+
+            // Insert new relationship
+            $sql = "INSERT INTO parent_student (parent_id, student_id, relationship_type, is_primary, created_at) 
+                VALUES (?, ?, ?, ?, NOW())";
+            $stmt = $this->db->prepare($sql);
+            if (!$stmt) {
+                throw new Exception("Prepare failed: " . $this->db->error);
+            }
+
+            $stmt->bind_param("iisi", $parentId, $studentId, $relationshipType, $isPrimary);
+            if (!$stmt->execute()) {
+                throw new Exception("Execute failed: " . $stmt->error);
+            }
+            $stmt->close();
+
+            $this->db->commit();
+            return true;
+
+        } catch (Exception $e) {
+            $this->db->rollback();
+            error_log("Error linking parent and student: " . $e->getMessage());
+            throw $e;
+        }
+    }
+>>>>>>> Stashed changes
 }
 ?>

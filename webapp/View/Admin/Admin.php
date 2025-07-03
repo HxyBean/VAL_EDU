@@ -159,10 +159,16 @@
                             <th>Mã</th>
                             <th>Họ Tên</th>
                             <th>Email</th>
+<<<<<<< Updated upstream
                             <th>Cấp Độ Khóa Học</th>
                             <th>Ngày Đăng Ký</th>
                             <th>Trạng Thái</th>
                             <th>Thao Tác</th>
+=======
+                            <th>Ngày đăng ký</th>
+                            <th>Trạng thái</th>
+                            <th>Hành Động</th>
+>>>>>>> Stashed changes
                         </tr>
                     </thead>
                     <tbody>
@@ -388,6 +394,226 @@
                 </div>
             </div>
         </section>
+
+        <!-- Manage Parents Section -->
+        <section id="manage_parent" class="content-section">
+            <h2>Quản Lý Phụ Huynh</h2>
+            
+            <div class="section-header">
+                <div class="search-bar">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="parent-search" 
+                           placeholder="Tìm kiếm phụ huynh..." 
+                           oninput="searchParents()">
+                </div>
+                <button class="btn-primary" onclick="showAddParentModal()">
+                    <i class="fas fa-plus"></i> Thêm Phụ Huynh Mới
+                </button>
+            </div>
+
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Họ và Tên</th>
+                            <th>Email</th>
+                            <th>Số điện thoại</th>
+                            <th>Số con</th>
+                            <th>Tổng thanh toán</th>
+                            <th>Ngày tạo</th>
+                            <th>Trạng thái</th>
+                            <th>Hành động</th>
+                        </tr>
+                    </thead>
+                    <tbody id="parents-table-body">
+                        <!-- Parents data will be loaded here -->
+                    </tbody>
+                </table>
+                
+                <!-- Loading State -->
+                <div id="parents-loading" class="table-loading-state">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <p>Đang tải danh sách phụ huynh...</p>
+                </div>
+
+                <!-- Empty State -->
+                <div id="no-parents" class="table-empty-state" style="display: none;">
+                    <i class="fas fa-users"></i>
+                    <h3>Chưa có phụ huynh nào</h3>
+                    <p>Thêm phụ huynh mới để bắt đầu</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Add Parent Modal -->
+        <div id="add-parent-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3><i class="fas fa-user-plus"></i> Thêm Phụ Huynh Mới</h3>
+                    <span class="close" onclick="closeAddParentModal()">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <form id="add-parent-form" class="form-grid" onsubmit="createParent(event)">
+                        <div class="form-group">
+                            <label for="parent-username">Tên đăng nhập <span class="required">*</span></label>
+                            <input type="text" id="parent-username" name="username" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="parent-fullname">Họ và tên <span class="required">*</span></label>
+                            <input type="text" id="parent-fullname" name="full_name" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="parent-email">Email <span class="required">*</span></label>
+                            <input type="email" id="parent-email" name="email" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="parent-password">Mật khẩu <span class="required">*</span></label>
+                            <input type="password" id="parent-password" name="password" required minlength="6">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="parent-phone">Số điện thoại</label>
+                            <input type="tel" id="parent-phone" name="phone">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="parent-address">Địa chỉ</label>
+                            <textarea id="parent-address" name="address" rows="3"></textarea>
+                        </div>
+
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" onclick="closeAddParentModal()">Hủy</button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Thêm Phụ Huynh
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Edit Parent Modal -->
+        <div id="edit-parent-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3><i class="fas fa-edit"></i> Chỉnh sửa thông tin phụ huynh</h3>
+                    <span class="close" onclick="closeEditParentModal()">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <form id="edit-parent-form" class="form-grid" onsubmit="updateParent(event)">
+                        <input type="hidden" id="edit-parent-id" name="parent_id">
+                        
+                        <div class="form-group">
+                            <label for="edit-parent-fullname">Họ và tên <span class="required">*</span></label>
+                            <input type="text" id="edit-parent-fullname" name="full_name" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="edit-parent-email">Email <span class="required">*</span></label>
+                            <input type="email" id="edit-parent-email" name="email" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="edit-parent-phone">Số điện thoại</label>
+                            <input type="tel" id="edit-parent-phone" name="phone">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="edit-parent-address">Địa chỉ</label>
+                            <textarea id="edit-parent-address" name="address" rows="3"></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="edit-parent-status">Trạng thái</label>
+                            <select id="edit-parent-status" name="is_active">
+                                <option value="1">Hoạt động</option>
+                                <option value="0">Không hoạt động</option>
+                            </select>
+                        </div>
+
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" onclick="closeEditParentModal()">Hủy</button>
+                            <button type="button" class="btn btn-info" onclick="showLinkStudentModal()">
+                                <i class="fas fa-link"></i> Liên kết với học viên
+                            </button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Cập nhật
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Link Student to Parent Modal -->
+        <div id="link-student-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3><i class="fas fa-link"></i> Liên kết học viên với phụ huynh</h3>
+                    <span class="close" onclick="closeLinkStudentModal()">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <div class="search-section">
+                        <div class="search-bar">
+                            <i class="fas fa-search"></i>
+                            <input type="text" id="student-search-input" 
+                                   placeholder="Tìm kiếm học viên theo tên, email hoặc mã học viên..." 
+                                   onkeyup="searchStudentsForLink()">
+                        </div>
+                    </div>
+                    
+                    <div class="students-list-container">
+                        <div id="students-search-results" class="students-grid">
+                            <!-- Search results will be displayed here -->
+                        </div>
+                        
+                        <div id="students-loading" class="loading-state" style="display: none;">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            <p>Đang tìm kiếm học viên...</p>
+                        </div>
+                        
+                        <div id="no-students-found" class="no-results" style="display: none;">
+                            <i class="fas fa-user-graduate"></i>
+                            <h3>Không tìm thấy học viên</h3>
+                            <p>Vui lòng thử lại với từ khóa khác</p>
+                        </div>
+                    </div>
+                    
+                    <div class="relationship-section" id="relationship-section" style="display: none;">
+                        <h4>Thông tin mối quan hệ</h4>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="relationship-type">Mối quan hệ <span class="required">*</span></label>
+                                <select id="relationship-type" required>
+                                    <option value="">-- Chọn mối quan hệ --</option>
+                                    <option value="father">Cha</option>
+                                    <option value="mother">Mẹ</option>
+                                    <option value="guardian">Người giám hộ</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>
+                                    <input type="checkbox" id="is-primary-parent">
+                                    Phụ huynh chính
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" onclick="closeLinkStudentModal()">Hủy</button>
+                        <button type="button" class="btn btn-primary" id="link-student-btn" 
+                                onclick="linkStudentToParent()" disabled>
+                            <i class="fas fa-link"></i> Liên kết
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </main>
 
     <!-- Create Course Modal -->

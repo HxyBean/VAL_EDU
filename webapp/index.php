@@ -256,6 +256,164 @@ if (strpos($path, '/api/') === 0) {
             }
             exit();
             
+<<<<<<< Updated upstream
+=======
+        case '/admin/get-students':
+            if (isset($_SESSION['user_id']) && $_SESSION['user_role'] === 'admin') {
+                require_once('Controller/AdminController.php');
+                $controller = new AdminController();
+                $controller->getStudents();
+            } else {
+                http_response_code(401);
+                echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+            }
+            exit();
+            
+        case '/admin/student-details':
+            if (isset($_SESSION['user_id']) && $_SESSION['user_role'] === 'admin') {
+                require_once('Controller/AdminController.php');
+                $controller = new AdminController();
+                $controller->getStudentDetails();
+            } else {
+                http_response_code(401);
+                echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+            }
+            exit();
+
+        case '/admin/update-student':
+            if (isset($_SESSION['user_id']) && $_SESSION['user_role'] === 'admin') {
+                require_once('Controller/AdminController.php');
+                $controller = new AdminController();
+                $controller->updateStudent();
+            } else {
+                http_response_code(401);
+                echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+            }
+            exit();
+            
+        case '/admin/available-courses':
+            if (isset($_SESSION['user_id']) && $_SESSION['user_role'] === 'admin') {
+                require_once('Controller/AdminController.php');
+                $controller = new AdminController();
+                $controller->getAvailableCourses();
+            } else {
+                http_response_code(401);
+                echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+            }
+            exit();
+
+        case '/admin/enroll-student':
+            if (isset($_SESSION['user_id']) && $_SESSION['user_role'] === 'admin') {
+                require_once('Controller/AdminController.php');
+                $controller = new AdminController();
+                $controller->enrollStudent();
+            } else {
+                http_response_code(401);
+                echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+            }
+            exit();
+            
+        case '/admin/remove-from-course':
+            if (isset($_SESSION['user_id']) && $_SESSION['user_role'] === 'admin') {
+                require_once('Controller/AdminController.php');
+                $controller = new AdminController();
+                $controller->removeFromCourse();
+            } else {
+                http_response_code(401);
+                echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+            }
+            exit();
+            
+        case '/admin/get-parents':
+            if (isset($_SESSION['user_id']) && $_SESSION['user_role'] === 'admin') {
+                require_once('Controller/AdminController.php');
+                $controller = new AdminController();
+                $controller->getParents();
+            } else {
+                http_response_code(401);
+                echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+            }
+            exit();
+
+        case '/admin/parent-details':
+            if (isset($_SESSION['user_id']) && $_SESSION['user_role'] === 'admin') {
+                require_once('Controller/AdminController.php');
+                $controller = new AdminController();
+                $controller->getParentDetails();
+            } else {
+                http_response_code(401);
+                echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+            }
+            exit();
+
+        case '/admin/update-parent':
+            if (isset($_SESSION['user_id']) && $_SESSION['user_role'] === 'admin') {
+                require_once('Controller/AdminController.php');
+                $controller = new AdminController();
+                $controller->updateParent();
+            } else {
+                http_response_code(401);
+                echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+            }
+            exit();
+
+        case '/admin/create-parent':
+            if (isset($_SESSION['user_id']) && $_SESSION['user_role'] === 'admin') {
+                require_once('Controller/AdminController.php');
+                $controller = new AdminController();
+                $controller->createParent();
+            } else {
+                http_response_code(401);
+                echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+            }
+            exit();
+            
+        case '/admin/search-students':
+            if (isset($_SESSION['user_id']) && $_SESSION['user_role'] === 'admin') {
+                require_once('Controller/AdminController.php');
+                $controller = new AdminController();
+                $controller->searchStudents();
+            } else {
+                http_response_code(401);
+                echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+            }
+            exit();
+
+        case '/admin/link-parent-student':
+            if (isset($_SESSION['user_id']) && $_SESSION['user_role'] === 'admin') {
+                require_once('Controller/AdminController.php');
+                $controller = new AdminController();
+                $controller->linkParentStudent();
+            } else {
+                http_response_code(401);
+                echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+            }
+            exit();
+            
+        // Thêm vào phần API routes
+        case '/parent/child-details':
+            if (isset($_SESSION['user_id']) && $_SESSION['user_role'] === 'parent') {
+                require_once('Controller/ParentController.php');
+                $controller = new ParentController();
+                $controller->getChildDetails();
+            } else {
+                http_response_code(401);
+                echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+            }
+            exit();
+
+        case '/parent/child-attendance':
+            if (isset($_SESSION['user_id']) && $_SESSION['user_role'] === 'parent') {
+                require_once('Controller/ParentController.php');
+                $controller = new ParentController();
+                $controller->getChildAttendanceByClass();
+            } else {
+                http_response_code(401);
+                echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+            }
+            exit();
+            
+>>>>>>> Stashed changes
         default:
             error_log("API endpoint not found: " . $apiPath);
             http_response_code(404);

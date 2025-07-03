@@ -19,7 +19,6 @@
         <section id="overview" class="content-section active">
             <h2>Tổng Quan</h2>
             
-            <!-- Stats Grid -->
             <div class="stats-grid">
                 <div class="stat-card">
                     <div class="stat-icon">
@@ -27,7 +26,7 @@
                     </div>
                     <div class="stat-info">
                         <h3><?= htmlspecialchars($stats['total_children'] ?? 0) ?></h3>
-                        <p>Số Con Đang Học</p>
+                        <p>Tổng Số Con</p>
                     </div>
                 </div>
                 
@@ -36,37 +35,88 @@
                         <i class="fas fa-book-open"></i>
                     </div>
                     <div class="stat-info">
-                        <h3><?= htmlspecialchars($stats['total_enrollments'] ?? 0) ?></h3>
-                        <p>Tổng Lớp Đã Đăng Ký</p>
+                        <h3><?= htmlspecialchars($stats['total_classes'] ?? 0) ?></h3>
+                        <p>Lớp Học Đang Theo</p>
                     </div>
                 </div>
                 
                 <div class="stat-card">
                     <div class="stat-icon">
-                        <i class="fas fa-check-circle"></i>
+                        <i class="fas fa-chart-line"></i>
                     </div>
                     <div class="stat-info">
-                        <h3><?= number_format($stats['avg_attendance_rate'] ?? 0, 1) ?>%</h3>
+                        <h3><?= number_format($stats['average_attendance_rate'] ?? 0, 1) ?>%</h3>
                         <p>Tỷ Lệ Tham Gia Trung Bình</p>
                     </div>
                 </div>
                 
                 <div class="stat-card">
                     <div class="stat-icon">
-                        <i class="fas fa-credit-card"></i>
+                        <i class="fas fa-dollar-sign"></i>
                     </div>
                     <div class="stat-info">
-                        <h3><?= number_format($stats['total_paid'] ?? 0) ?>₫</h3>
-                        <p>Tổng Học Phí Đã Thanh Toán</p>
+                        <h3><?= number_format($stats['total_paid'] ?? 0) ?>đ</h3>
+                        <p>Tổng Chi Phí Đã Thanh Toán</p>
                     </div>
                 </div>
             </div>
 
+            <!-- Children Overview -->
+            <?php if (!empty($children)): ?>
+                <div class="children-overview">
+                    <h3>Tình Hình Học Tập Của Con</h3>
+                    <div class="children-grid">
+                        <?php foreach ($children as $child): ?>
+                            <div class="child-overview-card">
+                                <div class="child-header">
+                                    <div class="child-avatar">
+                                        <i class="fas fa-user"></i>
+                                    </div>
+                                    <div class="child-info">
+                                        <h4><?= htmlspecialchars($child['full_name']) ?></h4>
+                                        <span class="relationship"><?= $child['relationship_type'] === 'father' ? '' : ($child['relationship_type'] === 'mother' ? '' : 'Người được giám hộ') ?></span>
+                                    </div>
+                                </div>
+                                
+                                <div class="child-stats">
+                                    <div class="stat-item">
+                                        <span class="stat-number"><?= $child['enrolled_classes'] ?? 0 ?></span>
+                                        <span class="stat-label">Lớp học</span>
+                                    </div>
+                                    <div class="stat-item">
+                                        <span class="stat-number"><?= number_format($child['academic_progress']['attendance_rate'] ?? 0, 1) ?>%</span>
+                                        <span class="stat-label">Tỷ lệ tham gia</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="recent-activity">
+                                    <?php if (!empty($child['recent_attendance'])): ?>
+                                        <p class="last-attendance">
+                                            <i class="fas fa-calendar"></i>
+                                            Buổi học gần nhất: <?= date('d/m/Y', strtotime($child['recent_attendance'][0]['session_date'])) ?>
+                                            <span class="status <?= $child['recent_attendance'][0]['status'] === 'present' ? 'present' : 'absent' ?>">
+                                                <?= $child['recent_attendance'][0]['status'] === 'present' ? 'Có mặt' : 'Vắng mặt' ?>
+                                            </span>
+                                        </p>
+                                    <?php else: ?>
+                                        <p class="no-activity"><i class="fas fa-info-circle"></i> Chưa có hoạt động học tập</p>
+                                    <?php endif; ?>
+                                </div>
+                                
+                                <button class="view-detail-btn" onclick="viewChildDetail(<?= $child['id'] ?>)">
+                                    <i class="fas fa-eye"></i> Xem chi tiết
+                                </button>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            <?php endif; ?>
+
             <!-- Recent Activities -->
             <div class="recent-activities">
-                <h3>Thông Báo Gần Đây</h3>
+                <h3>Hoạt Động Gần Đây</h3>
                 <div class="activity-list">
-                    <?php if (isset($notifications) && !empty($notifications)): ?>
+                    <?php if (!empty($notifications)): ?>
                         <?php foreach (array_slice($notifications, 0, 5) as $notification): ?>
                             <div class="activity-item">
                                 <div class="activity-icon">
@@ -101,36 +151,65 @@
                         <div class="child-card">
                             <div class="child-header">
                                 <div class="child-avatar">
-                                    <i class="fas fa-user-graduate"></i>
+                                    <?php 
+                                        $initials = '';
+                                        $names = explode(' ', $child['full_name']);
+                                        foreach ($names as $name) {
+                                            $initials .= strtoupper(substr($name, 0, 1));
+                                        }
+                                        echo substr($initials, 0, 2);
+                                    ?>
                                 </div>
                                 <div class="child-info">
-                                    <h3><?= htmlspecialchars($child['full_name']) ?></h3>
-                                    <p><i class="fas fa-envelope"></i> <?= htmlspecialchars($child['email']) ?></p>
-                                    <p><i class="fas fa-phone"></i> <?= htmlspecialchars($child['phone'] ?? 'Chưa cập nhật') ?></p>
+                                    <h4><?= htmlspecialchars($child['full_name']) ?></h4>
+                                    <span class="relationship">
+                                        <?php 
+                                            $relationship_map = [
+                                                'father' => 'Con trai/gái',
+                                                'mother' => 'Con trai/gái', 
+                                                'guardian' => 'Người được giám hộ'
+                                            ];
+                                            echo $relationship_map[$child['relationship_type']] ?? 'Con trai/gái';
+                                        ?>
+                                    </span>
+                                    <?php if ($child['is_primary']): ?>
+                                        <span class="primary-badge">Chính</span>
+                                    <?php endif; ?>
                                 </div>
                             </div>
                             
                             <div class="child-stats">
                                 <div class="stat-item">
-                                    <span class="stat-number"><?= $child['enrolled_classes'] ?></span>
-                                    <span class="stat-label">Lớp Học</span>
+                                    <span class="stat-number"><?= $child['enrolled_classes'] ?? 0 ?></span>
+                                    <span class="stat-label">Lớp học</span>
                                 </div>
                                 <div class="stat-item">
                                     <span class="stat-number"><?= number_format($child['academic_progress']['attendance_rate'] ?? 0, 1) ?>%</span>
-                                    <span class="stat-label">Tỷ Lệ Tham Gia</span>
+                                    <span class="stat-label">Tỷ lệ tham gia</span>
                                 </div>
                                 <div class="stat-item">
-                                    <span class="stat-number"><?= $child['payment_count'] ?></span>
-                                    <span class="stat-label">Thanh Toán</span>
+                                    <span class="stat-number"><?= number_format($child['total_paid'] ?? 0) ?>đ</span>
+                                    <span class="stat-label">Đã thanh toán</span>
                                 </div>
                             </div>
                             
+                            <div class="recent-activity">
+                                <?php if (!empty($child['recent_attendance'])): ?>
+                                    <p class="last-attendance">
+                                        <i class="fas fa-calendar"></i>
+                                        Buổi học gần nhất: <?= date('d/m/Y', strtotime($child['recent_attendance'][0]['session_date'])) ?>
+                                        <span class="status <?= $child['recent_attendance'][0]['status'] === 'present' ? 'present' : 'absent' ?>">
+                                            <?= $child['recent_attendance'][0]['status'] === 'present' ? 'Có mặt' : 'Vắng mặt' ?>
+                                        </span>
+                                    </p>
+                                <?php else: ?>
+                                    <p class="no-activity"><i class="fas fa-info-circle"></i> Chưa có hoạt động học tập</p>
+                                <?php endif; ?>
+                            </div>
+                            
                             <div class="child-actions">
-                                <button onclick="viewChildDetail(<?= $child['id'] ?>)" class="btn-primary">
-                                    <i class="fas fa-eye"></i> Xem Chi Tiết
-                                </button>
-                                <button onclick="viewChildAttendance(<?= $child['id'] ?>)" class="btn-secondary">
-                                    <i class="fas fa-calendar-check"></i> Điểm Danh
+                                <button class="view-detail-btn" onclick="viewChildDetail(<?= $child['id'] ?>)">
+                                    <i class="fas fa-eye"></i> Xem chi tiết
                                 </button>
                             </div>
                         </div>
