@@ -11,10 +11,12 @@ $navigation = [
     ],
     'tutor' => [
         ['id' => 'overview', 'icon' => 'fas fa-home', 'label' => 'Lớp Của Tôi', 'active' => true],
+        ['id' => 'schedule', 'icon' => 'fas fa-calendar-alt', 'label' => 'Lịch Dạy'],
         ['id' => 'settings', 'icon' => 'fas fa-cog', 'label' => 'Cài Đặt']
     ],
     'student' => [
         ['id' => 'overview', 'icon' => 'fas fa-home', 'label' => 'Tổng Quan', 'active' => true],
+        ['id' => 'schedule', 'icon' => 'fas fa-calendar-alt', 'label' => 'Lịch Học'],
         ['id' => 'settings', 'icon' => 'fas fa-cog', 'label' => 'Cài Đặt']
     ],
     'parent' => [

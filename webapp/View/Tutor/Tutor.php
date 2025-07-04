@@ -334,6 +334,71 @@
                 </div>
             </div>
         </section>
+
+        <section id="schedule" class="content-section">
+            <div class="schedule-section">
+                <div class="schedule-header">
+                    <h2>Lịch Dạy</h2>
+                    <div class="schedule-controls">
+                        <button class="btn-secondary" onclick="previousMonth()">
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        <span id="current-month-year" class="month-year-display"></span>
+                        <button class="btn-secondary" onclick="nextMonth()">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                        <button class="btn-primary" onclick="goToToday()">
+                            <i class="fas fa-calendar-day"></i> Hôm nay
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Calendar Grid -->
+                <div class="calendar-container">
+                    <div class="calendar-header">
+                        <div class="day-header">Chủ Nhật</div>
+                        <div class="day-header">Thứ Hai</div>
+                        <div class="day-header">Thứ Ba</div>
+                        <div class="day-header">Thứ Tư</div>
+                        <div class="day-header">Thứ Năm</div>
+                        <div class="day-header">Thứ Sáu</div>
+                        <div class="day-header">Thứ Bảy</div>
+                    </div>
+                    <div class="calendar-grid" id="calendar-grid">
+                        <!-- Calendar days will be generated here -->
+                    </div>
+                </div>
+
+                <!-- Legend -->
+                <div class="calendar-legend">
+                    <div class="legend-item">
+                        <div class="legend-dot today-dot"></div>
+                        <span>Hôm nay</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot schedule-dot"></div>
+                        <span>Có lịch dạy</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot selected-dot"></div>
+                        <span>Ngày được chọn</span>
+                    </div>
+                </div>
+
+                <!-- Schedule Details Panel -->
+                <div class="schedule-details" id="schedule-details" style="display: none;">
+                    <div class="details-header">
+                        <h3 id="selected-date-title">Lịch dạy ngày...</h3>
+                        <button class="close-details-btn" onclick="closeScheduleDetails()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="details-content" id="schedule-details-content">
+                        <!-- Schedule details will be populated here -->
+                    </div>
+                </div>
+            </div>
+        </section>
     </main>
 
     <!-- Logout Confirmation Modal -->

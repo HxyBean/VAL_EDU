@@ -118,6 +118,52 @@ class StudentModel extends BaseModel {
         }
     }
     
+    public function getStudentSchedule($user_id, $start_date = null, $end_date = null) {
+        try {
+            $sql = "SELECT c.*, e.enrollment_date, e.status as enrollment_status,
+                           ct.tutor_id, u.full_name as instructor_name, u.email as instructor_email,
+                           COUNT(DISTINCT s.id) as sessions_completed
+                    FROM classes c 
+                    INNER JOIN enrollments e ON c.id = e.class_id
+                    LEFT JOIN class_tutors ct ON c.id = ct.class_id AND ct.status = 'active'
+                    LEFT JOIN users u ON ct.tutor_id = u.id
+                    LEFT JOIN sessions s ON c.id = s.class_id AND s.status = 'completed'
+                    WHERE e.student_id = ? AND e.status = 'active' AND c.status = 'active'";
+            
+            $params = [$user_id];
+            
+            if ($start_date && $end_date) {
+                $sql .= " AND ((c.start_date BETWEEN ? AND ?) OR (c.end_date BETWEEN ? AND ?) OR (c.start_date <= ? AND c.end_date >= ?))";
+                $params = array_merge($params, [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+            }
+            
+            $sql .= " GROUP BY c.id ORDER BY c.start_date";
+            
+            $stmt = $this->db->prepare($sql);
+            if (!$stmt) {
+                error_log("Prepare failed: " . $this->db->error);
+                return [];
+            }
+            
+            $types = str_repeat('s', count($params));
+            $stmt->bind_param($types, ...$params);
+            
+            if (!$stmt->execute()) {
+                error_log("Execute failed: " . $stmt->error);
+                return [];
+            }
+            
+            $result = $stmt->get_result();
+            $schedule = $result->fetch_all(MYSQLI_ASSOC);
+            $stmt->close();
+            
+            return $schedule;
+            
+        } catch (Exception $e) {
+            error_log("Error getting student schedule: " . $e->getMessage());
+            return [];
+        }
+    }
     public function updateStudentProfile($user_id, $data) {
         try {
             error_log("Updating student profile for user ID: " . $user_id);

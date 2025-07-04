@@ -831,5 +831,49 @@ class TutorModel extends BaseModel {
             ];
         }
     }
+
+    public function getTutorSchedule($user_id, $start_date = null, $end_date = null) {
+        try {
+            $sql = "SELECT c.*, ct.assigned_date, ct.salary_per_session, ct.status as assignment_status,
+                           COUNT(DISTINCT e.student_id) as student_count
+                    FROM classes c 
+                    INNER JOIN class_tutors ct ON c.id = ct.class_id 
+                    LEFT JOIN enrollments e ON c.id = e.class_id AND e.status = 'active'
+                    WHERE ct.tutor_id = ? AND ct.status = 'active' AND c.status = 'active'";
+            
+            $params = [$user_id];
+            
+            if ($start_date && $end_date) {
+                $sql .= " AND ((c.start_date BETWEEN ? AND ?) OR (c.end_date BETWEEN ? AND ?) OR (c.start_date <= ? AND c.end_date >= ?))";
+                $params = array_merge($params, [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+            }
+            
+            $sql .= " GROUP BY c.id ORDER BY c.start_date";
+            
+            $stmt = $this->db->prepare($sql);
+            if (!$stmt) {
+                error_log("Prepare failed: " . $this->db->error);
+                return [];
+            }
+            
+            $types = str_repeat('s', count($params));
+            $stmt->bind_param($types, ...$params);
+            
+            if (!$stmt->execute()) {
+                error_log("Execute failed: " . $stmt->error);
+                return [];
+            }
+            
+            $result = $stmt->get_result();
+            $schedule = $result->fetch_all(MYSQLI_ASSOC);
+            $stmt->close();
+            
+            return $schedule;
+            
+        } catch (Exception $e) {
+            error_log("Error getting tutor schedule: " . $e->getMessage());
+            return [];
+        }
+    }
 }
 ?>

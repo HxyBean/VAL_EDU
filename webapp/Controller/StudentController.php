@@ -66,6 +66,29 @@ class StudentController extends BaseController {
         $this->renderView('Student/Student', $data);
     }
     
+    // API endpoint for getting student schedule
+    public function getStudentSchedule() {
+        header('Content-Type: application/json');
+        
+        if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'student') {
+            http_response_code(401);
+            echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+            exit();
+        }
+        
+        $user_id = $_SESSION['user_id'];
+        $start_date = $_GET['start_date'] ?? null;
+        $end_date = $_GET['end_date'] ?? null;
+        
+        try {
+            $schedule = $this->studentModel->getStudentSchedule($user_id, $start_date, $end_date);
+            echo json_encode(['success' => true, 'schedule' => $schedule]);
+        } catch (Exception $e) {
+            error_log("Error getting student schedule: " . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Error loading schedule']);
+        }
+        exit();
+    }
     // API endpoint for updating student profile
     public function updateProfile() {
         // Set content type first

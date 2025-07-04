@@ -28,6 +28,17 @@ if (strpos($path, '/api/') === 0) {
                 echo json_encode(['success' => false, 'message' => 'Unauthorized']);
             }
             exit();
+
+        case '/student/get-schedule':
+            if (isset($_SESSION['user_id']) && $_SESSION['user_role'] === 'student') {
+                require_once('Controller/StudentController.php');
+                $controller = new StudentController();
+                $controller->getStudentSchedule();
+            } else {
+                http_response_code(401);
+                echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+            }
+            exit();
             
         case '/student/change-password':
             if (isset($_SESSION['user_id']) && $_SESSION['user_role'] === 'student') {
@@ -45,6 +56,17 @@ if (strpos($path, '/api/') === 0) {
                 require_once('Controller/TutorController.php');
                 $controller = new TutorController();
                 $controller->updateProfile();
+            } else {
+                http_response_code(401);
+                echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+            }
+            exit();
+
+        case '/tutor/get-schedule':
+            if (isset($_SESSION['user_id']) && $_SESSION['user_role'] === 'tutor') {
+                require_once('Controller/TutorController.php');
+                $controller = new TutorController();
+                $controller->getTutorSchedule();
             } else {
                 http_response_code(401);
                 echo json_encode(['success' => false, 'message' => 'Unauthorized']);

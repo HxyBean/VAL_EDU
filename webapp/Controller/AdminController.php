@@ -297,8 +297,7 @@ class AdminController extends BaseController {
             
             foreach ($required_fields as $field) {
                 if (empty($_POST[$field])) {
-                    echo json_encode(['success' => false, 'message' => "Trường {$field} là bắt buộc"]);
-                    exit();
+                    throw new Exception("Thiếu thông tin bắt buộc: $field");
                 }
             }
             
@@ -322,8 +321,12 @@ class AdminController extends BaseController {
             
             // Validate dates
             if (strtotime($data['start_date']) >= strtotime($data['end_date'])) {
-                echo json_encode(['success' => false, 'message' => 'Ngày kết thúc phải sau ngày khai giảng']);
-                exit();
+                throw new Exception('Ngày kết thúc phải sau ngày bắt đầu');
+            }
+            
+            // Validate schedule days format
+            if (!preg_match('/^(CN|T[2-7])(,(CN|T[2-7]))*$/', $data['schedule_days'])) {
+                throw new Exception('Định dạng ngày học không hợp lệ. Ví dụ: T2,T4,T6');
             }
             
             // Create course
@@ -336,12 +339,28 @@ class AdminController extends BaseController {
                     'course_id' => $courseId
                 ]);
             } else {
-                echo json_encode(['success' => false, 'message' => 'Lỗi khi tạo khóa học']);
+                throw new Exception('Không thể tạo khóa học');
             }
             
         } catch (Exception $e) {
             error_log("Error creating course: " . $e->getMessage());
-            echo json_encode(['success' => false, 'message' => 'Lỗi hệ thống: ' . $e->getMessage()]);
+            
+            // Determine appropriate HTTP status code based on error type
+            $errorMessage = $e->getMessage();
+            if (strpos($errorMessage, 'đã có lịch dạy') !== false || strpos($errorMessage, 'Trùng lịch') !== false) {
+                $statusCode = 409; // Conflict
+            } elseif (strpos($errorMessage, 'Thiếu thông tin') !== false) {
+                $statusCode = 400; // Bad Request
+            } else {
+                $statusCode = 500; // Internal Server Error
+            }
+            
+            http_response_code($statusCode);
+            echo json_encode([
+                'success' => false, 
+                'message' => $errorMessage,
+                'error_type' => 'course_creation_error'
+            ]);
         }
         exit();
     }
@@ -933,36 +952,62 @@ class AdminController extends BaseController {
         header('Content-Type: application/json');
         
         try {
-            if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
-                throw new Exception('Unauthorized');
+            if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+                throw new Exception('Method not allowed');
             }
-
+    
+            if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
+                http_response_code(401);
+                echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+                exit();
+            }
+    
             $input = json_decode(file_get_contents('php://input'), true);
-            
             $studentId = intval($input['student_id'] ?? 0);
             $courseId = intval($input['course_id'] ?? 0);
-
+    
             if ($studentId <= 0 || $courseId <= 0) {
-                throw new Exception('Dữ liệu không hợp lệ');
+                throw new Exception('ID học viên và ID lớp học không hợp lệ');
             }
-
+    
+            error_log("Attempting to enroll student $studentId in course $courseId");
+    
             $result = $this->adminModel->enrollStudent($studentId, $courseId);
-            
-            if ($result) {
+    
+            if ($result === true) {
                 echo json_encode([
-                    'success' => true,
-                    'message' => 'Thêm học viên vào lớp thành công'
+                    'success' => true, 
+                    'message' => 'Đăng ký học viên vào lớp thành công'
                 ]);
             } else {
-                throw new Exception('Không thể thêm học viên vào lớp');
+                echo json_encode([
+                    'success' => false, 
+                    'message' => 'Đăng ký thất bại'
+                ]);
             }
-
+    
         } catch (Exception $e) {
-            error_log("Error in enrollStudent: " . $e->getMessage());
-            http_response_code(400);
+            error_log("Error in enrollStudent API: " . $e->getMessage());
+            
+            // Determine appropriate HTTP status code based on error type
+            $errorMessage = $e->getMessage();
+            if (strpos($errorMessage, 'Trùng lịch') !== false) {
+                $statusCode = 409; // Conflict
+            } elseif (strpos($errorMessage, 'đã đầy') !== false) {
+                $statusCode = 409; // Conflict
+            } elseif (strpos($errorMessage, 'đã được đăng ký') !== false) {
+                $statusCode = 409; // Conflict
+            } elseif (strpos($errorMessage, 'không tồn tại') !== false) {
+                $statusCode = 404; // Not Found
+            } else {
+                $statusCode = 400; // Bad Request
+            }
+            
+            http_response_code($statusCode);
             echo json_encode([
-                'success' => false,
-                'message' => $e->getMessage()
+                'success' => false, 
+                'message' => $errorMessage,
+                'error_type' => 'enrollment_error'
             ]);
         }
         exit();

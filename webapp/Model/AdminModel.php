@@ -544,23 +544,38 @@ class AdminModel extends BaseModel {
 
     public function createCourse($data) {
         try {
-            error_log("Creating course with data: " . json_encode($data));
-            
             $this->db->begin_transaction();
             
-            $sql = "INSERT INTO classes (class_name, class_year, class_level, subject, description, 
-                    max_students, sessions_total, price_per_session, schedule_time, schedule_duration, 
-                    schedule_days, start_date, end_date, status, created_at, updated_at) 
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', NOW(), NOW())";
+            // **THÊM KIỂM TRA TRÙNG LỊCH GIẢNG VIÊN**
+            if (!empty($data['tutor_id'])) {
+                $conflictCheck = $this->checkTutorScheduleConflict(
+                    $data['tutor_id'],
+                    $data['schedule_time'],
+                    $data['schedule_duration'],
+                    $data['schedule_days'],
+                    $data['start_date'],
+                    $data['end_date']
+                );
+                
+                if ($conflictCheck['conflict']) {
+                    throw new Exception($conflictCheck['message']);
+                }
+            }
+            
+            // Insert into classes table
+            $sql = "INSERT INTO classes (
+                        class_name, class_year, class_level, subject, description,
+                        max_students, sessions_total, price_per_session,
+                        schedule_time, schedule_duration, schedule_days,
+                        start_date, end_date, status
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active')";
             
             $stmt = $this->db->prepare($sql);
             if (!$stmt) {
-                error_log("Prepare failed: " . $this->db->error);
-                $this->db->rollback();
-                return false;
+                throw new Exception("Database prepare error: " . $this->db->error);
             }
             
-            $stmt->bind_param("sisssiiisisss",
+            $stmt->bind_param("sisssididssss",
                 $data['class_name'],
                 $data['class_year'],
                 $data['class_level'],
@@ -577,35 +592,38 @@ class AdminModel extends BaseModel {
             );
             
             if (!$stmt->execute()) {
-                error_log("Execute failed: " . $stmt->error);
-                $this->db->rollback();
-                $stmt->close();
-                return false;
+                throw new Exception("Failed to create course: " . $stmt->error);
             }
             
             $courseId = $this->db->insert_id;
             $stmt->close();
             
-            // If tutor is assigned, create assignment
+            // Assign tutor to the class if specified
             if (!empty($data['tutor_id'])) {
-                $sql = "INSERT INTO class_tutors (tutor_id, class_id, assigned_date, status, created_at) 
-                        VALUES (?, ?, CURDATE(), 'active', NOW())";
-                $stmt = $this->db->prepare($sql);
-                if ($stmt) {
-                    $stmt->bind_param("ii", $data['tutor_id'], $courseId);
-                    $stmt->execute();
-                    $stmt->close();
+                $tutorSql = "INSERT INTO class_tutors (tutor_id, class_id, assigned_date, status) 
+                            VALUES (?, ?, CURDATE(), 'active')";
+                $tutorStmt = $this->db->prepare($tutorSql);
+                
+                if (!$tutorStmt) {
+                    throw new Exception("Failed to prepare tutor assignment: " . $this->db->error);
                 }
+                
+                $tutorStmt->bind_param("ii", $data['tutor_id'], $courseId);
+                
+                if (!$tutorStmt->execute()) {
+                    throw new Exception("Failed to assign tutor: " . $tutorStmt->error);
+                }
+                
+                $tutorStmt->close();
             }
             
             $this->db->commit();
-            error_log("Course created successfully with ID: " . $courseId);
             return $courseId;
             
         } catch (Exception $e) {
             $this->db->rollback();
             error_log("Error creating course: " . $e->getMessage());
-            return false;
+            throw $e;
         }
     }
 
@@ -766,7 +784,7 @@ class AdminModel extends BaseModel {
     }
 
     // Helper method to get tutors for form dropdown
-    public function getTutorsForForm() {
+public function getTutorsForForm() {
         try {
             error_log("getTutorsForForm method called in AdminModel");
             
@@ -792,7 +810,6 @@ class AdminModel extends BaseModel {
             return [];
         }
     }
-
 
 public function getCourseDetails($courseId) {
     try {
@@ -919,65 +936,81 @@ public function updateCourse($courseId, $data) {
         // Verify course exists
         $stmt = $this->db->prepare("SELECT id FROM classes WHERE id = ?");
         if (!$stmt) {
-            throw new Exception("Lỗi chuẩn bị truy vấn kiểm tra: " . $this->db->error);
+            throw new Exception("Database prepare error: " . $this->db->error);
         }
         
         $stmt->bind_param("i", $courseId);
         if (!$stmt->execute()) {
-            throw new Exception("Lỗi thực thi truy vấn kiểm tra: " . $stmt->error);
+            throw new Exception("Failed to verify course: " . $stmt->error);
         }
         
         $result = $stmt->get_result();
         if ($result->num_rows === 0) {
-            $stmt->close();
-            throw new Exception("Khóa học không tồn tại");
+            throw new Exception("Course not found");
         }
         $stmt->close();
 
+        // **THÊM KIỂM TRA TRÙNG LỊCH GIẢNG VIÊN**
+        if (!empty($data['tutor_id'])) {
+            $conflictCheck = $this->checkTutorScheduleConflict(
+                $data['tutor_id'],
+                $data['schedule_time'],
+                $data['schedule_duration'],
+                $data['schedule_days'],
+                $data['start_date'],
+                $data['end_date'],
+                $courseId // Exclude current class from conflict check
+            );
+            
+            if ($conflictCheck['conflict']) {
+                throw new Exception($conflictCheck['message']);
+            }
+        }
+
         // Update course information
         $sql = "UPDATE classes SET 
-                class_name = ?,
-                class_year = ?,
-                class_level = ?,
-                subject = ?,
-                description = ?,
-                max_students = ?,
-                sessions_total = ?,
-                price_per_session = ?,
-                schedule_time = ?,
-                schedule_duration = ?,
-                schedule_days = ?,
-                start_date = ?,
+                class_name = ?, 
+                class_year = ?, 
+                class_level = ?, 
+                subject = ?, 
+                description = ?, 
+                max_students = ?, 
+                sessions_total = ?, 
+                price_per_session = ?, 
+                schedule_time = ?, 
+                schedule_duration = ?, 
+                schedule_days = ?, 
+                start_date = ?, 
                 end_date = ?,
                 updated_at = NOW()
                 WHERE id = ?";
 
         $stmt = $this->db->prepare($sql);
         if (!$stmt) {
-            throw new Exception("Lỗi chuẩn bị truy vấn cập nhật: " . $this->db->error);
+            throw new Exception("Database prepare error: " . $this->db->error);
         }
 
         // Correct bind_param: 14 parameters total
         // s=string, i=integer
-        $stmt->bind_param("sisssiiisisssi",
-            $data['class_name'],        // s - string
-            $data['class_year'],        // i - integer  
-            $data['class_level'],       // s - string
-            $data['subject'],           // s - string
-            $data['description'],       // s - string
-            $data['max_students'],      // i - integer
-            $data['sessions_total'],    // i - integer
-            $data['price_per_session'], // i - integer
-            $data['schedule_time'],     // s - string
-            $data['schedule_duration'], // i - integer
-            $data['schedule_days'],     // s - string
-            $data['start_date'],        // s - string (date)
-            $data['end_date'],          // s - string (date)
-            $courseId                   // i - integer
+        $stmt->bind_param("sisssididsssi",
+            $data['class_name'],
+            $data['class_year'],
+            $data['class_level'],
+            $data['subject'],
+            $data['description'],
+            $data['max_students'],
+            $data['sessions_total'],
+            $data['price_per_session'],
+            $data['schedule_time'],
+            $data['schedule_duration'],
+            $data['schedule_days'],
+            $data['start_date'],
+            $data['end_date'],
+            $courseId
         );
 
         if (!$stmt->execute()) {
-            throw new Exception("Lỗi thực thi truy vấn cập nhật: " . $stmt->error);
+            throw new Exception("Failed to update course: " . $stmt->error);
         }
 
         $affected_rows = $stmt->affected_rows;
@@ -987,28 +1020,24 @@ public function updateCourse($courseId, $data) {
 
         // Handle tutor assignment
         if (isset($data['tutor_id'])) {
-            // First deactivate existing assignments
-            $sql = "UPDATE class_tutors SET status = 'inactive', updated_at = NOW() WHERE class_id = ?";
-            $stmt = $this->db->prepare($sql);
-            if ($stmt) {
-                $stmt->bind_param("i", $courseId);
-                $stmt->execute();
-                $stmt->close();
-            }
-
-            // Then add new assignment if tutor_id is provided
-            if ($data['tutor_id']) {
-                $sql = "INSERT INTO class_tutors (tutor_id, class_id, assigned_date, status, created_at) 
-                        VALUES (?, ?, CURDATE(), 'active', NOW())
-                        ON DUPLICATE KEY UPDATE status = 'active', assigned_date = CURDATE(), updated_at = NOW()";
-                $stmt = $this->db->prepare($sql);
-                if ($stmt) {
-                    $stmt->bind_param("ii", $data['tutor_id'], $courseId);
-                    if (!$stmt->execute()) {
-                        error_log("Warning: Could not update tutor assignment: " . $stmt->error);
-                    }
-                    $stmt->close();
+            // Remove existing tutor assignments
+            $deleteSql = "DELETE FROM class_tutors WHERE class_id = ?";
+            $deleteStmt = $this->db->prepare($deleteSql);
+            $deleteStmt->bind_param("i", $courseId);
+            $deleteStmt->execute();
+            $deleteStmt->close();
+            
+            // Add new tutor assignment if specified
+            if (!empty($data['tutor_id'])) {
+                $insertSql = "INSERT INTO class_tutors (tutor_id, class_id, assigned_date, status) 
+                             VALUES (?, ?, CURDATE(), 'active')";
+                $insertStmt = $this->db->prepare($insertSql);
+                $insertStmt->bind_param("ii", $data['tutor_id'], $courseId);
+                
+                if (!$insertStmt->execute()) {
+                    throw new Exception("Failed to assign tutor: " . $insertStmt->error);
                 }
+                $insertStmt->close();
             }
         }
 
@@ -1352,20 +1381,23 @@ public function enrollStudent($studentId, $courseId) {
         $this->db->begin_transaction();
 
         // Check if student exists
-        $stmt = $this->db->prepare("SELECT id FROM users WHERE id = ? AND role = 'student' AND is_active = 1");
+        $stmt = $this->db->prepare("SELECT id, full_name FROM users WHERE id = ? AND role = 'student' AND is_active = 1");
         $stmt->bind_param("i", $studentId);
         $stmt->execute();
-        if ($stmt->get_result()->num_rows === 0) {
-            throw new Exception("Không tìm thấy học viên hoặc học viên không còn hoạt động");
+        $student_result = $stmt->get_result();
+        if ($student_result->num_rows === 0) {
+            throw new Exception('Học viên không tồn tại hoặc đã bị vô hiệu hóa');
         }
+        $student = $student_result->fetch_assoc();
         $stmt->close();
 
         // Check if course exists and has available slots
         $sql = "SELECT c.*, 
-                (SELECT COUNT(*) FROM enrollments e 
-                 WHERE e.class_id = c.id AND e.status = 'active') as enrolled_students
-                FROM classes c
-                WHERE c.id = ? AND c.status = 'active'";
+                       COUNT(e.student_id) as enrolled_students
+                FROM classes c 
+                LEFT JOIN enrollments e ON c.id = e.class_id AND e.status = 'active'
+                WHERE c.id = ? AND c.status = 'active'
+                GROUP BY c.id";
         
         $stmt = $this->db->prepare($sql);
         $stmt->bind_param("i", $courseId);
@@ -1375,24 +1407,30 @@ public function enrollStudent($studentId, $courseId) {
         $stmt->close();
 
         if (!$course) {
-            throw new Exception("Khóa học không tồn tại hoặc đã đóng");
+            throw new Exception('Lớp học không tồn tại hoặc đã bị đóng');
         }
 
         if ($course['enrolled_students'] >= $course['max_students']) {
-            throw new Exception("Lớp học đã đầy");
+            throw new Exception('Lớp học đã đầy. Số lượng tối đa: ' . $course['max_students'] . ' học viên');
         }
 
         // Check if student is already enrolled
         $stmt = $this->db->prepare(
             "SELECT id FROM enrollments 
-             WHERE student_id = ? AND class_id = ? AND status = 'active'"
+             WHERE student_id = ? AND class_id = ? AND status IN ('active', 'completed')"
         );
         $stmt->bind_param("ii", $studentId, $courseId);
         $stmt->execute();
         if ($stmt->get_result()->num_rows > 0) {
-            throw new Exception("Học viên đã đăng ký khóa học này");
+            throw new Exception('Học viên đã được đăng ký vào lớp học này');
         }
         $stmt->close();
+
+        // **THÊM KIỂM TRA TRÙNG LỊCH**
+        $conflictCheck = $this->checkScheduleConflict($studentId, $courseId);
+        if ($conflictCheck['conflict']) {
+            throw new Exception($conflictCheck['message']);
+        }
 
         // Create enrollment
         $sql = "INSERT INTO enrollments (student_id, class_id, enrollment_date, status) 
@@ -1401,11 +1439,13 @@ public function enrollStudent($studentId, $courseId) {
         $stmt->bind_param("ii", $studentId, $courseId);
         
         if (!$stmt->execute()) {
-            throw new Exception("Không thể thêm học viên vào lớp");
+            throw new Exception('Không thể tạo đăng ký học: ' . $stmt->error);
         }
         $stmt->close();
 
         $this->db->commit();
+        
+        error_log("Student {$student['full_name']} (ID: $studentId) successfully enrolled in course ID: $courseId");
         return true;
 
     } catch (Exception $e) {
@@ -1413,6 +1453,206 @@ public function enrollStudent($studentId, $courseId) {
         error_log("Error enrolling student: " . $e->getMessage());
         throw $e;
     }
+}
+
+public function checkScheduleConflict($studentId, $newClassId) {
+    try {
+        // Get schedule info of the new class
+        $new_class_sql = "SELECT schedule_time, schedule_duration, schedule_days, start_date, end_date 
+                         FROM classes 
+                         WHERE id = ? AND status = 'active'";
+        $stmt = $this->db->prepare($new_class_sql);
+        $stmt->bind_param("i", $newClassId);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $newClass = $result->fetch_assoc();
+        $stmt->close();
+        
+        if (!$newClass) {
+            return ['conflict' => true, 'message' => 'Lớp học không tồn tại hoặc đã bị đóng'];
+        }
+        
+        // Get all active classes that student is enrolled in
+        $student_classes_sql = "SELECT c.id, c.class_name, c.schedule_time, c.schedule_duration, 
+                               c.schedule_days, c.start_date, c.end_date
+                               FROM classes c
+                               INNER JOIN enrollments e ON c.id = e.class_id
+                               WHERE e.student_id = ? AND e.status = 'active' 
+                               AND c.status = 'active' AND c.id != ?";
+        
+        $stmt = $this->db->prepare($student_classes_sql);
+        $stmt->bind_param("ii", $studentId, $newClassId);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $studentClasses = $result->fetch_all(MYSQLI_ASSOC);
+        $stmt->close();
+        
+        // Parse new class schedule
+        $newScheduleDays = $this->parseScheduleDays($newClass['schedule_days']);
+        $newStartTime = strtotime($newClass['schedule_time']);
+        $newEndTime = $newStartTime + ($newClass['schedule_duration'] * 60);
+        $newClassStart = new DateTime($newClass['start_date']);
+        $newClassEnd = new DateTime($newClass['end_date']);
+        
+        // Check for conflicts with existing classes
+        foreach ($studentClasses as $existingClass) {
+            $existingScheduleDays = $this->parseScheduleDays($existingClass['schedule_days']);
+            $existingStartTime = strtotime($existingClass['schedule_time']);
+            $existingEndTime = $existingStartTime + ($existingClass['schedule_duration'] * 60);
+            $existingClassStart = new DateTime($existingClass['start_date']);
+            $existingClassEnd = new DateTime($existingClass['end_date']);
+            
+            // Check if there's any overlap in schedule days
+            $dayConflict = array_intersect($newScheduleDays, $existingScheduleDays);
+            
+            if (!empty($dayConflict)) {
+                // Check if there's time overlap
+                $timeConflict = ($newStartTime < $existingEndTime) && ($newEndTime > $existingStartTime);
+                
+                if ($timeConflict) {
+                    // Check if there's date range overlap
+                    $dateConflict = ($newClassStart <= $existingClassEnd) && ($newClassEnd >= $existingClassStart);
+                    
+                    if ($dateConflict) {
+                        // Convert day numbers back to Vietnamese day names for display
+                        $conflictDays = array_map(function($day) {
+                            $dayNames = [0 => 'CN', 1 => 'T2', 2 => 'T3', 3 => 'T4', 4 => 'T5', 5 => 'T6', 6 => 'T7'];
+                            return $dayNames[$day];
+                        }, $dayConflict);
+                        
+                        return [
+                            'conflict' => true,
+                            'message' => sprintf(
+                                'Trùng lịch với lớp "%s" vào %s lúc %s-%s',
+                                $existingClass['class_name'],
+                                implode(', ', $conflictDays),
+                                date('H:i', $existingStartTime),
+                                date('H:i', $existingEndTime)
+                            ),
+                            'conflicting_class' => $existingClass
+                        ];
+                    }
+                }
+            }
+        }
+        
+        return ['conflict' => false, 'message' => 'Không có trùng lịch'];
+        
+    } catch (Exception $e) {
+        error_log("Error checking schedule conflict: " . $e->getMessage());
+        return ['conflict' => true, 'message' => 'Lỗi kiểm tra trùng lịch'];
+    }
+}
+
+public function checkTutorScheduleConflict($tutorId, $scheduleTime, $scheduleDuration, $scheduleDays, $startDate, $endDate, $excludeClassId = null) {
+    try {
+        // Get all active classes that tutor is assigned to
+        $sql = "SELECT c.id, c.class_name, c.schedule_time, c.schedule_duration, 
+                       c.schedule_days, c.start_date, c.end_date
+                FROM classes c
+                INNER JOIN class_tutors ct ON c.id = ct.class_id
+                WHERE ct.tutor_id = ? AND ct.status = 'active' 
+                AND c.status = 'active'";
+        
+        $params = [$tutorId];
+        
+        if ($excludeClassId) {
+            $sql .= " AND c.id != ?";
+            $params[] = $excludeClassId;
+        }
+        
+        $stmt = $this->db->prepare($sql);
+        if (!$stmt) {
+            error_log("Prepare failed: " . $this->db->error);
+            return ['conflict' => true, 'message' => 'Lỗi kiểm tra trùng lịch'];
+        }
+        
+        $types = str_repeat('i', count($params));
+        $stmt->bind_param($types, ...$params);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $tutorClasses = $result->fetch_all(MYSQLI_ASSOC);
+        $stmt->close();
+        
+        // Parse new class schedule
+        $newScheduleDays = $this->parseScheduleDays($scheduleDays);
+        $newStartTime = strtotime($scheduleTime);
+        $newEndTime = $newStartTime + ($scheduleDuration * 60);
+        $newClassStart = new DateTime($startDate);
+        $newClassEnd = new DateTime($endDate);
+        
+        // Check for conflicts with existing classes
+        foreach ($tutorClasses as $existingClass) {
+            $existingScheduleDays = $this->parseScheduleDays($existingClass['schedule_days']);
+            $existingStartTime = strtotime($existingClass['schedule_time']);
+            $existingEndTime = $existingStartTime + ($existingClass['schedule_duration'] * 60);
+            $existingClassStart = new DateTime($existingClass['start_date']);
+            $existingClassEnd = new DateTime($existingClass['end_date']);
+            
+            // Check if there's any overlap in schedule days
+            $dayConflict = array_intersect($newScheduleDays, $existingScheduleDays);
+            
+            if (!empty($dayConflict)) {
+                // Check if there's time overlap
+                $timeConflict = ($newStartTime < $existingEndTime) && ($newEndTime > $existingStartTime);
+                
+                if ($timeConflict) {
+                    // Check if there's date range overlap
+                    $dateConflict = ($newClassStart <= $existingClassEnd) && ($newClassEnd >= $existingClassStart);
+                    
+                    if ($dateConflict) {
+                        // Convert day numbers back to Vietnamese day names for display
+                        $conflictDays = array_map(function($day) {
+                            $dayNames = [0 => 'CN', 1 => 'T2', 2 => 'T3', 3 => 'T4', 4 => 'T5', 5 => 'T6', 6 => 'T7'];
+                            return $dayNames[$day];
+                        }, $dayConflict);
+                        
+                        return [
+                            'conflict' => true,
+                            'message' => sprintf(
+                                'Giảng viên đã có lịch dạy lớp "%s" vào %s lúc %s-%s từ %s đến %s',
+                                $existingClass['class_name'],
+                                implode(', ', $conflictDays),
+                                date('H:i', $existingStartTime),
+                                date('H:i', $existingEndTime),
+                                date('d/m/Y', strtotime($existingClass['start_date'])),
+                                date('d/m/Y', strtotime($existingClass['end_date']))
+                            ),
+                            'conflicting_class' => $existingClass
+                        ];
+                    }
+                }
+            }
+        }
+        
+        return ['conflict' => false, 'message' => 'Không có trùng lịch'];
+        
+    } catch (Exception $e) {
+        error_log("Error checking tutor schedule conflict: " . $e->getMessage());
+        return ['conflict' => true, 'message' => 'Lỗi kiểm tra trùng lịch'];
+    }
+}
+
+
+private function parseScheduleDays($scheduleDaysStr) {
+    $daysMap = [
+        'CN' => 0, 'T2' => 1, 'T3' => 2, 'T4' => 3,
+        'T5' => 4, 'T6' => 5, 'T7' => 6
+    ];
+    
+    if (!$scheduleDaysStr) return [];
+    
+    $days = explode(',', $scheduleDaysStr);
+    $result = [];
+    
+    foreach ($days as $day) {
+        $day = trim($day);
+        if (isset($daysMap[$day])) {
+            $result[] = $daysMap[$day];
+        }
+    }
+    
+    return $result;
 }
 
 public function removeFromCourse($studentId, $courseId) {
@@ -1482,8 +1722,8 @@ public function removeFromCourse($studentId, $courseId) {
     }
 }
 
-    // Add this method for debugging purposes
-    public function getConnection() {
+// Add this method for debugging purposes
+public function getConnection() {
         return $this->db;
     }
 

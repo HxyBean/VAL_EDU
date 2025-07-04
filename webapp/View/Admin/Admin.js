@@ -942,45 +942,88 @@ function createCourse(event) {
     });
 
     if (scheduleDays.length === 0) {
-        showMessage('Vui lòng chọn ít nhất một ngày học trong tuần', 'error');
+        showMessage('Vui lòng chọn ít nhất một ngày trong tuần!', 'error');
         return;
     }
 
     // Add schedule days to form data
     formData.set('schedule_days', scheduleDays.join(','));
 
-    // Show loading state
+    // Get the submit button for loading state
     const submitBtn = form.querySelector('button[type="submit"]');
-    if (submitBtn) {
-        const originalText = submitBtn.innerHTML;
-        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang tạo...';
-        submitBtn.disabled = true;
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang tạo...';
+    submitBtn.disabled = true;
 
-        // Create course via API
-        fetch('/webapp/api/admin/create-course', {
-            method: 'POST',
-            body: formData
+    // Create course
+    fetch('/webapp/api/admin/create-course', {
+        method: 'POST',
+        body: formData
+    })
+        .then(response => {
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                throw new Error('Server không trả về JSON response');
+            }
+            return response.json().then(data => ({
+                status: response.status,
+                data: data
+            }));
         })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showMessage('Tạo khóa học thành công!', 'success');
-                    closeCreateCourseModal();
-                    // Reload courses list
-                    loadCourses();
+        .then(({ status, data }) => {
+            if (data.success) {
+                showMessage(data.message, 'success');
+
+                // Close modal
+                closeCreateCourseModal();
+
+                // Reset form
+                form.reset();
+
+                // Reload courses
+                loadCourses();
+            } else {
+                // Handle different types of errors
+                if (status === 409) { // Conflict errors
+                    if (data.message.includes('đã có lịch dạy') || data.message.includes('Trùng lịch')) {
+                        showMessage(`❌ TRÙNG LỊCH GIẢNG VIÊN!\n\n${data.message}\n\nVui lòng chọn giảng viên khác hoặc thay đổi thời gian học.`, 'error');
+
+                        // Highlight the tutor selection field
+                        const tutorSelect = form.querySelector('#tutor-id');
+                        if (tutorSelect) {
+                            tutorSelect.style.borderColor = '#dc3545';
+                            tutorSelect.style.boxShadow = '0 0 0 0.2rem rgba(220, 53, 69, 0.25)';
+
+                            // Remove highlight after a few seconds
+                            setTimeout(() => {
+                                tutorSelect.style.borderColor = '';
+                                tutorSelect.style.boxShadow = '';
+                            }, 5000);
+                        }
+
+                        // Show detailed conflict information in alert
+                        setTimeout(() => {
+                            alert(`⚠️ CẢNH BÁO: TRÙNG LỊCH GIẢNG VIÊN!\n\n${data.message}\n\nHãy:\n1. Chọn giảng viên khác\n2. Thay đổi thời gian học\n3. Thay đổi ngày học\n4. Thay đổi thời gian bắt đầu/kết thúc khóa học`);
+                        }, 500);
+                    } else {
+                        showMessage(`❌ ${data.message}`, 'error');
+                    }
+                } else if (status === 400) {
+                    showMessage(`⚠️ ${data.message}`, 'warning');
                 } else {
-                    showMessage(data.message || 'Lỗi khi tạo khóa học', 'error');
+                    showMessage(`❌ ${data.message}`, 'error');
                 }
-            })
-            .catch(error => {
-                console.error('Error creating course:', error);
-                showMessage('Lỗi kết nối. Vui lòng thử lại!', 'error');
-            })
-            .finally(() => {
-                submitBtn.innerHTML = originalText;
-                submitBtn.disabled = false;
-            });
-    }
+            }
+        })
+        .catch(error => {
+            console.error('Create course error:', error);
+            showMessage('❌ Lỗi kết nối hoặc server. Vui lòng thử lại!', 'error');
+        })
+        .finally(() => {
+            // Restore button
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+        });
 }
 
 // ===========================================
@@ -1486,84 +1529,94 @@ function closeCourseDetailModal() {
 
 function updateCourse(event) {
     event.preventDefault();
-    console.log('Updating course...');
+    console.log('🔄 Updating course...');
 
     const form = event.target;
     const formData = new FormData(form);
 
-    // Validate required fields
-    const requiredFields = ['class_name', 'class_year', 'class_level', 'subject', 'max_students', 'sessions_total', 'price_per_session', 'schedule_time', 'schedule_duration', 'start_date', 'end_date'];
-
-    for (const field of requiredFields) {
-        if (!formData.get(field)) {
-            showMessage(`Vui lòng điền đầy đủ thông tin: ${field}`, 'error');
-            return;
-        }
-    }
-
-    // Get selected schedule days
+    // Collect selected schedule days
     const scheduleDays = [];
     form.querySelectorAll('input[name="schedule_days"]:checked').forEach(checkbox => {
         scheduleDays.push(checkbox.value);
     });
 
     if (scheduleDays.length === 0) {
-        showMessage('Vui lòng chọn ít nhất một ngày học trong tuần', 'error');
+        showMessage('Vui lòng chọn ít nhất một ngày trong tuần!', 'error');
         return;
     }
 
+    // Add schedule days to form data
     formData.set('schedule_days', scheduleDays.join(','));
 
-    // Show loading state
+    // Get the submit button for loading state
     const submitBtn = form.querySelector('button[type="submit"]');
     const originalText = submitBtn.innerHTML;
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang lưu...';
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang cập nhật...';
     submitBtn.disabled = true;
 
-    console.log('Sending update data:', Object.fromEntries(formData));
-
+    // Update course
     fetch('/webapp/api/admin/update-course', {
         method: 'POST',
         body: formData
     })
-        .then(async response => {
-            console.log('Update response:', response);
-
-            // Get response text first
-            const text = await response.text();
-            console.log('Response text:', text);
-
-            // Try to parse as JSON
-            let data;
-            try {
-                data = text ? JSON.parse(text) : {};
-            } catch (parseError) {
-                console.error('JSON parse error:', parseError);
-                throw new Error(`Server returned invalid JSON: ${text || 'Empty response'}`);
+        .then(response => {
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                throw new Error('Server không trả về JSON response');
             }
-
-            // Check if response was successful
-            if (!response.ok) {
-                throw new Error(data.message || `HTTP ${response.status}: ${response.statusText}`);
-            }
-
-            return data;
+            return response.json().then(data => ({
+                status: response.status,
+                data: data
+            }));
         })
-        .then(data => {
-            console.log('Update response data:', data);
+        .then(({ status, data }) => {
             if (data.success) {
-                showMessage('Cập nhật khóa học thành công!', 'success');
+                showMessage(data.message, 'success');
+
+                // Close modal
                 closeEditCourseModal();
-                loadCourses(); // Refresh the courses list
+
+                // Reload courses
+                loadCourses();
             } else {
-                throw new Error(data.message || 'Cập nhật không thành công');
+                // Handle different types of errors
+                if (status === 409) { // Conflict errors
+                    if (data.message.includes('đã có lịch dạy') || data.message.includes('Trùng lịch')) {
+                        showMessage(`❌ TRÙNG LỊCH GIẢNG VIÊN!\n\n${data.message}\n\nVui lòng chọn giảng viên khác hoặc thay đổi thời gian học.`, 'error');
+
+                        // Highlight the tutor selection field
+                        const tutorSelect = form.querySelector('#edit-tutor-id');
+                        if (tutorSelect) {
+                            tutorSelect.style.borderColor = '#dc3545';
+                            tutorSelect.style.boxShadow = '0 0 0 0.2rem rgba(220, 53, 69, 0.25)';
+
+                            // Remove highlight after a few seconds
+                            setTimeout(() => {
+                                tutorSelect.style.borderColor = '';
+                                tutorSelect.style.boxShadow = '';
+                            }, 5000);
+                        }
+
+                        // Show detailed conflict information in alert
+                        setTimeout(() => {
+                            alert(`⚠️ CẢNH BÁO: TRÙNG LỊCH GIẢNG VIÊN!\n\n${data.message}\n\nHãy:\n1. Chọn giảng viên khác\n2. Thay đổi thời gian học\n3. Thay đổi ngày học\n4. Thay đổi thời gian bắt đầu/kết thúc khóa học`);
+                        }, 500);
+                    } else {
+                        showMessage(`❌ ${data.message}`, 'error');
+                    }
+                } else if (status === 400) {
+                    showMessage(`⚠️ ${data.message}`, 'warning');
+                } else {
+                    showMessage(`❌ ${data.message}`, 'error');
+                }
             }
         })
         .catch(error => {
-            console.error('Update error:', error);
-            showMessage('Lỗi khi cập nhật khóa học: ' + error.message, 'error');
+            console.error('Update course error:', error);
+            showMessage('❌ Lỗi kết nối hoặc server. Vui lòng thử lại!', 'error');
         })
         .finally(() => {
+            // Restore button
             submitBtn.innerHTML = originalText;
             submitBtn.disabled = false;
         });
@@ -2355,53 +2408,74 @@ function showAddToCourseModal(studentId) {
 }
 
 function displayAvailableCourses(courses, studentId) {
-    const coursesList = document.getElementById('available-courses-list');
+    const coursesContainer = document.getElementById('available-courses-list');
 
-    if (courses.length === 0) {
-        coursesList.innerHTML = `
+    if (!courses || courses.length === 0) {
+        coursesContainer.innerHTML = `
             <div class="no-courses">
-                <i class="fas fa-info-circle"></i>
-                <p>Không có khóa học nào khả dụng</p>
+                <i class="fas fa-book-open"></i>
+                <h3>Không có lớp học nào</h3>
+                <p>Hiện tại không có lớp học nào phù hợp</p>
             </div>
         `;
         return;
     }
 
-    const coursesHtml = courses.map(course => `
-        <div class="course-item ${course.available_slots <= 0 ? 'full' : ''}">
-            <div class="course-info">
-                <h4>${course.class_name}</h4>
-                <p><i class="fas fa-users"></i> ${course.enrolled_students}/${course.max_students} học viên</p>
-                <p><i class="fas fa-calendar"></i> ${formatSchedule(course)}</p>
-                <p><i class="fas fa-money-bill"></i> ${formatCurrency(course.price_per_session)}/buổi</p>
-            </div>
-            <button 
-                class="btn-enroll" 
-                onclick="enrollStudent(${studentId}, ${course.id})"
-                ${course.available_slots <= 0 ? 'disabled' : ''}
-            >
-                ${course.available_slots <= 0 ? 'Lớp đã đầy' : 'Thêm vào lớp'}
-            </button>
-        </div>
-    `).join('');
+    let coursesHtml = '<div class="courses-grid">';
 
-    coursesList.innerHTML = `
-        <div class="courses-grid">
-            ${coursesHtml}
-        </div>
-    `;
+    courses.forEach(course => {
+        const availableSpots = course.max_students - course.current_students;
+        const isFull = availableSpots <= 0;
+        const isLowSpots = availableSpots <= 3 && availableSpots > 0;
+
+        // Format schedule display
+        const scheduleDisplay = course.schedule_time && course.schedule_days
+            ? `${course.schedule_time.substring(0, 5)} - ${course.schedule_days} (${course.schedule_duration || 120}p)`
+            : 'Chưa có lịch học';
+
+        // Format dates
+        const startDate = course.start_date ? new Date(course.start_date).toLocaleDateString('vi-VN') : 'N/A';
+        const endDate = course.end_date ? new Date(course.end_date).toLocaleDateString('vi-VN') : 'N/A';
+
+        coursesHtml += `
+            <div class="course-item ${isFull ? 'full' : ''}">
+                <div class="course-info">
+                    <h4>${course.class_name} - ${course.subject}</h4>
+                    <p><i class="fas fa-calendar-alt"></i> ${scheduleDisplay}</p>
+                    <p><i class="fas fa-calendar-day"></i> ${startDate} → ${endDate}</p>
+                    <p><i class="fas fa-users"></i> ${course.current_students}/${course.max_students} học viên</p>
+                    <p><i class="fas fa-layer-group"></i> Cấp độ: ${course.class_level || 'N/A'}</p>        
+                </div>
+                
+                <button class="btn-enroll ${isFull ? 'btn-full' : ''}" 
+                        onclick="enrollStudent(${studentId}, ${course.id})"
+                        ${isFull ? 'disabled' : ''}>
+                    <i class="fas ${isFull ? 'fa-users' : 'fa-plus'}"></i>
+                    ${isFull ? 'Lớp đã đầy' : 'Đăng ký'}
+                </button>
+            </div>
+        `;
+    });
+
+    coursesHtml += '</div>';
+    coursesContainer.innerHTML = coursesHtml;
 }
 
 function enrollStudent(studentId, courseId) {
-    const button = event.target;
-    const originalText = button.innerHTML;
-    button.disabled = true;
-    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang xử lý...';
+    if (!confirm('Xác nhận đăng ký học viên vào lớp học này?')) {
+        return;
+    }
+
+    // Show loading
+    const enrollBtn = document.querySelector(`[onclick="enrollStudent(${studentId}, ${courseId})"]`);
+    const originalText = enrollBtn.innerHTML;
+    enrollBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang xử lý...';
+    enrollBtn.disabled = true;
 
     fetch('/webapp/api/admin/enroll-student', {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
         },
         body: JSON.stringify({
             student_id: studentId,
@@ -2409,26 +2483,84 @@ function enrollStudent(studentId, courseId) {
         })
     })
         .then(response => {
-            if (!response.ok) {
-                throw new Error(`Lớp đã đăng ký: ${response.status}`);
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                throw new Error('Server không trả về JSON response');
             }
-            return response.json();
+            return response.json().then(data => ({
+                status: response.status,
+                data: data
+            }));
         })
-        .then(data => {
+        .then(({ status, data }) => {
             if (data.success) {
-                showMessage('Thêm học viên vào lớp thành công!', 'success');
-                closeAddStudentToCourseModal();
-                // Refresh student details if needed
-                viewStudent(studentId);
+                showMessage(data.message, 'success');
+
+                // Disable the enroll button and mark as enrolled
+                enrollBtn.innerHTML = '<i class="fas fa-check"></i> Đã đăng ký';
+                enrollBtn.classList.remove('btn-enroll');
+                enrollBtn.classList.add('btn-enrolled');
+                enrollBtn.onclick = null;
+
+                // Update the available text if it exists
+                const availableText = enrollBtn.parentElement.querySelector('.available-spots');
+                if (availableText) {
+                    const currentText = availableText.textContent;
+                    const currentSpots = parseInt(currentText.match(/\d+/)[0]);
+                    if (currentSpots > 0) {
+                        availableText.textContent = currentText.replace(/\d+/, currentSpots - 1);
+                    }
+                }
+
             } else {
-                throw new Error(data.message || 'Có lỗi xảy ra');
+                // Handle different types of errors
+                if (status === 409) { // Conflict errors
+                    if (data.message.includes('Trùng lịch')) {
+                        showMessage(`❌ ${data.message}`, 'error');
+
+                        // Show more detailed conflict information in a modal or alert
+                        setTimeout(() => {
+                            alert(`CẢNH BÁO: TRÙNG LỊCH HỌC!\n\n${data.message}\n\nVui lòng kiểm tra lại lịch học của học viên và chọn lớp học khác có thời gian phù hợp.`);
+                        }, 500);
+
+                    } else if (data.message.includes('đã đầy')) {
+                        showMessage(`⚠️ ${data.message}`, 'warning');
+
+                        // Disable the button since class is full
+                        enrollBtn.innerHTML = '<i class="fas fa-users"></i> Lớp đã đầy';
+                        enrollBtn.classList.remove('btn-enroll');
+                        enrollBtn.classList.add('btn-full');
+                        enrollBtn.disabled = true;
+                        enrollBtn.onclick = null;
+
+                    } else if (data.message.includes('đã được đăng ký')) {
+                        showMessage(`ℹ️ ${data.message}`, 'info');
+
+                        // Mark as already enrolled
+                        enrollBtn.innerHTML = '<i class="fas fa-check"></i> Đã đăng ký';
+                        enrollBtn.classList.remove('btn-enroll');
+                        enrollBtn.classList.add('btn-enrolled');
+                        enrollBtn.disabled = true;
+                        enrollBtn.onclick = null;
+                    }
+                } else if (status === 404) {
+                    showMessage(`❌ ${data.message}`, 'error');
+                } else {
+                    showMessage(`❌ ${data.message}`, 'error');
+                }
             }
         })
         .catch(error => {
-            console.error('Error:', error);
-            showMessage('Lỗi: ' + error.message, 'error');
-            button.disabled = false;
-            button.innerHTML = originalText;
+            console.error('Enroll error:', error);
+            showMessage('❌ Lỗi kết nối hoặc server. Vui lòng thử lại!', 'error');
+        })
+        .finally(() => {
+            // Restore button if not permanently changed
+            if (!enrollBtn.classList.contains('btn-enrolled') &&
+                !enrollBtn.classList.contains('btn-full')) {
+                enrollBtn.innerHTML = originalText;
+                enrollBtn.disabled = false;
+            }
         });
 }
 

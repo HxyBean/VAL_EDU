@@ -904,6 +904,393 @@ function backToClassDetail() {
     document.getElementById('class-detail').classList.add('active');
 }
 
+// Calendar variables
+let currentDate = new Date();
+let selectedDate = null;
+let scheduleData = {};
+
+// Initialize calendar when schedule section is shown
+function showSchedule() {
+    document.querySelectorAll('.content-section').forEach(sec => sec.classList.remove('active'));
+    document.getElementById('schedule').classList.add('active');
+
+    // Update navigation
+    document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+    document.querySelector('.nav-link[href="#schedule"]').classList.add('active');
+
+    // Load schedule data and render calendar
+    loadScheduleData();
+}
+
+// Load schedule data for tutor
+function loadScheduleData() {
+    if (!tutorData || !tutorData.classes) {
+        console.log('No tutor data available');
+        renderCalendar();
+        return;
+    }
+
+    // Generate schedule data from tutor's classes
+    scheduleData = {};
+
+    console.log('=== PROCESSING SCHEDULE DATA ===');
+
+    tutorData.classes.forEach((classInfo, index) => {
+        console.log(`\nProcessing class ${index + 1}:`, classInfo.class_name);
+        console.log('Schedule days:', classInfo.schedule_days);
+        console.log('Schedule time:', classInfo.schedule_time);
+        console.log('Start date:', classInfo.start_date);
+        console.log('End date:', classInfo.end_date);
+
+        if (!classInfo.schedule_days || !classInfo.schedule_time) {
+            console.log('Skipping class - missing schedule info');
+            return;
+        }
+
+        const startDate = new Date(classInfo.start_date);
+        const endDate = new Date(classInfo.end_date);
+        const scheduleDays = parseScheduleDays(classInfo.schedule_days);
+
+        console.log('Parsed schedule days for', classInfo.class_name, ':', scheduleDays);
+
+        // Generate all class dates
+        let currentClassDate = new Date(startDate);
+        let datesAdded = 0;
+
+        while (currentClassDate <= endDate && datesAdded < 20) { // Limit for testing
+            const dayOfWeek = currentClassDate.getDay();
+            console.log(`Checking date ${currentClassDate.toDateString()}, day of week: ${dayOfWeek}`);
+
+            if (scheduleDays.includes(dayOfWeek)) {
+                const dateKey = formatDateKey(currentClassDate);
+                console.log(`✓ Adding class on ${dateKey} (day ${dayOfWeek})`);
+
+                if (!scheduleData[dateKey]) {
+                    scheduleData[dateKey] = [];
+                }
+
+                scheduleData[dateKey].push({
+                    classId: classInfo.id,
+                    className: classInfo.class_name,
+                    subject: classInfo.subject,
+                    time: classInfo.schedule_time,
+                    duration: classInfo.schedule_duration,
+                    studentCount: classInfo.student_count,
+                    classLevel: classInfo.class_level
+                });
+
+                datesAdded++;
+            }
+
+            currentClassDate.setDate(currentClassDate.getDate() + 1);
+        }
+
+        console.log(`Added ${datesAdded} dates for class ${classInfo.class_name}`);
+    });
+
+    console.log('Final schedule data:', scheduleData);
+    console.log('=== END PROCESSING SCHEDULE DATA ===');
+
+    renderCalendar();
+}
+
+// Parse schedule days (e.g., "T2,T4,T6" -> [1,3,5])
+function parseScheduleDays(scheduleDaysStr) {
+    const daysMap = {
+        'CN': 0,  // Chủ nhật = 0
+        'T2': 1,  // Thứ hai = 1
+        'T3': 2,  // Thứ ba = 2
+        'T4': 3,  // Thứ tư = 3
+        'T5': 4,  // Thứ năm = 4
+        'T6': 5,  // Thứ sáu = 5
+        'T7': 6   // Thứ bảy = 6
+    };
+
+    console.log('Original schedule days string:', scheduleDaysStr);
+
+    if (!scheduleDaysStr) {
+        return [];
+    }
+
+    const result = scheduleDaysStr.split(',').map(day => {
+        const trimmedDay = day.trim();
+        const dayNumber = daysMap[trimmedDay];
+        console.log(`Mapping ${trimmedDay} to ${dayNumber}`);
+        return dayNumber;
+    }).filter(day => day !== undefined);
+
+    console.log('Parsed schedule days:', result);
+    return result;
+}
+
+// Thêm function để kiểm tra ngày trong tuần
+function getDayName(dayNumber) {
+    const dayNames = ['Chủ nhật', 'Thứ hai', 'Thứ ba', 'Thứ tư', 'Thứ năm', 'Thứ sáu', 'Thứ bảy'];
+    return dayNames[dayNumber] || 'Unknown';
+}
+
+// Format date as key (YYYY-MM-DD)
+function formatDateKey(date) {
+    return date.toISOString().split('T')[0];
+}
+
+// Render calendar
+function renderCalendar() {
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+
+    // Update month/year display
+    const monthNames = [
+        'Tháng 1', 'Tháng 2', 'Tháng 3', 'Tháng 4', 'Tháng 5', 'Tháng 6',
+        'Tháng 7', 'Tháng 8', 'Tháng 9', 'Tháng 10', 'Tháng 11', 'Tháng 12'
+    ];
+    document.getElementById('current-month-year').textContent = `${monthNames[month]} ${year}`;
+
+    // Get first day of month and number of days
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const firstDayOfWeek = firstDay.getDay();
+    const daysInMonth = lastDay.getDate();
+
+    // Get previous month's last days
+    const prevMonth = new Date(year, month, 0);
+    const daysInPrevMonth = prevMonth.getDate();
+
+    const calendarGrid = document.getElementById('calendar-grid');
+    calendarGrid.innerHTML = '';
+
+    // Add previous month's trailing days
+    for (let i = firstDayOfWeek - 1; i >= 0; i--) {
+        const day = daysInPrevMonth - i;
+        const date = new Date(year, month - 1, day);
+        calendarGrid.appendChild(createCalendarDay(date, true));
+    }
+
+    // Add current month's days
+    for (let day = 1; day <= daysInMonth; day++) {
+        const date = new Date(year, month, day);
+        calendarGrid.appendChild(createCalendarDay(date, false));
+    }
+
+    // Add next month's leading days
+    const totalCells = Math.ceil((firstDayOfWeek + daysInMonth) / 7) * 7;
+    const remainingCells = totalCells - (firstDayOfWeek + daysInMonth);
+
+    for (let day = 1; day <= remainingCells; day++) {
+        const date = new Date(year, month + 1, day);
+        calendarGrid.appendChild(createCalendarDay(date, true));
+    }
+}
+
+// Create calendar day element
+function createCalendarDay(date, isOtherMonth) {
+    const dayElement = document.createElement('div');
+    dayElement.className = 'calendar-day';
+
+    if (isOtherMonth) {
+        dayElement.classList.add('other-month');
+    }
+
+    // Check if it's today
+    const today = new Date();
+    if (date.toDateString() === today.toDateString()) {
+        dayElement.classList.add('today');
+    }
+
+    // Check if it's selected date
+    if (selectedDate && date.toDateString() === selectedDate.toDateString()) {
+        dayElement.classList.add('selected');
+    }
+
+    // Check if this date has schedule
+    const dateKey = formatDateKey(date);
+    const hasSchedule = scheduleData[dateKey] && scheduleData[dateKey].length > 0;
+
+    // Debug log for specific dates
+    if (date.getDate() <= 7 && !isOtherMonth) { // First week of month
+        console.log(`Date ${date.toDateString()} (${getDayName(date.getDay())}): hasSchedule = ${hasSchedule}`);
+        if (hasSchedule) {
+            console.log('Schedules:', scheduleData[dateKey]);
+        }
+    }
+
+    if (hasSchedule) {
+        dayElement.classList.add('has-schedule');
+    }
+
+    // Create day number
+    const dayNumber = document.createElement('div');
+    dayNumber.className = 'day-number';
+    dayNumber.textContent = date.getDate();
+    dayElement.appendChild(dayNumber);
+
+    // Add schedule indicator
+    if (hasSchedule) {
+        const indicator = document.createElement('div');
+        indicator.className = 'schedule-indicator';
+        dayElement.appendChild(indicator);
+
+        // Add mini schedule info for current month days
+        if (!isOtherMonth) {
+            const miniInfo = document.createElement('div');
+            miniInfo.className = 'mini-class-info';
+
+            const schedules = scheduleData[dateKey];
+            if (schedules.length === 1) {
+                const schedule = schedules[0];
+                miniInfo.innerHTML = `
+                    <div class="mini-class-time">${schedule.time.substring(0, 5)}</div>
+                    <div>${schedule.className}</div>
+                `;
+            } else {
+                miniInfo.innerHTML = `<div class="mini-class-time">${schedules.length} lớp</div>`;
+            }
+
+            dayElement.appendChild(miniInfo);
+        }
+    }
+
+    // Add click event
+    dayElement.addEventListener('click', () => selectDate(date));
+
+    return dayElement;
+}
+
+// Select a date and show schedule details
+function selectDate(date) {
+    selectedDate = date;
+    renderCalendar(); // Re-render to show selection
+
+    const dateKey = formatDateKey(date);
+    const schedules = scheduleData[dateKey] || [];
+
+    showScheduleDetails(date, schedules);
+}
+
+// Show schedule details for selected date
+function showScheduleDetails(date, schedules) {
+    const detailsPanel = document.getElementById('schedule-details');
+    const titleElement = document.getElementById('selected-date-title');
+    const contentElement = document.getElementById('schedule-details-content');
+
+    // Format date for display
+    const dateStr = date.toLocaleDateString('vi-VN', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+
+    titleElement.textContent = `Lịch dạy ${dateStr}`;
+
+    if (schedules.length === 0) {
+        contentElement.innerHTML = `
+            <div class="no-schedule">
+                <i class="fas fa-calendar-times"></i>
+                <h4>Không có lịch dạy</h4>
+                <p>Bạn không có lịch dạy nào trong ngày này.</p>
+            </div>
+        `;
+    } else {
+        let scheduleHtml = '';
+
+        schedules.forEach(schedule => {
+            scheduleHtml += `
+                <div class="schedule-item">
+                    <div class="schedule-item-header">
+                        <h4 class="class-name-schedule">${schedule.className} - ${schedule.subject}</h4>
+                        <div class="schedule-time">
+                            <i class="fas fa-clock"></i> ${schedule.time.substring(0, 5)}
+                        </div>
+                    </div>
+                    
+                    <div class="schedule-item-details">
+                        <div class="schedule-detail">
+                            <i class="fas fa-layer-group"></i>
+                            <span>Cấp độ: ${schedule.classLevel || 'N/A'}</span>
+                        </div>
+                        <div class="schedule-detail">
+                            <i class="fas fa-users"></i>
+                            <span>Học sinh: ${schedule.studentCount || 0}</span>
+                        </div>
+                        <div class="schedule-detail">
+                            <i class="fas fa-hourglass-half"></i>
+                            <span>Thời lượng: ${schedule.duration || 120} phút</span>
+                        </div>
+                    </div>
+                    
+                    <div class="schedule-actions">
+                        <button class="btn-primary btn-sm" onclick="showClassDetail('${schedule.classId}')">
+                            <i class="fas fa-eye"></i> Xem chi tiết lớp
+                        </button>
+                        <button class="btn-info btn-sm" onclick="quickAttendance('${schedule.classId}')">
+                            <i class="fas fa-user-check"></i> Điểm danh nhanh
+                        </button>
+                    </div>
+                </div>
+            `;
+        });
+
+        contentElement.innerHTML = scheduleHtml;
+    }
+
+    detailsPanel.style.display = 'block';
+    detailsPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+// Close schedule details
+function closeScheduleDetails() {
+    document.getElementById('schedule-details').style.display = 'none';
+    selectedDate = null;
+    renderCalendar();
+}
+
+// Navigate to previous month
+function previousMonth() {
+    currentDate.setMonth(currentDate.getMonth() - 1);
+    renderCalendar();
+    closeScheduleDetails();
+}
+
+// Navigate to next month
+function nextMonth() {
+    currentDate.setMonth(currentDate.getMonth() + 1);
+    renderCalendar();
+    closeScheduleDetails();
+}
+
+// Go to today
+function goToToday() {
+    currentDate = new Date();
+    renderCalendar();
+    closeScheduleDetails();
+}
+
+// Quick attendance function
+function quickAttendance(classId) {
+    // Check if it's today
+    if (!selectedDate || selectedDate.toDateString() !== new Date().toDateString()) {
+        showMessage('Chỉ có thể điểm danh cho ngày hôm nay!', 'warning');
+        return;
+    }
+
+    // Set current class and start attendance
+    currentClass = classId;
+    startAttendance();
+}
+
+// Add event listener for schedule navigation
+document.addEventListener('DOMContentLoaded', function () {
+    // Add click handler for schedule nav link
+    const scheduleNavLink = document.querySelector('[href="#schedule"]');
+    if (scheduleNavLink) {
+        scheduleNavLink.addEventListener('click', function (e) {
+            e.preventDefault();
+            showSchedule();
+        });
+    }
+});
+
 // Settings functions
 function showChangePassword() {
     const changePasswordSection = document.getElementById('change-password-section');
