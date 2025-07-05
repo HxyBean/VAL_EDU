@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test API Endpoints</title>
+</head>
+<body>
+    <h1>Test Admin API Endpoints</h1>
+    
+    <button onclick="testGetCourses()">Test Get Courses</button>
+    <button onclick="testGetTutors()">Test Get Tutors</button>
+    
+    <div id="result"></div>
+    
+    <script>
+        function testGetCourses() {
+            console.log('Testing get courses...');
+            fetch('/webapp/api/admin/get-courses')
+                .then(response => {
+                    console.log('Response status:', response.status);
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Courses data:', data);
+                    document.getElementById('result').innerHTML = 
+                        '<h3>Get Courses Result:</h3><pre>' + JSON.stringify(data, null, 2) + '</pre>';
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    document.getElementById('result').innerHTML = 
+                        '<h3>Error:</h3><pre>' + error.message + '</pre>';
+                });
+        }
+        
+        function testGetTutors() {
+            console.log('Testing get tutors...');
+            fetch('/webapp/api/admin/get-tutors')
+                .then(response => {
+                    console.log('Response status:', response.status);
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Tutors data:', data);
+                    document.getElementById('result').innerHTML = 
+                        '<h3>Get Tutors Result:</h3><pre>' + JSON.stringify(data, null, 2) + '</pre>';
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    document.getElementById('result').innerHTML = 
+                        '<h3>Error:</h3><pre>' + error.message + '</pre>';
+                });
+        }
+    </script>
+</body>
+</html>

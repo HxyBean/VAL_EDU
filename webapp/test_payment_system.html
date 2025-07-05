@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment System Test</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            padding: 20px; 
+            max-width: 1200px; 
+            margin: 0 auto; 
+        }
+        .test-section { 
+            margin: 20px 0; 
+            padding: 20px; 
+            border: 1px solid #ddd; 
+            border-radius: 8px; 
+        }
+        button { 
+            padding: 10px 20px; 
+            margin: 10px 5px; 
+            background: #007bff; 
+            color: white; 
+            border: none; 
+            border-radius: 4px; 
+            cursor: pointer; 
+        }
+        button:hover { background: #0056b3; }
+        .result { 
+            background: #f8f9fa; 
+            padding: 15px; 
+            margin: 10px 0; 
+            border-radius: 5px; 
+            white-space: pre-wrap; 
+            font-family: monospace; 
+            max-height: 400px; 
+            overflow-y: auto; 
+        }
+        .success { background-color: #d4edda; border-left: 4px solid #28a745; }
+        .error { background-color: #f8d7da; border-left: 4px solid #dc3545; }
+        .info { background-color: #d1ecf1; border-left: 4px solid #17a2b8; }
+        .payment-card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px;
+            display: inline-block;
+            min-width: 300px;
+            vertical-align: top;
+        }
+        .pay-button {
+            background: #28a745;
+            padding: 8px 16px;
+            font-size: 14px;
+        }
+        .pay-button:hover { background: #218838; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Payment System Test Suite</h1>
+    
+    <div class="test-section">
+        <h2>📊 1. Database Status Check</h2>
+        <button onclick="checkDatabaseStatus()">Check Database</button>
+        <div id="db-result" class="result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>💰 2. Bills API Test</h2>
+        <button onclick="testBillsAPI()">Get Bills</button>
+        <button onclick="testBillsAPIDetailed()">Get Bills (Detailed)</button>
+        <div id="bills-result" class="result"></div>
+        <div id="bills-display"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>🔄 3. Payment Processing Test</h2>
+        <button onclick="testVirtualPayment()">Process Virtual Payment</button>
+        <button onclick="testRealPayment()">Process Real Payment</button>
+        <div id="payment-result" class="result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>📈 4. Statistics Test</h2>
+        <button onclick="testStatistics()">Get Parent Statistics</button>
+        <div id="stats-result" class="result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>🎯 5. End-to-End Payment Flow</h2>
+        <button onclick="performFullPaymentTest()">Full Payment Test</button>
+        <div id="flow-result" class="result"></div>
+    </div>
+
+    <script>
+        let currentBills = [];
+        
+        async function checkDatabaseStatus() {
+            const result = document.getElementById('db-result');
+            result.textContent = 'Checking database status...';
+            
+            try {
+                // Check if we can access the APIs
+                const response = await fetch('/webapp/api/parent/bills');
+                const data = await response.json();
+                
+                if (response.ok) {
+                    result.className = 'result success';
+                    result.textContent = `✅ Database connection successful!\nResponse: ${JSON.stringify(data, null, 2)}`;
+                } else {
+                    result.className = 'result error';
+                    result.textContent = `❌ Database error!\nStatus: ${response.status}\nResponse: ${JSON.stringify(data, null, 2)}`;
+                }
+            } catch (error) {
+                result.className = 'result error';
+                result.textContent = `❌ Connection failed!\nError: ${error.message}`;
+            }
+        }
+        
+        async function testBillsAPI() {
+            const result = document.getElementById('bills-result');
+            result.textContent = 'Fetching bills...';
+            
+            try {
+                const response = await fetch('/webapp/api/parent/bills');
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentBills = data.bills || [];
+                    result.className = 'result success';
+                    result.textContent = `✅ Bills fetched successfully!\nFound ${currentBills.length} bills\n\n${JSON.stringify(data, null, 2)}`;
+                } else {
+                    result.className = 'result error';
+                    result.textContent = `❌ Failed to fetch bills!\nMessage: ${data.message}`;
+                }
+            } catch (error) {
+                result.className = 'result error';
+                result.textContent = `❌ Error fetching bills!\nError: ${error.message}`;
+            }
+        }
+        
+        async function testBillsAPIDetailed() {
+            await testBillsAPI();
+            
+            const display = document.getElementById('bills-display');
+            if (currentBills.length === 0) {
+                display.innerHTML = '<p>No bills to display</p>';
+                return;
+            }
+            
+            const billsHTML = currentBills.map(bill => `
+                <div class="payment-card">
+                    <h4>${bill.class_name}</h4>
+                    <p><strong>Student:</strong> ${bill.student_name}</p>
+                    <p><strong>Subject:</strong> ${bill.subject}</p>
+                    <p><strong>Amount:</strong> ${formatCurrency(bill.final_amount || bill.amount)}</p>
+                    <p><strong>Status:</strong> ${bill.status}</p>
+                    <p><strong>Type:</strong> ${bill.is_virtual ? 'Virtual Bill' : 'Real Payment'}</p>
+                    ${bill.status === 'pending' ? `
+                        <button class="pay-button" onclick="testPaymentForBill('${bill.id}')">
+                            Pay This Bill
+                        </button>
+                    ` : ''}
+                </div>
+            `).join('');
+            
+            display.innerHTML = `<h3>📋 Bills Display:</h3>${billsHTML}`;
+        }
+        
+        async function testPaymentForBill(billId) {
+            const result = document.getElementById('payment-result');
+            result.textContent = `Processing payment for bill: ${billId}...`;
+            
+            try {
+                const formData = new FormData();
+                formData.append('payment_id', billId);
+                
+                const response = await fetch('/webapp/api/parent/process-payment', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    result.className = 'result success';
+                    result.textContent = `✅ Payment processed successfully!\n\n${JSON.stringify(data, null, 2)}`;
+                    
+                    // Refresh bills display
+                    setTimeout(() => testBillsAPIDetailed(), 1000);
+                } else {
+                    result.className = 'result error';
+                    result.textContent = `❌ Payment failed!\nMessage: ${data.message}`;
+                }
+            } catch (error) {
+                result.className = 'result error';
+                result.textContent = `❌ Payment error!\nError: ${error.message}`;
+            }
+        }
+        
+        async function testVirtualPayment() {
+            if (currentBills.length === 0) {
+                await testBillsAPI();
+            }
+            
+            const virtualBill = currentBills.find(bill => bill.is_virtual);
+            if (!virtualBill) {
+                const result = document.getElementById('payment-result');
+                result.className = 'result info';
+                result.textContent = '📝 No virtual bills found. Please ensure there are classes without payment records.';
+                return;
+            }
+            
+            await testPaymentForBill(virtualBill.id);
+        }
+        
+        async function testRealPayment() {
+            if (currentBills.length === 0) {
+                await testBillsAPI();
+            }
+            
+            const realBill = currentBills.find(bill => !bill.is_virtual && bill.status === 'pending');
+            if (!realBill) {
+                const result = document.getElementById('payment-result');
+                result.className = 'result info';
+                result.textContent = '📝 No real pending payments found. All existing payments may already be completed.';
+                return;
+            }
+            
+            await testPaymentForBill(realBill.id);
+        }
+        
+        async function testStatistics() {
+            const result = document.getElementById('stats-result');
+            result.textContent = 'Fetching statistics...';
+            
+            try {
+                // We'll simulate this since there's no direct stats API
+                const billsResponse = await fetch('/webapp/api/parent/bills');
+                const billsData = await billsResponse.json();
+                
+                if (billsData.success) {
+                    const bills = billsData.bills || [];
+                    const stats = {
+                        total_bills: bills.length,
+                        pending_bills: bills.filter(b => b.status === 'pending').length,
+                        virtual_bills: bills.filter(b => b.is_virtual).length,
+                        total_pending_amount: bills
+                            .filter(b => b.status === 'pending')
+                            .reduce((sum, b) => sum + (b.final_amount || b.amount), 0)
+                    };
+                    
+                    result.className = 'result success';
+                    result.textContent = `✅ Statistics calculated!\n\n${JSON.stringify(stats, null, 2)}`;
+                } else {
+                    result.className = 'result error';
+                    result.textContent = `❌ Failed to get statistics!\nMessage: ${billsData.message}`;
+                }
+            } catch (error) {
+                result.className = 'result error';
+                result.textContent = `❌ Statistics error!\nError: ${error.message}`;
+            }
+        }
+        
+        async function performFullPaymentTest() {
+            const result = document.getElementById('flow-result');
+            result.textContent = 'Starting full payment flow test...\n\n';
+            
+            try {
+                // Step 1: Get initial bills
+                result.textContent += '1. Fetching initial bills...\n';
+                await testBillsAPI();
+                const initialBillsCount = currentBills.length;
+                const pendingCount = currentBills.filter(b => b.status === 'pending').length;
+                
+                result.textContent += `   - Found ${initialBillsCount} total bills\n`;
+                result.textContent += `   - Found ${pendingCount} pending bills\n\n`;
+                
+                if (pendingCount === 0) {
+                    result.textContent += '❌ No pending bills found for testing.\n';
+                    result.className = 'result error';
+                    return;
+                }
+                
+                // Step 2: Process first pending payment
+                const firstPendingBill = currentBills.find(b => b.status === 'pending');
+                result.textContent += `2. Processing payment for: ${firstPendingBill.class_name}...\n`;
+                
+                const formData = new FormData();
+                formData.append('payment_id', firstPendingBill.id);
+                
+                const paymentResponse = await fetch('/webapp/api/parent/process-payment', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const paymentData = await paymentResponse.json();
+                
+                if (!paymentData.success) {
+                    throw new Error(paymentData.message);
+                }
+                
+                result.textContent += `   ✅ Payment successful!\n\n`;
+                
+                // Step 3: Verify bills updated
+                result.textContent += '3. Verifying bills updated...\n';
+                await testBillsAPI();
+                const newPendingCount = currentBills.filter(b => b.status === 'pending').length;
+                
+                result.textContent += `   - New pending count: ${newPendingCount}\n`;
+                result.textContent += `   - Reduction: ${pendingCount - newPendingCount}\n\n`;
+                
+                // Step 4: Check if payment appears in database
+                result.textContent += '4. Payment flow completed successfully! ✅\n';
+                
+                if (paymentData.updated_stats) {
+                    result.textContent += '\n5. Updated Statistics:\n';
+                    result.textContent += JSON.stringify(paymentData.updated_stats, null, 2);
+                }
+                
+                result.className = 'result success';
+                
+            } catch (error) {
+                result.textContent += `\n❌ Flow test failed: ${error.message}`;
+                result.className = 'result error';
+            }
+        }
+        
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('vi-VN', {
+                style: 'currency',
+                currency: 'VND'
+            }).format(amount);
+        }
+        
+        // Auto-run database check on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            checkDatabaseStatus();
+        });
+    </script>
+</body>
+</html>

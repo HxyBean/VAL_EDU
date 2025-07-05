@@ -488,45 +488,127 @@ function simulateQRPayment() {
     // Simulate payment processing delay
     setTimeout(() => {
         // Call API to confirm payment
-        fetch('/webapp/api/parent/confirm-qr-payment', {
+        const formData = new FormData();
+        formData.append('payment_id', paymentId);
+        
+        fetch('/webapp/api/parent/process-payment', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: `payment_id=${paymentId}`
+            body: formData
         })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    statusDiv.innerHTML = `
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                statusDiv.innerHTML = `
                     <i class="fas fa-check-circle"></i>
                     <p>Thanh toán thành công!</p>
                 `;
 
-                    setTimeout(() => {
-                        closeQRPaymentModal();
-                        showMessage('Thanh toán đã được xác nhận thành công!', 'success');
-
-                        // Refresh page to update payment status
-                        location.reload();
-                    }, 2000);
-                } else {
-                    statusDiv.innerHTML = `
+                setTimeout(() => {
+                    closeQRPaymentModal();
+                    showMessage('Thanh toán đã được xác nhận thành công!', 'success');
+                    
+                    // Update UI with new data
+                    if (data.updated_stats) {
+                        updatePaymentSummary(data.updated_stats);
+                    }
+                    
+                    if (data.recent_payments) {
+                        updatePaymentHistory(data.recent_payments);
+                    }
+                    
+                    // Refresh bills to remove the paid bill
+                    loadBills();
+                }, 2000);
+            } else {
+                statusDiv.innerHTML = `
                     <i class="fas fa-times-circle" style="color: #dc3545;"></i>
                     <p style="color: #dc3545;">Thanh toán thất bại: ${data.message}</p>
                 `;
-                    confirmBtn.disabled = false;
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                statusDiv.innerHTML = `
+                confirmBtn.disabled = false;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            statusDiv.innerHTML = `
                 <i class="fas fa-times-circle" style="color: #dc3545;"></i>
                 <p style="color: #dc3545;">Lỗi kết nối. Vui lòng thử lại.</p>
             `;
-                confirmBtn.disabled = false;
-            });
+            confirmBtn.disabled = false;
+        });
     }, 2000); // 2 second delay to simulate processing
+}
+
+// Update payment summary with new stats
+function updatePaymentSummary(stats) {
+    const totalPaidElement = document.querySelector('.summary-card.total .amount');
+    const pendingAmountElement = document.getElementById('pending-amount');
+    
+    if (totalPaidElement && stats.total_paid !== undefined) {
+        totalPaidElement.textContent = formatCurrency(stats.total_paid);
+    }
+    
+    if (pendingAmountElement && stats.pending_payments !== undefined) {
+        pendingAmountElement.textContent = formatCurrency(stats.pending_payments);
+    }
+}
+
+// Update payment history table with recent payments
+function updatePaymentHistory(recentPayments) {
+    const paymentTableBody = document.querySelector('.payment-table tbody');
+    if (!paymentTableBody || !recentPayments || recentPayments.length === 0) {
+        return;
+    }
+    
+    // Add new payments to the top of the table
+    const newRows = recentPayments.map(payment => `
+        <tr class="new-payment">
+            <td>${formatDate(payment.payment_date)}</td>
+            <td>${payment.student_name}</td>
+            <td>${payment.class_name}</td>
+            <td>${formatCurrency(payment.final_amount || payment.amount)}</td>
+            <td>${getPaymentMethodText(payment.payment_method)}</td>
+            <td>
+                <span class="status completed">
+                    <i class="fas fa-check-circle"></i> Hoàn thành
+                </span>
+            </td>
+        </tr>
+    `).join('');
+    
+    // Insert new rows at the beginning
+    paymentTableBody.insertAdjacentHTML('afterbegin', newRows);
+    
+    // Highlight new payments briefly
+    setTimeout(() => {
+        const newPaymentRows = document.querySelectorAll('.new-payment');
+        newPaymentRows.forEach(row => {
+            row.style.backgroundColor = '#d4edda';
+            setTimeout(() => {
+                row.style.backgroundColor = '';
+                row.classList.remove('new-payment');
+            }, 3000);
+        });
+    }, 100);
+}
+
+// Update pending amount in summary
+function updatePendingAmount() {
+    fetch('/webapp/api/parent/bills')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const pendingBills = data.bills.filter(bill => bill.status === 'pending' || bill.is_virtual);
+                const totalPending = pendingBills.reduce((sum, bill) => sum + (bill.final_amount || bill.amount), 0);
+                
+                const pendingAmountElement = document.getElementById('pending-amount');
+                if (pendingAmountElement) {
+                    pendingAmountElement.textContent = formatCurrency(totalPending);
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error updating pending amount:', error);
+        });
 }
 
 function getPaymentMethodText(method) {
@@ -552,3 +634,129 @@ window.addEventListener('click', function (event) {
         closeQRPaymentModal();
     }
 });
+
+// Load bills on page load
+document.addEventListener('DOMContentLoaded', function() {
+    // Load bills when payment section is visible
+    loadBills();
+});
+
+// Load pending bills
+function loadBills() {
+    const billsContainer = document.getElementById('bills-container');
+    const loading = document.getElementById('bills-loading');
+    
+    if (loading) loading.style.display = 'block';
+    
+    fetch('/webapp/api/parent/bills')
+        .then(response => response.json())
+        .then(data => {
+            if (loading) loading.style.display = 'none';
+            
+            if (data.success) {
+                displayBills(data.bills);
+            } else {
+                showMessage('Lỗi khi tải hóa đơn: ' + data.message, 'error');
+                billsContainer.innerHTML = `
+                    <div class="no-bills">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <p>Không thể tải danh sách hóa đơn</p>
+                    </div>
+                `;
+            }
+        })
+        .catch(error => {
+            console.error('Error loading bills:', error);
+            if (loading) loading.style.display = 'none';
+            billsContainer.innerHTML = `
+                <div class="no-bills">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <p>Lỗi kết nối khi tải hóa đơn</p>
+                </div>
+            `;
+        });
+}
+
+// Display bills in card format
+function displayBills(bills) {
+    const billsContainer = document.getElementById('bills-container');
+    
+    if (!bills || bills.length === 0) {
+        billsContainer.innerHTML = `
+            <div class="no-bills">
+                <i class="fas fa-check-circle"></i>
+                <p>Tuyệt vời! Không có hóa đơn nào cần thanh toán</p>
+            </div>
+        `;
+        return;
+    }
+    
+    // Filter only pending bills
+    const pendingBills = bills.filter(bill => bill.status === 'pending' || bill.is_virtual);
+    
+    if (pendingBills.length === 0) {
+        billsContainer.innerHTML = `
+            <div class="no-bills">
+                <i class="fas fa-check-circle"></i>
+                <p>Tuyệt vời! Không có hóa đơn nào cần thanh toán</p>
+            </div>
+        `;
+        return;
+    }
+    
+    const billsHTML = `
+        <div class="bills-container">
+            ${pendingBills.map(bill => `
+                <div class="bill-card">
+                    <div class="bill-header">
+                        <div class="bill-info">
+                            <h4>${bill.class_name}</h4>
+                            <div class="student-name">
+                                <i class="fas fa-user"></i>
+                                ${bill.student_name}
+                            </div>
+                        </div>
+                        <div class="bill-amount">
+                            <span class="amount">${formatCurrency(bill.final_amount || bill.amount)}</span>
+                            <span class="currency">VND</span>
+                        </div>
+                    </div>
+                    
+                    <div class="bill-details">
+                        <div class="bill-detail-row">
+                            <span class="label">Môn học:</span>
+                            <span class="value">${bill.subject || 'N/A'}</span>
+                        </div>
+                        <div class="bill-detail-row">
+                            <span class="label">Phương thức:</span>
+                            <span class="value">${getPaymentMethodText(bill.payment_method)}</span>
+                        </div>
+                        <div class="bill-detail-row">
+                            <span class="label">Trạng thái:</span>
+                            <span class="value">
+                                <span class="status pending">
+                                    <i class="fas fa-clock"></i> Chờ thanh toán
+                                </span>
+                            </span>
+                        </div>
+                        ${bill.created_at ? `
+                        <div class="bill-detail-row">
+                            <span class="label">Ngày tạo:</span>
+                            <span class="value">${formatDate(bill.created_at)}</span>
+                        </div>
+                        ` : ''}
+                    </div>
+                    
+                    <div class="bill-actions">
+                        <button class="pay-btn-primary" onclick="showQRPayment('${bill.id}', '${bill.student_name}', '${bill.class_name}', ${bill.final_amount || bill.amount}, '${bill.payment_method}')">
+                            <i class="fas fa-qrcode"></i>
+                            Thanh Toán Ngay
+                        </button>
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+    `;
+    
+    billsContainer.innerHTML = billsHTML;
+}

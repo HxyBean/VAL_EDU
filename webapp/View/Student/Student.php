@@ -373,19 +373,21 @@
     </div>
 
     <script>
-        // Pass PHP data to JavaScript (ensure it's only declared once)
-        if (typeof studentData === 'undefined') {
-            window.studentData = <?= json_encode([
-                'courses' => $courses ?? [],
-                'attendance' => $attendance ?? [],
-                'stats' => $stats ?? [],
-                'payments' => $payments ?? [],
-                'user_name' => $user_name ?? '',
-                'student_data' => $student_data ?? null
-            ]) ?>;
-            
-            // Debug: Log the data to console
-            console.log('Student data loaded:', window.studentData);
+        // Pass PHP data to JavaScript
+        const studentData = <?= json_encode([
+            'courses' => $courses ?? [],
+            'attendance' => $attendance ?? [],
+            'stats' => $stats ?? [],
+            'payments' => $payments ?? [],
+            'user_name' => $user_name ?? '',
+            'student_data' => $student_data ?? null
+        ]) ?>;
+        
+        // Debug: Log the data to console
+        console.log('Student data loaded:', studentData);
+        console.log('Courses data:', studentData.courses);
+        if (studentData.courses && studentData.courses.length > 0) {
+            console.log('First course keys:', Object.keys(studentData.courses[0]));
         }
     </script>
     

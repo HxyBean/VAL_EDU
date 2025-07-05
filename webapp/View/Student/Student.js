@@ -1,14 +1,10 @@
-// Prevent multiple execution of this script
-if (typeof window.studentScriptLoaded === 'undefined') {
-    window.studentScriptLoaded = true;
+// Show class detail with real data
+function showClassDetail(classId) {
+    console.log('Showing class detail for ID:', classId);
+    console.log('Available student data:', studentData);
 
-    // Show class detail with real data
-    function showClassDetail(classId) {
-        console.log('Showing class detail for ID:', classId);
-        console.log('Available student data:', window.studentData);
-
-        // Find the class data from studentData passed from PHP
-        const classData = window.studentData.courses.find(course => course.id == classId);
+    // Find the class data from studentData passed from PHP
+        const classData = studentData.courses.find(course => course.id == classId);
         if (!classData) {
             console.error('Class data not found for ID:', classId);
             showMessage('Không tìm thấy thông tin lớp học', 'error');
@@ -32,7 +28,7 @@ if (typeof window.studentScriptLoaded === 'undefined') {
         document.getElementById('detail-total-sessions').textContent = classData.sessions_total || classData.total_sessions_scheduled || 0;
 
         // Filter attendance for this class
-        const classAttendance = window.studentData.attendance.filter(att => att.class_id == classId);
+        const classAttendance = studentData.attendance.filter(att => att.class_id == classId);
         console.log('Class attendance:', classAttendance);
 
         const presentCount = classAttendance.filter(att => att.status === 'present').length;
@@ -124,10 +120,17 @@ if (typeof window.studentScriptLoaded === 'undefined') {
 
     // Load schedule data for student
     function loadScheduleData() {
-        if (!window.studentData || !window.studentData.courses) {
+        if (!studentData || !studentData.courses) {
             console.log('No student data available');
             renderCalendar();
             return;
+        }
+
+        console.log('Student data available:', studentData);
+        console.log('Number of courses:', studentData.courses.length);
+        
+        if (studentData.courses.length > 0) {
+            console.log('First course structure:', studentData.courses[0]);
         }
 
         // Generate schedule data from student's courses
@@ -135,7 +138,7 @@ if (typeof window.studentScriptLoaded === 'undefined') {
 
         console.log('=== PROCESSING STUDENT SCHEDULE DATA ===');
 
-        window.studentData.courses.forEach((courseInfo, index) => {
+        studentData.courses.forEach((courseInfo, index) => {
             console.log(`\nProcessing course ${index + 1}:`, courseInfo.class_name);
             console.log('Schedule days:', courseInfo.schedule_days);
             console.log('Schedule time:', courseInfo.schedule_time);
@@ -230,6 +233,15 @@ if (typeof window.studentScriptLoaded === 'undefined') {
 
     // Render calendar
     function renderCalendar() {
+        // Check if calendar elements exist
+        const monthYearElement = document.getElementById('current-month-year');
+        const calendarGrid = document.getElementById('calendar-grid');
+        
+        if (!monthYearElement || !calendarGrid) {
+            console.log('Calendar elements not found, skipping calendar rendering');
+            return;
+        }
+
         const year = currentDate.getFullYear();
         const month = currentDate.getMonth();
 
@@ -238,7 +250,7 @@ if (typeof window.studentScriptLoaded === 'undefined') {
             'Tháng 1', 'Tháng 2', 'Tháng 3', 'Tháng 4', 'Tháng 5', 'Tháng 6',
             'Tháng 7', 'Tháng 8', 'Tháng 9', 'Tháng 10', 'Tháng 11', 'Tháng 12'
         ];
-        document.getElementById('current-month-year').textContent = `${monthNames[month]} ${year}`;
+        monthYearElement.textContent = `${monthNames[month]} ${year}`;
 
         // Get first day of month and number of days
         const firstDay = new Date(year, month, 1);
@@ -250,7 +262,6 @@ if (typeof window.studentScriptLoaded === 'undefined') {
         const prevMonth = new Date(year, month, 0);
         const daysInPrevMonth = prevMonth.getDate();
 
-        const calendarGrid = document.getElementById('calendar-grid');
         calendarGrid.innerHTML = '';
 
         // Add previous month's trailing days
@@ -467,6 +478,18 @@ if (typeof window.studentScriptLoaded === 'undefined') {
                 e.preventDefault();
                 showSchedule();
             });
+        }
+
+        // Add calendar navigation button handlers
+        const prevButton = document.getElementById('prev-month');
+        const nextButton = document.getElementById('next-month');
+        
+        if (prevButton) {
+            prevButton.addEventListener('click', prevMonth);
+        }
+        
+        if (nextButton) {
+            nextButton.addEventListener('click', nextMonth);
         }
     });
 
@@ -818,9 +841,19 @@ if (typeof window.studentScriptLoaded === 'undefined') {
 
     // Initialize when DOM is ready
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initializeEventListeners);
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeEventListeners();
+            // Initialize calendar if we have student data
+            if (typeof studentData !== 'undefined') {
+                console.log('Initializing calendar with student data');
+                loadScheduleData();
+            }
+        });
     } else {
         initializeEventListeners();
+        // Initialize calendar if we have student data
+        if (typeof studentData !== 'undefined') {
+            console.log('Initializing calendar with student data');
+            loadScheduleData();
+        }
     }
-
-} // End of script loaded check

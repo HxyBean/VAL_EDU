@@ -1459,7 +1459,17 @@ function populateEditForm(course) {
     document.getElementById('edit-max-students').value = course.max_students || '';
     document.getElementById('edit-sessions-total').value = course.sessions_total || '';
     document.getElementById('edit-price-per-session').value = course.price_per_session || '';
-    document.getElementById('edit-schedule-time').value = course.schedule_time || '';
+    
+    // Format time for HTML time input (HH:MM format)
+    const scheduleTime = course.schedule_time || '';
+    if (scheduleTime) {
+        // Convert HH:MM:SS to HH:MM for time input
+        const timeForInput = scheduleTime.substring(0, 5); // Takes only HH:MM part
+        document.getElementById('edit-schedule-time').value = timeForInput;
+    } else {
+        document.getElementById('edit-schedule-time').value = '';
+    }
+    
     document.getElementById('edit-schedule-duration').value = course.schedule_duration || '';
     document.getElementById('edit-start-date').value = course.start_date || '';
     document.getElementById('edit-end-date').value = course.end_date || '';

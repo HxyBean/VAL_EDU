@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Course Creation</title>
+</head>
+<body>
+    <h1>Test Course Creation with Time 7:00</h1>
+    
+    <form id="test-form">
+        <label>Course Name:</label>
+        <input type="text" name="class_name" value="Test Course Time Fix" required><br><br>
+        
+        <label>Year:</label>
+        <input type="number" name="class_year" value="2024" required><br><br>
+        
+        <label>Level:</label>
+        <input type="text" name="class_level" value="Beginner" required><br><br>
+        
+        <label>Subject:</label>
+        <input type="text" name="subject" value="English" required><br><br>
+        
+        <label>Description:</label>
+        <textarea name="description">Test course at 7:00 AM</textarea><br><br>
+        
+        <label>Max Students:</label>
+        <input type="number" name="max_students" value="10" required><br><br>
+        
+        <label>Total Sessions:</label>
+        <input type="number" name="sessions_total" value="20" required><br><br>
+        
+        <label>Price per Session:</label>
+        <input type="number" name="price_per_session" value="100000" required><br><br>
+        
+        <label>Schedule Time:</label>
+        <input type="time" name="schedule_time" value="07:00" required><br><br>
+        
+        <label>Schedule Duration:</label>
+        <input type="number" name="schedule_duration" value="90" required><br><br>
+        
+        <label>Schedule Days:</label>
+        <input type="text" name="schedule_days" value="T2,T4" required><br><br>
+        
+        <label>Start Date:</label>
+        <input type="date" name="start_date" value="2024-08-01" required><br><br>
+        
+        <label>End Date:</label>
+        <input type="date" name="end_date" value="2024-12-31" required><br><br>
+        
+        <label>Tutor ID:</label>
+        <input type="number" name="tutor_id" value=""><br><br>
+        
+        <button type="submit">Create Course</button>
+    </form>
+    
+    <div id="result"></div>
+    
+    <script>
+        // Simulate being logged in as admin
+        document.getElementById('test-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            
+            // Show what we're sending
+            console.log('Sending data:');
+            for (let [key, value] of formData.entries()) {
+                console.log(key, ':', value);
+            }
+            
+            fetch('/webapp/admin/create-course', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                console.log('Response status:', response.status);
+                return response.json();
+            })
+            .then(data => {
+                console.log('Response data:', data);
+                document.getElementById('result').innerHTML = 
+                    '<h3>Result:</h3><pre>' + JSON.stringify(data, null, 2) + '</pre>';
+                
+                if (data.success) {
+                    alert('Course created successfully! Course ID: ' + data.course_id);
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('result').innerHTML = 
+                    '<h3>Error:</h3><pre>' + error.message + '</pre>';
+            });
+        });
+    </script>
+</body>
+</html>

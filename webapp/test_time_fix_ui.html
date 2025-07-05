@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Course Time Fix Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 10px; border: 1px solid #ccc; }
+        .success { color: green; }
+        .error { color: red; }
+        .info { color: blue; }
+        button { padding: 10px 20px; margin: 5px; }
+        input, select { padding: 5px; margin: 5px; }
+        #results { background: #f5f5f5; padding: 10px; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <h1>Course Time Fix Test</h1>
+    
+    <div class="test-section">
+        <h2>Test Course Creation with Fixed Time Format</h2>
+        <p class="info">This will test creating a course with "7:00" time to ensure it's stored as "07:00:00" in the database.</p>
+        
+        <form id="testForm">
+            <div>
+                <label>Class Name:</label>
+                <input type="text" id="class_name" value="Time Fix Test Class" required>
+            </div>
+            <div>
+                <label>Class Year:</label>
+                <input type="number" id="class_year" value="2024" required>
+            </div>
+            <div>
+                <label>Class Level:</label>
+                <input type="text" id="class_level" value="Beginner" required>
+            </div>
+            <div>
+                <label>Subject:</label>
+                <input type="text" id="subject" value="Test Subject" required>
+            </div>
+            <div>
+                <label>Description:</label>
+                <input type="text" id="description" value="Testing time format fix">
+            </div>
+            <div>
+                <label>Max Students:</label>
+                <input type="number" id="max_students" value="10" required>
+            </div>
+            <div>
+                <label>Sessions Total:</label>
+                <input type="number" id="sessions_total" value="20" required>
+            </div>
+            <div>
+                <label>Price per Session:</label>
+                <input type="number" id="price_per_session" value="100" step="0.01" required>
+            </div>
+            <div>
+                <label>Schedule Time (Test with "7:00"):</label>
+                <input type="time" id="schedule_time" value="07:00" required>
+            </div>
+            <div>
+                <label>Schedule Duration (minutes):</label>
+                <input type="number" id="schedule_duration" value="120" required>
+            </div>
+            <div>
+                <label>Schedule Days:</label>
+                <input type="text" id="schedule_days" value="T2,T4" required>
+            </div>
+            <div>
+                <label>Start Date:</label>
+                <input type="date" id="start_date" value="2024-01-15" required>
+            </div>
+            <div>
+                <label>End Date:</label>
+                <input type="date" id="end_date" value="2024-06-15" required>
+            </div>
+            
+            <div>
+                <button type="button" onclick="testCreateCourse()">Test Create Course</button>
+                <button type="button" onclick="testWithDifferentTimes()">Test Different Time Formats</button>
+            </div>
+        </form>
+    </div>
+    
+    <div id="results"></div>
+
+    <script>
+        function logResult(message, type = 'info') {
+            const results = document.getElementById('results');
+            const timestamp = new Date().toLocaleTimeString();
+            results.innerHTML += `<div class="${type}">[${timestamp}] ${message}</div>`;
+        }
+
+        function getFormData() {
+            return {
+                class_name: document.getElementById('class_name').value,
+                class_year: document.getElementById('class_year').value,
+                class_level: document.getElementById('class_level').value,
+                subject: document.getElementById('subject').value,
+                description: document.getElementById('description').value,
+                max_students: document.getElementById('max_students').value,
+                sessions_total: document.getElementById('sessions_total').value,
+                price_per_session: document.getElementById('price_per_session').value,
+                schedule_time: document.getElementById('schedule_time').value,
+                schedule_duration: document.getElementById('schedule_duration').value,
+                schedule_days: document.getElementById('schedule_days').value,
+                start_date: document.getElementById('start_date').value,
+                end_date: document.getElementById('end_date').value
+            };
+        }
+
+        async function testCreateCourse() {
+            logResult('Starting course creation test...', 'info');
+            
+            const formData = new FormData();
+            const data = getFormData();
+            
+            for (const [key, value] of Object.entries(data)) {
+                formData.append(key, value);
+            }
+            
+            logResult(`Testing with schedule_time: "${data.schedule_time}"`, 'info');
+            
+            try {
+                const response = await fetch('/webapp/api/admin/create-course', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    logResult(`✓ Course created successfully! Course ID: ${result.course_id}`, 'success');
+                    logResult(`Time "${data.schedule_time}" should now be stored as "07:00:00" in database`, 'success');
+                    
+                    // Try to get the course to verify the time was stored correctly
+                    if (result.course_id) {
+                        await verifyCourseTime(result.course_id, data.schedule_time);
+                    }
+                } else {
+                    logResult(`✗ Failed to create course: ${result.message}`, 'error');
+                }
+            } catch (error) {
+                logResult(`✗ Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function verifyCourseTime(courseId, originalTime) {
+            try {
+                logResult(`Verifying time storage for course ID: ${courseId}`, 'info');
+                
+                const response = await fetch(`/webapp/api/admin/get-course/${courseId}`);
+                const result = await response.json();
+                
+                if (result.success && result.course) {
+                    const storedTime = result.course.schedule_time;
+                    logResult(`Original input: "${originalTime}" → Stored in DB: "${storedTime}"`, 'info');
+                    
+                    if (storedTime === "07:00:00" && originalTime === "07:00") {
+                        logResult(`✓ Time format fix SUCCESSFUL! "7:00" correctly stored as "07:00:00"`, 'success');
+                    } else {
+                        logResult(`⚠ Stored time: "${storedTime}" (verify this is correct)`, 'info');
+                    }
+                } else {
+                    logResult(`Could not retrieve course details for verification`, 'error');
+                }
+            } catch (error) {
+                logResult(`Error verifying course time: ${error.message}`, 'error');
+            }
+        }
+
+        async function testWithDifferentTimes() {
+            const testTimes = ['07:00', '9:30', '14:15', '20:45'];
+            
+            for (const testTime of testTimes) {
+                document.getElementById('schedule_time').value = testTime;
+                document.getElementById('class_name').value = `Test Class - ${testTime}`;
+                
+                logResult(`\n--- Testing with time: ${testTime} ---`, 'info');
+                await testCreateCourse();
+                
+                // Wait a bit between tests
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+        }
+
+        // Clear results on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            logResult('Course Time Fix Test Page Loaded', 'info');
+            logResult('Before fix: "7:00" was stored as "00:00:07" (7 seconds)', 'error');
+            logResult('After fix: "7:00" should be stored as "07:00:00" (7 AM)', 'success');
+        });
+    </script>
+</body>
+</html>

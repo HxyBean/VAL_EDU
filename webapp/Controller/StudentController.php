@@ -241,5 +241,61 @@ class StudentController extends BaseController {
         }
         exit();
     }
+    
+    public function sendParentConnection() {
+        header('Content-Type: application/json');
+        
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            http_response_code(405);
+            echo json_encode(['success' => false, 'message' => 'Method not allowed']);
+            exit();
+        }
+        
+        if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'student') {
+            http_response_code(401);
+            echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+            exit();
+        }
+        
+        try {
+            $user_id = $_SESSION['user_id'];
+            $parent_email = trim($_POST['parent_email'] ?? '');
+            $message = trim($_POST['message'] ?? '');
+            
+            // Validation
+            if (empty($parent_email)) {
+                echo json_encode(['success' => false, 'message' => 'Vui lòng nhập email phụ huynh']);
+                exit();
+            }
+            
+            if (!filter_var($parent_email, FILTER_VALIDATE_EMAIL)) {
+                echo json_encode(['success' => false, 'message' => 'Email không hợp lệ']);
+                exit();
+            }
+            
+            // Send parent connection request
+            $result = $this->studentModel->sendParentConnectionRequest($user_id, $parent_email, $message);
+            
+            if ($result) {
+                echo json_encode([
+                    'success' => true, 
+                    'message' => 'Đã gửi yêu cầu kết nối tới phụ huynh thành công!'
+                ]);
+            } else {
+                echo json_encode([
+                    'success' => false, 
+                    'message' => 'Không thể gửi yêu cầu kết nối. Vui lòng thử lại.'
+                ]);
+            }
+            
+        } catch (Exception $e) {
+            error_log("Error sending parent connection: " . $e->getMessage());
+            echo json_encode([
+                'success' => false, 
+                'message' => 'Lỗi hệ thống: ' . $e->getMessage()
+            ]);
+        }
+        exit();
+    }
 }
 ?>

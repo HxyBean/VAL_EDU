@@ -31,6 +31,7 @@ class ParentController extends BaseController {
         $parentData = null;
         $children = [];
         $payments = [];
+        $bills = [];
         $stats = [
             'total_children' => 0,
             'total_classes' => 0,
@@ -38,6 +39,7 @@ class ParentController extends BaseController {
             'attended_sessions' => 0,
             'total_payments' => 0,
             'total_paid' => 0,
+            'pending_payments' => 0,
             'average_attendance_rate' => 0
         ];
         $notifications = [];
@@ -61,6 +63,10 @@ class ParentController extends BaseController {
             // Get payment records for all children
             $payments = $this->parentModel->getChildrenPayments($user_id);
             error_log("Payments loaded: " . count($payments));
+            
+            // Get pending bills for all children
+            $bills = $this->parentModel->getChildrenBills($user_id);
+            error_log("Bills loaded: " . count($bills));
             
             // Get parent statistics
             $stats = $this->parentModel->getParentStats($user_id);
@@ -86,6 +92,7 @@ class ParentController extends BaseController {
             'parent_data' => $parentData,
             'children' => $children,
             'payments' => $payments,
+            'bills' => $bills ?? [],
             'stats' => $stats,
             'notifications' => $notifications,
             'connection_requests' => $connection_requests
@@ -250,6 +257,90 @@ class ParentController extends BaseController {
 
         } catch (Exception $e) {
             error_log("Error getting child attendance: " . $e->getMessage());
+            echo json_encode([
+                'success' => false,
+                'message' => $e->getMessage()
+            ]);
+        }
+        exit();
+    }
+
+    public function getChildrenBills() {
+        header('Content-Type: application/json');
+        
+        try {
+            if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'parent') {
+                http_response_code(401);
+                echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+                exit();
+            }
+
+            $parentId = $_SESSION['user_id'];
+            $bills = $this->parentModel->getChildrenBills($parentId);
+            
+            echo json_encode([
+                'success' => true,
+                'bills' => $bills
+            ]);
+
+        } catch (Exception $e) {
+            error_log("Error getting children bills: " . $e->getMessage());
+            echo json_encode([
+                'success' => false,
+                'message' => $e->getMessage()
+            ]);
+        }
+        exit();
+    }
+    
+    public function processPayment() {
+        header('Content-Type: application/json');
+        
+        try {
+            if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'parent') {
+                http_response_code(401);
+                echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+                exit();
+            }
+
+            if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+                http_response_code(405);
+                echo json_encode(['success' => false, 'message' => 'Method not allowed']);
+                exit();
+            }
+
+            $parentId = $_SESSION['user_id'];
+            $paymentId = $_POST['payment_id'] ?? '';
+            
+            if (empty($paymentId)) {
+                throw new Exception("Payment ID is required");
+            }
+
+            $result = $this->parentModel->processPayment($paymentId, $parentId);
+            
+            if ($result) {
+                // Get updated statistics after payment
+                $updatedStats = $this->parentModel->getParentStats($parentId);
+                
+                // Get recent payments to show in history
+                $recentPayments = $this->parentModel->getRecentPaymentsByParent($parentId, 5);
+                
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'Thanh toán đã được xử lý thành công!',
+                    'updated_stats' => $updatedStats,
+                    'recent_payments' => $recentPayments,
+                    'payment_id' => $paymentId
+                ]);
+            } else {
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Không thể xử lý thanh toán. Vui lòng thử lại.'
+                ]);
+            }
+
+        } catch (Exception $e) {
+            error_log("Error processing payment: " . $e->getMessage());
             echo json_encode([
                 'success' => false,
                 'message' => $e->getMessage()

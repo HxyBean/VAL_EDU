@@ -152,13 +152,15 @@ class ParentModel extends BaseModel {
                         COUNT(DISTINCT s.id) as total_sessions,
                         COUNT(DISTINCT CASE WHEN a.status = 'present' THEN a.id END) as attended_sessions,
                         COUNT(DISTINCT p.id) as total_payments,
-                        COALESCE(SUM(p.final_amount), 0) as total_paid,
+                        COALESCE(SUM(CASE WHEN p.status = 'completed' THEN p.final_amount ELSE 0 END), 0) as total_paid,
+                        COALESCE(SUM(CASE WHEN p.status = 'pending' THEN p.final_amount ELSE 0 END), 0) as pending_payments,
                         COALESCE(AVG(CASE WHEN a.status = 'present' THEN 1 ELSE 0 END) * 100, 0) as average_attendance_rate
                     FROM parent_student ps
+                    INNER JOIN users u ON ps.student_id = u.id
                     LEFT JOIN enrollments e ON ps.student_id = e.student_id AND e.status = 'active'
                     LEFT JOIN sessions s ON e.class_id = s.class_id AND s.status = 'completed'
                     LEFT JOIN attendance a ON s.id = a.session_id AND a.student_id = ps.student_id
-                    LEFT JOIN payments p ON ps.student_id = p.student_id AND p.status = 'completed'
+                    LEFT JOIN payments p ON ps.student_id = p.student_id
                     WHERE ps.parent_id = ?
                     GROUP BY ps.parent_id";
             
@@ -180,18 +182,30 @@ class ParentModel extends BaseModel {
             
             // Nếu không có dữ liệu, trả về giá trị mặc định
             if (!$stats) {
-                $stats = [
+                return [
                     'total_children' => 0,
                     'total_classes' => 0,
                     'total_sessions' => 0,
                     'attended_sessions' => 0,
                     'total_payments' => 0,
                     'total_paid' => 0,
+                    'pending_payments' => 0,
                     'average_attendance_rate' => 0
                 ];
             }
             
+            // Đảm bảo các giá trị số không null
+            $stats['total_children'] = intval($stats['total_children']);
+            $stats['total_classes'] = intval($stats['total_classes']);
+            $stats['total_sessions'] = intval($stats['total_sessions']);
+            $stats['attended_sessions'] = intval($stats['attended_sessions']);
+            $stats['total_payments'] = intval($stats['total_payments']);
+            $stats['total_paid'] = floatval($stats['total_paid']);
+            $stats['pending_payments'] = floatval($stats['pending_payments']);
+            $stats['average_attendance_rate'] = floatval($stats['average_attendance_rate']);
+            
             return $stats;
+            
         } catch (Exception $e) {
             error_log("Error getting parent stats: " . $e->getMessage());
             return [
@@ -201,6 +215,7 @@ class ParentModel extends BaseModel {
                 'attended_sessions' => 0,
                 'total_payments' => 0,
                 'total_paid' => 0,
+                'pending_payments' => 0,
                 'average_attendance_rate' => 0
             ];
         }
@@ -579,5 +594,285 @@ public function getChildAttendanceByClass($studentId, $classId) {
         return [];
     }
 }
+
+public function getChildrenBills($parent_id) {
+        try {
+            $sql = "SELECT p.*, c.class_name, c.subject, u.full_name as student_name, c.price_per_session,
+                           e.total_fee, e.sessions_attended, u.id as student_id, c.id as class_id
+                    FROM parent_student ps
+                    INNER JOIN users u ON ps.student_id = u.id
+                    INNER JOIN enrollments e ON u.id = e.student_id
+                    INNER JOIN classes c ON e.class_id = c.id
+                    LEFT JOIN payments p ON (u.id = p.student_id AND c.id = p.class_id AND p.status IN ('pending', 'failed'))
+                    WHERE ps.parent_id = ? AND e.status = 'active' AND c.status = 'active'
+                    ORDER BY p.created_at DESC, c.class_name";
+            
+            $stmt = $this->db->prepare($sql);
+            if (!$stmt) {
+                error_log("Prepare failed: " . $this->db->error);
+                return [];
+            }
+            
+            $stmt->bind_param("i", $parent_id);
+            if (!$stmt->execute()) {
+                error_log("Execute failed: " . $stmt->error);
+                return [];
+            }
+            
+            $result = $stmt->get_result();
+            $bills = $result->fetch_all(MYSQLI_ASSOC);
+            $stmt->close();
+            
+            // Process bills to add calculated amounts for classes without payments
+            $processed_bills = [];
+            $seen_combinations = [];
+            
+            foreach ($bills as $bill) {
+                $combination_key = $bill['student_id'] . '_' . $bill['class_id'];
+                
+                // Skip if we've already processed this student-class combination
+                if (in_array($combination_key, $seen_combinations)) {
+                    continue;
+                }
+                $seen_combinations[] = $combination_key;
+                
+                if ($bill['id'] === null) {
+                    // No payment record exists, create a virtual bill
+                    $sessions_count = max(1, $bill['sessions_attended'] ?: 1);
+                    $amount = $bill['price_per_session'] * $sessions_count;
+                    $processed_bills[] = [
+                        'id' => 'new_' . $bill['student_name'] . '_' . $bill['class_name'],
+                        'student_id' => $bill['student_id'],
+                        'class_id' => $bill['class_id'],
+                        'student_name' => $bill['student_name'],
+                        'class_name' => $bill['class_name'],
+                        'subject' => $bill['subject'],
+                        'amount' => $amount,
+                        'final_amount' => $amount,
+                        'status' => 'pending',
+                        'payment_method' => 'bank_transfer',
+                        'payment_date' => null,
+                        'created_at' => date('Y-m-d H:i:s'),
+                        'is_virtual' => true,
+                        'sessions_count' => $sessions_count,
+                        'price_per_session' => $bill['price_per_session']
+                    ];
+                } else {
+                    $bill['is_virtual'] = false;
+                    $processed_bills[] = $bill;
+                }
+            }
+            
+            return $processed_bills;
+        } catch (Exception $e) {
+            error_log("Error getting children bills: " . $e->getMessage());
+            return [];
+        }
+    }
+    
+    public function processPayment($payment_id, $parent_id) {
+        try {
+            $this->db->begin_transaction();
+            
+            // Check if this is a virtual payment (new bill)
+            if (strpos($payment_id, 'new_') === 0) {
+                // Parse virtual payment ID to extract student and class info
+                $parts = explode('_', $payment_id);
+                if (count($parts) < 3) {
+                    error_log("Invalid virtual payment ID format: " . $payment_id);
+                    $this->db->rollback();
+                    return false;
+                }
+                
+                // Extract student name and class name from the ID
+                $student_name = $parts[1];
+                $class_name = implode('_', array_slice($parts, 2));
+                
+                // Find the actual student and class IDs
+                $sql = "SELECT u.id as student_id, c.id as class_id, c.price_per_session, e.sessions_attended
+                        FROM parent_student ps
+                        INNER JOIN users u ON ps.student_id = u.id
+                        INNER JOIN enrollments e ON u.id = e.student_id
+                        INNER JOIN classes c ON e.class_id = c.id
+                        WHERE ps.parent_id = ? AND u.full_name = ? AND c.class_name = ?
+                        AND e.status = 'active' AND c.status = 'active'";
+                
+                $stmt = $this->db->prepare($sql);
+                if (!$stmt) {
+                    error_log("Prepare failed for virtual payment lookup: " . $this->db->error);
+                    $this->db->rollback();
+                    return false;
+                }
+                
+                $stmt->bind_param("iss", $parent_id, $student_name, $class_name);
+                if (!$stmt->execute()) {
+                    error_log("Execute failed for virtual payment lookup: " . $stmt->error);
+                    $this->db->rollback();
+                    $stmt->close();
+                    return false;
+                }
+                
+                $result = $stmt->get_result();
+                $payment_info = $result->fetch_assoc();
+                $stmt->close();
+                
+                if (!$payment_info) {
+                    error_log("Virtual payment info not found for: " . $payment_id);
+                    $this->db->rollback();
+                    return false;
+                }
+                
+                // Calculate payment amount
+                $sessions_count = max(1, $payment_info['sessions_attended'] ?: 1);
+                $amount = $payment_info['price_per_session'] * $sessions_count;
+                
+                // Create new payment record
+                $insert_sql = "INSERT INTO payments (student_id, payer_id, class_id, amount, final_amount, payment_date, payment_method, status, created_at) 
+                              VALUES (?, ?, ?, ?, ?, NOW(), 'bank_transfer', 'completed', NOW())";
+                
+                $insert_stmt = $this->db->prepare($insert_sql);
+                if (!$insert_stmt) {
+                    error_log("Insert prepare failed: " . $this->db->error);
+                    $this->db->rollback();
+                    return false;
+                }
+                
+                $insert_stmt->bind_param("iiidd", 
+                    $payment_info['student_id'], 
+                    $parent_id, 
+                    $payment_info['class_id'], 
+                    $amount, 
+                    $amount
+                );
+                
+                if (!$insert_stmt->execute()) {
+                    error_log("Insert execute failed: " . $insert_stmt->error);
+                    $this->db->rollback();
+                    $insert_stmt->close();
+                    return false;
+                }
+                
+                $new_payment_id = $this->db->insert_id;
+                $insert_stmt->close();
+                
+                error_log("Created new payment record with ID: " . $new_payment_id . " for virtual payment: " . $payment_id);
+                $this->db->commit();
+                return true;
+            }
+            
+            // Handle existing pending payment
+            // Verify parent has access to this payment
+            $sql = "SELECT p.* FROM payments p
+                    INNER JOIN parent_student ps ON p.student_id = ps.student_id
+                    WHERE p.id = ? AND ps.parent_id = ? AND p.status = 'pending'";
+            
+            $stmt = $this->db->prepare($sql);
+            if (!$stmt) {
+                error_log("Prepare failed: " . $this->db->error);
+                $this->db->rollback();
+                return false;
+            }
+            
+            $stmt->bind_param("ii", $payment_id, $parent_id);
+            if (!$stmt->execute()) {
+                error_log("Execute failed: " . $stmt->error);
+                $this->db->rollback();
+                $stmt->close();
+                return false;
+            }
+            
+            $result = $stmt->get_result();
+            $payment = $result->fetch_assoc();
+            $stmt->close();
+            
+            if (!$payment) {
+                error_log("Payment not found or access denied: " . $payment_id);
+                $this->db->rollback();
+                return false;
+            }
+            
+            // Update payment status to completed and set payment date
+            $sql = "UPDATE payments SET status = 'completed', payment_date = NOW(), payer_id = ? WHERE id = ?";
+            $stmt = $this->db->prepare($sql);
+            if (!$stmt) {
+                error_log("Update prepare failed: " . $this->db->error);
+                $this->db->rollback();
+                return false;
+            }
+            
+            $stmt->bind_param("ii", $parent_id, $payment_id);
+            if (!$stmt->execute()) {
+                error_log("Update execute failed: " . $stmt->error);
+                $this->db->rollback();
+                $stmt->close();
+                return false;
+            }
+            
+            $affected_rows = $stmt->affected_rows;
+            $stmt->close();
+            
+            if ($affected_rows > 0) {
+                error_log("Successfully updated payment ID: " . $payment_id . " to completed status");
+                $this->db->commit();
+                return true;
+            } else {
+                error_log("No rows affected when updating payment ID: " . $payment_id);
+                $this->db->rollback();
+                return false;
+            }
+            
+        } catch (Exception $e) {
+            if ($this->db->in_transaction) {
+                $this->db->rollback();
+            }
+            error_log("Error processing payment: " . $e->getMessage());
+            return false;
+        }
+    }
+    
+    public function updateParentStatsAfterPayment($parent_id) {
+        try {
+            // This method can be called after a payment to refresh stats
+            // For now, we'll just return the updated stats
+            return $this->getParentStats($parent_id);
+        } catch (Exception $e) {
+            error_log("Error updating parent stats after payment: " . $e->getMessage());
+            return null;
+        }
+    }
+    
+    public function getRecentPaymentsByParent($parent_id, $limit = 10) {
+        try {
+            $sql = "SELECT p.*, c.class_name, c.subject, u.full_name as student_name
+                    FROM parent_student ps
+                    INNER JOIN users u ON ps.student_id = u.id
+                    INNER JOIN payments p ON u.id = p.student_id
+                    INNER JOIN classes c ON p.class_id = c.id
+                    WHERE ps.parent_id = ? AND p.status = 'completed'
+                    ORDER BY p.payment_date DESC, p.created_at DESC
+                    LIMIT ?";
+            
+            $stmt = $this->db->prepare($sql);
+            if (!$stmt) {
+                error_log("Prepare failed: " . $this->db->error);
+                return [];
+            }
+            
+            $stmt->bind_param("ii", $parent_id, $limit);
+            if (!$stmt->execute()) {
+                error_log("Execute failed: " . $stmt->error);
+                return [];
+            }
+            
+            $result = $stmt->get_result();
+            $payments = $result->fetch_all(MYSQLI_ASSOC);
+            $stmt->close();
+            
+            return $payments;
+        } catch (Exception $e) {
+            error_log("Error getting recent payments: " . $e->getMessage());
+            return [];
+        }
+    }
 }
 ?>

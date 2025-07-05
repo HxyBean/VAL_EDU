@@ -51,6 +51,17 @@ if (strpos($path, '/api/') === 0) {
             }
             exit();
             
+        case '/student/send-parent-connection':
+            if (isset($_SESSION['user_id']) && $_SESSION['user_role'] === 'student') {
+                require_once('Controller/StudentController.php');
+                $controller = new StudentController();
+                $controller->sendParentConnection();
+            } else {
+                http_response_code(401);
+                echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+            }
+            exit();
+            
         case '/tutor/update-profile':
             if (isset($_SESSION['user_id']) && $_SESSION['user_role'] === 'tutor') {
                 require_once('Controller/TutorController.php');
@@ -409,6 +420,17 @@ if (strpos($path, '/api/') === 0) {
                 echo json_encode(['success' => false, 'message' => 'Unauthorized']);
             }
             exit();
+
+        case '/admin/student-schedule':
+            if (isset($_SESSION['user_id']) && $_SESSION['user_role'] === 'admin') {
+                require_once('Controller/AdminController.php');
+                $controller = new AdminController();
+                $controller->getStudentSchedule();
+            } else {
+                http_response_code(401);
+                echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+            }
+            exit();
             
         // Thêm vào phần API routes
         case '/parent/child-details':
@@ -449,6 +471,28 @@ if (strpos($path, '/api/') === 0) {
                 require_once('Controller/ParentController.php');
                 $controller = new ParentController();
                 $controller->changePassword();
+            } else {
+                http_response_code(401);
+                echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+            }
+            exit();
+            
+        case '/parent/bills':
+            if (isset($_SESSION['user_id']) && $_SESSION['user_role'] === 'parent') {
+                require_once('Controller/ParentController.php');
+                $controller = new ParentController();
+                $controller->getChildrenBills();
+            } else {
+                http_response_code(401);
+                echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+            }
+            exit();
+            
+        case '/parent/process-payment':
+            if (isset($_SESSION['user_id']) && $_SESSION['user_role'] === 'parent') {
+                require_once('Controller/ParentController.php');
+                $controller = new ParentController();
+                $controller->processPayment();
             } else {
                 http_response_code(401);
                 echo json_encode(['success' => false, 'message' => 'Unauthorized']);

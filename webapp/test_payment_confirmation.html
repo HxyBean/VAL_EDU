@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Confirmation Test</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            padding: 20px; 
+            max-width: 800px; 
+            margin: 0 auto; 
+        }
+        .test-section { 
+            margin: 20px 0; 
+            padding: 20px; 
+            border: 1px solid #ddd; 
+            border-radius: 8px; 
+        }
+        button { 
+            padding: 10px 20px; 
+            margin: 10px 5px; 
+            background: #007bff; 
+            color: white; 
+            border: none; 
+            border-radius: 4px; 
+            cursor: pointer; 
+        }
+        button:hover { background: #0056b3; }
+        .result { 
+            background: #f8f9fa; 
+            padding: 15px; 
+            margin: 10px 0; 
+            border-radius: 5px; 
+            white-space: pre-wrap; 
+            font-family: monospace; 
+            max-height: 400px; 
+            overflow-y: auto; 
+        }
+        .success { background-color: #d4edda; border-left: 4px solid #28a745; }
+        .error { background-color: #f8d7da; border-left: 4px solid #dc3545; }
+    </style>
+</head>
+<body>
+    <h1>Payment System Integration Test</h1>
+    
+    <div class="test-section">
+        <h2>1. Simulate Parent Login</h2>
+        <button onclick="simulateLogin()">Login as Parent (ID: 1)</button>
+        <div id="loginResult" class="result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>2. Get Bills</h2>
+        <button onclick="getBills()">Load Children's Bills</button>
+        <div id="billsResult" class="result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>3. Test Payment Processing</h2>
+        <button onclick="processTestPayment()">Process First Available Payment</button>
+        <div id="paymentResult" class="result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>4. Verify Database Record</h2>
+        <button onclick="checkPaymentRecords()">Check Payment Records in DB</button>
+        <div id="dbResult" class="result"></div>
+    </div>
+
+    <script>
+        let currentBills = [];
+
+        async function simulateLogin() {
+            const resultDiv = document.getElementById('loginResult');
+            try {
+                // First set session by making a request to a login endpoint
+                const response = await fetch('set_student_session.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: 'user_id=1&role=parent&username=parent_test'
+                });
+                
+                if (response.ok) {
+                    resultDiv.className = 'result success';
+                    resultDiv.textContent = '✓ Successfully simulated parent login (User ID: 1)';
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.textContent = '✗ Failed to simulate login';
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = '✗ Error: ' + error.message;
+            }
+        }
+
+        async function getBills() {
+            const resultDiv = document.getElementById('billsResult');
+            try {
+                const response = await fetch('api/parent/bills');
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentBills = data.bills;
+                    resultDiv.className = 'result success';
+                    resultDiv.textContent = `✓ Found ${data.bills.length} bills:\n` + 
+                        JSON.stringify(data.bills, null, 2);
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.textContent = '✗ Failed to get bills: ' + data.message;
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = '✗ Error: ' + error.message;
+            }
+        }
+
+        async function processTestPayment() {
+            const resultDiv = document.getElementById('paymentResult');
+            
+            if (currentBills.length === 0) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = '✗ No bills available. Please load bills first.';
+                return;
+            }
+
+            const firstBill = currentBills[0];
+            
+            try {
+                const formData = new FormData();
+                formData.append('payment_id', firstBill.id);
+                
+                const response = await fetch('api/parent/process-payment', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultDiv.className = 'result success';
+                    resultDiv.textContent = `✓ Payment processed successfully!\n` +
+                        `Payment ID: ${data.payment_id}\n` +
+                        `Message: ${data.message}\n` +
+                        `Updated Stats: ${JSON.stringify(data.updated_stats, null, 2)}\n` +
+                        `Recent Payments: ${JSON.stringify(data.recent_payments, null, 2)}`;
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.textContent = '✗ Payment failed: ' + data.message;
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = '✗ Error: ' + error.message;
+            }
+        }
+
+        async function checkPaymentRecords() {
+            const resultDiv = document.getElementById('dbResult');
+            try {
+                const response = await fetch('check_payment_records.php');
+                const html = await response.text();
+                
+                resultDiv.className = 'result success';
+                resultDiv.innerHTML = html;
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = '✗ Error: ' + error.message;
+            }
+        }
+    </script>
+</body>
+</html>

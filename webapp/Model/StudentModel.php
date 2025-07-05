@@ -431,6 +431,62 @@ class StudentModel extends BaseModel {
         }
     }
     
+    public function sendParentConnectionRequest($student_id, $parent_email, $message = '') {
+        try {
+            // Check if parent exists
+            $sql = "SELECT id FROM users WHERE email = ? AND role = 'parent'";
+            $stmt = $this->db->prepare($sql);
+            if (!$stmt) {
+                error_log("Prepare failed: " . $this->db->error);
+                return false;
+            }
+            
+            $stmt->bind_param("s", $parent_email);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            $parent = $result->fetch_assoc();
+            $stmt->close();
+            
+            if (!$parent) {
+                throw new Exception('Không tìm thấy phụ huynh với email này trong hệ thống');
+            }
+            
+            // Check if connection already exists
+            $sql = "SELECT id FROM parent_student_connections 
+                    WHERE parent_id = ? AND student_id = ? 
+                    AND status IN ('pending', 'active')";
+            $stmt = $this->db->prepare($sql);
+            $stmt->bind_param("ii", $parent['id'], $student_id);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            
+            if ($result->num_rows > 0) {
+                $stmt->close();
+                throw new Exception('Đã có yêu cầu kết nối hoặc đã kết nối với phụ huynh này');
+            }
+            $stmt->close();
+            
+            // Create connection request
+            $sql = "INSERT INTO parent_student_connections 
+                    (parent_id, student_id, status, request_message, created_at) 
+                    VALUES (?, ?, 'pending', ?, NOW())";
+            $stmt = $this->db->prepare($sql);
+            $stmt->bind_param("iis", $parent['id'], $student_id, $message);
+            
+            if ($stmt->execute()) {
+                $stmt->close();
+                return true;
+            } else {
+                $stmt->close();
+                return false;
+            }
+            
+        } catch (Exception $e) {
+            error_log("Error sending parent connection request: " . $e->getMessage());
+            throw $e;
+        }
+    }
+    
     public function getConnection() {
         return $this->db;
     }

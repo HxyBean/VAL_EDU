@@ -311,13 +311,45 @@ class AdminController extends BaseController {
                 'max_students' => intval($_POST['max_students']),
                 'sessions_total' => intval($_POST['sessions_total']),
                 'price_per_session' => floatval($_POST['price_per_session']),
-                'schedule_time' => $_POST['schedule_time'],
+                'schedule_time' => trim($_POST['schedule_time']),
                 'schedule_duration' => intval($_POST['schedule_duration']),
-                'schedule_days' => $_POST['schedule_days'],
-                'start_date' => $_POST['start_date'],
-                'end_date' => $_POST['end_date'],
+                'schedule_days' => trim($_POST['schedule_days']),
+                'start_date' => trim($_POST['start_date']),
+                'end_date' => trim($_POST['end_date']),
                 'tutor_id' => !empty($_POST['tutor_id']) ? intval($_POST['tutor_id']) : null
             ];
+            
+            // Validate and format schedule time
+            if (!empty($data['schedule_time'])) {
+                // Accept both H:MM and HH:MM formats
+                if (preg_match('/^\d{1,2}:\d{2}$/', $data['schedule_time'])) {
+                    // Format to ensure HH:MM:SS format (pad hour with zero if needed and add seconds)
+                    $timeComponents = explode(':', $data['schedule_time']);
+                    $hour = str_pad($timeComponents[0], 2, '0', STR_PAD_LEFT);
+                    $minute = $timeComponents[1];
+                    $data['schedule_time'] = $hour . ':' . $minute . ':00';
+                } else {
+                    // Try to convert from other formats
+                    $time = date('H:i:s', strtotime($data['schedule_time']));
+                    if ($time === false) {
+                        throw new Exception('Định dạng giờ học không hợp lệ. Vui lòng sử dụng định dạng H:MM hoặc HH:MM (ví dụ: 7:00 hoặc 14:30)');
+                    }
+                    $data['schedule_time'] = $time;
+                }
+                
+                // Additional validation for reasonable time range
+                $timeComponents = explode(':', $data['schedule_time']);
+                $hour = intval($timeComponents[0]);
+                $minute = intval($timeComponents[1]);
+                
+                if ($hour < 6 || $hour > 22) {
+                    throw new Exception('Giờ học phải trong khoảng từ 06:00 đến 22:00');
+                }
+                
+                if ($minute < 0 || $minute > 59) {
+                    throw new Exception('Phút không hợp lệ (0-59)');
+                }
+            }
             
             // Validate dates
             if (strtotime($data['start_date']) >= strtotime($data['end_date'])) {
@@ -553,9 +585,10 @@ class AdminController extends BaseController {
     
     // API endpoint for updating course
     public function updateCourse() {
+        // Start output buffering to catch any unwanted output
+        ob_start();
+        
         header('Content-Type: application/json');
-        error_reporting(E_ALL);
-        ini_set('display_errors', '0');
         
         try {
             if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -595,13 +628,50 @@ class AdminController extends BaseController {
                 'max_students' => intval($_POST['max_students']),
                 'sessions_total' => intval($_POST['sessions_total']),
                 'price_per_session' => floatval($_POST['price_per_session']),
-                'schedule_time' => $_POST['schedule_time'],
+                'schedule_time' => trim($_POST['schedule_time']),
                 'schedule_duration' => intval($_POST['schedule_duration']),
-                'schedule_days' => $_POST['schedule_days'],
-                'start_date' => $_POST['start_date'],
-                'end_date' => $_POST['end_date'],
+                'schedule_days' => trim($_POST['schedule_days']),
+                'start_date' => trim($_POST['start_date']),
+                'end_date' => trim($_POST['end_date']),
                 'tutor_id' => !empty($_POST['tutor_id']) ? intval($_POST['tutor_id']) : null
             ];
+            
+            // Validate and format schedule time
+            if (!empty($data['schedule_time'])) {
+                // Accept both H:MM and HH:MM formats
+                if (preg_match('/^\d{1,2}:\d{2}$/', $data['schedule_time'])) {
+                    // Format to ensure HH:MM:SS format (pad hour with zero if needed and add seconds)
+                    $timeComponents = explode(':', $data['schedule_time']);
+                    $hour = str_pad($timeComponents[0], 2, '0', STR_PAD_LEFT);
+                    $minute = $timeComponents[1];
+                    $data['schedule_time'] = $hour . ':' . $minute . ':00';
+                } else {
+                    // Try to convert from other formats
+                    $time = date('H:i:s', strtotime($data['schedule_time']));
+                    if ($time === false) {
+                        throw new Exception('Định dạng giờ học không hợp lệ. Vui lòng sử dụng định dạng H:MM hoặc HH:MM (ví dụ: 7:00 hoặc 14:30)');
+                    }
+                    $data['schedule_time'] = $time;
+                }
+                
+                // Additional validation for reasonable time range
+                $timeComponents = explode(':', $data['schedule_time']);
+                $hour = intval($timeComponents[0]);
+                $minute = intval($timeComponents[1]);
+                
+                if ($hour < 6 || $hour > 22) {
+                    throw new Exception('Giờ học phải trong khoảng từ 06:00 đến 22:00');
+                }
+                
+                if ($minute < 0 || $minute > 59) {
+                    throw new Exception('Phút không hợp lệ (0-59)');
+                }
+            }
+            
+            // Validate schedule days format
+            if (!preg_match('/^(CN|T[2-7])(,(CN|T[2-7]))*$/', $data['schedule_days'])) {
+                throw new Exception('Định dạng ngày học không hợp lệ. Ví dụ: T2,T4,T6');
+            }
 
             // Additional validations
             if ($data['max_students'] <= 0) {
@@ -625,6 +695,9 @@ class AdminController extends BaseController {
             // Perform update
             $result = $this->adminModel->updateCourse($courseId, $data);
             
+            // Clear any buffered output before sending response
+            ob_clean();
+            
             if ($result === true) {
                 echo json_encode([
                     'success' => true,
@@ -637,11 +710,16 @@ class AdminController extends BaseController {
         } catch (Exception $e) {
             error_log("Error in updateCourse: " . $e->getMessage());
             error_log("Stack trace: " . $e->getTraceAsString());
-            http_response_code(400);
+            
+            // Clear any buffered output before sending error response
+            ob_clean();
+            
             echo json_encode([
                 'success' => false,
                 'message' => $e->getMessage()
             ]);
+        } finally {
+            ob_end_flush();
         }
         exit();
     }
@@ -1376,6 +1454,40 @@ class AdminController extends BaseController {
                 'success' => false,
                 'message' => $e->getMessage()
             ]);
+        }
+        exit();
+    }
+
+    // API endpoint for getting student schedule
+    public function getStudentSchedule() {
+        header('Content-Type: application/json');
+        
+        if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
+            http_response_code(401);
+            echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+            exit();
+        }
+        
+        try {
+            $studentId = intval($_GET['student_id'] ?? 0);
+            $start_date = $_GET['start_date'] ?? null;
+            $end_date = $_GET['end_date'] ?? null;
+            
+            if ($studentId <= 0) {
+                echo json_encode(['success' => false, 'message' => 'Invalid student ID']);
+                exit();
+            }
+            
+            $schedule = $this->adminModel->getStudentSchedule($studentId, $start_date, $end_date);
+            
+            echo json_encode([
+                'success' => true,
+                'schedule' => $schedule
+            ]);
+            
+        } catch (Exception $e) {
+            error_log("Error getting student schedule: " . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Error loading schedule']);
         }
         exit();
     }

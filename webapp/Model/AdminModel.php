@@ -575,7 +575,7 @@ class AdminModel extends BaseModel {
                 throw new Exception("Database prepare error: " . $this->db->error);
             }
             
-            $stmt->bind_param("sisssididssss",
+            $stmt->bind_param("sisssiidsisss",
                 $data['class_name'],
                 $data['class_year'],
                 $data['class_level'],
@@ -946,6 +946,7 @@ public function updateCourse($courseId, $data) {
         
         $result = $stmt->get_result();
         if ($result->num_rows === 0) {
+            $stmt->close();
             throw new Exception("Course not found");
         }
         $stmt->close();
@@ -990,22 +991,35 @@ public function updateCourse($courseId, $data) {
             throw new Exception("Database prepare error: " . $this->db->error);
         }
 
-        // Correct bind_param: 14 parameters total
-        // s=string, i=integer
-        $stmt->bind_param("sisssididsssi",
-            $data['class_name'],
-            $data['class_year'],
-            $data['class_level'],
-            $data['subject'],
-            $data['description'],
-            $data['max_students'],
-            $data['sessions_total'],
-            $data['price_per_session'],
-            $data['schedule_time'],
-            $data['schedule_duration'],
-            $data['schedule_days'],
-            $data['start_date'],
-            $data['end_date'],
+        // Bind parameters with proper data validation
+        $class_name = $data['class_name'] ?? '';
+        $class_year = intval($data['class_year'] ?? 0);
+        $class_level = $data['class_level'] ?? '';
+        $subject = $data['subject'] ?? '';
+        $description = $data['description'] ?? '';
+        $max_students = intval($data['max_students'] ?? 0);
+        $sessions_total = intval($data['sessions_total'] ?? 0);
+        $price_per_session = floatval($data['price_per_session'] ?? 0);
+        $schedule_time = $data['schedule_time'] ?? '';
+        $schedule_duration = intval($data['schedule_duration'] ?? 0);
+        $schedule_days = $data['schedule_days'] ?? '';
+        $start_date = $data['start_date'] ?? '';
+        $end_date = $data['end_date'] ?? '';
+        
+        $stmt->bind_param("sisssiidsisssi",
+            $class_name,
+            $class_year,
+            $class_level,
+            $subject,
+            $description,
+            $max_students,
+            $sessions_total,
+            $price_per_session,
+            $schedule_time,
+            $schedule_duration,
+            $schedule_days,
+            $start_date,
+            $end_date,
             $courseId
         );
 
@@ -1023,16 +1037,27 @@ public function updateCourse($courseId, $data) {
             // Remove existing tutor assignments
             $deleteSql = "DELETE FROM class_tutors WHERE class_id = ?";
             $deleteStmt = $this->db->prepare($deleteSql);
+            if (!$deleteStmt) {
+                throw new Exception("Failed to prepare delete statement: " . $this->db->error);
+            }
+            
             $deleteStmt->bind_param("i", $courseId);
-            $deleteStmt->execute();
+            if (!$deleteStmt->execute()) {
+                throw new Exception("Failed to delete existing tutor assignments: " . $deleteStmt->error);
+            }
             $deleteStmt->close();
             
             // Add new tutor assignment if specified
-            if (!empty($data['tutor_id'])) {
+            if (!empty($data['tutor_id']) && intval($data['tutor_id']) > 0) {
                 $insertSql = "INSERT INTO class_tutors (tutor_id, class_id, assigned_date, status) 
                              VALUES (?, ?, CURDATE(), 'active')";
                 $insertStmt = $this->db->prepare($insertSql);
-                $insertStmt->bind_param("ii", $data['tutor_id'], $courseId);
+                if (!$insertStmt) {
+                    throw new Exception("Failed to prepare insert statement: " . $this->db->error);
+                }
+                
+                $tutorId = intval($data['tutor_id']);
+                $insertStmt->bind_param("ii", $tutorId, $courseId);
                 
                 if (!$insertStmt->execute()) {
                     throw new Exception("Failed to assign tutor: " . $insertStmt->error);
@@ -1046,7 +1071,9 @@ public function updateCourse($courseId, $data) {
         return true;
 
     } catch (Exception $e) {
-        $this->db->rollback();
+        if ($this->db->in_transaction) {
+            $this->db->rollback();
+        }
         error_log("Error in updateCourse: " . $e->getMessage());
         throw $e;
     }
@@ -1633,7 +1660,6 @@ public function checkTutorScheduleConflict($tutorId, $scheduleTime, $scheduleDur
     }
 }
 
-
 private function parseScheduleDays($scheduleDaysStr) {
     $daysMap = [
         'CN' => 0, 'T2' => 1, 'T3' => 2, 'T4' => 3,
@@ -1724,8 +1750,8 @@ public function removeFromCourse($studentId, $courseId) {
 
 // Add this method for debugging purposes
 public function getConnection() {
-        return $this->db;
-    }
+    return $this->db;
+}
 
     public function getAllParents($limit = 20, $offset = 0) {
         try {
@@ -2387,6 +2413,53 @@ public function searchStudentsForLink($searchTerm, $parentId) {
             $this->db->rollback();
             error_log("Error linking parent and student: " . $e->getMessage());
             throw $e;
+        }
+    }
+
+    public function getStudentSchedule($studentId, $start_date = null, $end_date = null) {
+        try {
+            $sql = "SELECT c.*, e.enrollment_date, e.status as enrollment_status,
+                           ct.tutor_id, u.full_name as instructor_name, u.email as instructor_email,
+                           COUNT(DISTINCT s.id) as sessions_completed
+                    FROM classes c 
+                    INNER JOIN enrollments e ON c.id = e.class_id
+                    LEFT JOIN class_tutors ct ON c.id = ct.class_id AND ct.status = 'active'
+                    LEFT JOIN users u ON ct.tutor_id = u.id
+                    LEFT JOIN sessions s ON c.id = s.class_id AND s.status = 'completed'
+                    WHERE e.student_id = ? AND e.status = 'active' AND c.status = 'active'";
+            
+            $params = [$studentId];
+            
+            if ($start_date && $end_date) {
+                $sql .= " AND ((c.start_date BETWEEN ? AND ?) OR (c.end_date BETWEEN ? AND ?) OR (c.start_date <= ? AND c.end_date >= ?))";
+                $params = array_merge($params, [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+            }
+            
+            $sql .= " GROUP BY c.id ORDER BY c.start_date";
+            
+            $stmt = $this->db->prepare($sql);
+            if (!$stmt) {
+                error_log("Prepare failed: " . $this->db->error);
+                return [];
+            }
+            
+            $types = str_repeat('s', count($params));
+            $stmt->bind_param($types, ...$params);
+            
+            if (!$stmt->execute()) {
+                error_log("Execute failed: " . $stmt->error);
+                return [];
+            }
+            
+            $result = $stmt->get_result();
+            $schedule = $result->fetch_all(MYSQLI_ASSOC);
+            $stmt->close();
+            
+            return $schedule;
+            
+        } catch (Exception $e) {
+            error_log("Error getting student schedule: " . $e->getMessage());
+            return [];
         }
     }
 }

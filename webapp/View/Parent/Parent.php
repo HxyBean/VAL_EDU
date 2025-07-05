@@ -277,13 +277,24 @@
                 </div>
                 <div class="summary-card pending">
                     <h4>Chờ Thanh Toán</h4>
-                    <span class="amount"><?= number_format($stats['pending_payments'] ?? 0) ?>₫</span>
+                    <span class="amount" id="pending-amount"><?= number_format($stats['pending_payments'] ?? 0) ?>₫</span>
+                </div>
+            </div>
+            
+            <!-- Pending Bills Section -->
+            <div class="bills-section">
+                <h3><i class="fas fa-file-invoice-dollar"></i> Hóa Đơn Cần Thanh Toán</h3>
+                <div id="bills-container">
+                    <div class="loading" id="bills-loading">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <p>Đang tải hóa đơn...</p>
+                    </div>
                 </div>
             </div>
             
             <!-- Payment History -->
             <div class="payment-history">
-                <h3>Lịch Sử Thanh Toán</h3>
+                <h3><i class="fas fa-history"></i> Lịch Sử Thanh Toán</h3>
                 <?php if (isset($payments) && !empty($payments)): ?>
                     <div class="table-container">
                         <table class="payment-table">
@@ -295,39 +306,24 @@
                                     <th>Số Tiền</th>
                                     <th>Phương Thức</th>
                                     <th>Trạng Thái</th>
-                                    <th>Thao Tác</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <?php foreach ($payments as $payment): ?>
+                                    <?php if ($payment['status'] === 'completed'): ?>
                                     <tr>
                                         <td><?= date('d/m/Y', strtotime($payment['payment_date'])) ?></td>
                                         <td><?= htmlspecialchars($payment['student_name']) ?></td>
                                         <td><?= htmlspecialchars($payment['class_name'] ?? 'N/A') ?></td>
-                                        <td><?= number_format($payment['amount']) ?>₫</td>
+                                        <td><?= number_format($payment['final_amount'] ?? $payment['amount']) ?>₫</td>
                                         <td><?= htmlspecialchars($payment['payment_method']) ?></td>
                                         <td>
-                                            <span class="status <?= $payment['status'] ?>">
-                                                <?php
-                                                $statusLabels = [
-                                                    'completed' => 'Hoàn thành',
-                                                    'pending' => 'Chờ xử lý',
-                                                    'failed' => 'Thất bại'
-                                                ];
-                                                echo $statusLabels[$payment['status']] ?? $payment['status'];
-                                                ?>
+                                            <span class="status completed">
+                                                <i class="fas fa-check-circle"></i> Hoàn thành
                                             </span>
                                         </td>
-                                        <td>
-                                            <?php if ($payment['status'] === 'pending'): ?>
-                                                <button class="pay-btn" onclick="showQRPayment(<?= $payment['id'] ?>, '<?= htmlspecialchars($payment['student_name']) ?>', '<?= htmlspecialchars($payment['class_name']) ?>', <?= $payment['final_amount'] ?? $payment['amount'] ?>, '<?= $payment['payment_method'] ?>')">
-                                                    <i class="fas fa-qrcode"></i> Thanh toán
-                                                </button>
-                                            <?php else: ?>
-                                                <span class="text-muted">Đã xử lý</span>
-                                            <?php endif; ?>
-                                        </td>
                                     </tr>
+                                    <?php endif; ?>
                                 <?php endforeach; ?>
                             </tbody>
                         </table>
@@ -686,6 +682,165 @@
             color: #6c757d;
             font-style: italic;
         }
+
+        /* Bills Section Styles */
+        .bills-section {
+            margin-bottom: 40px;
+            background: #fff;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .bills-section h3 {
+            color: #333;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .bills-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .bill-card {
+            background: #fff;
+            border: 1px solid #e9ecef;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .bill-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+        }
+        
+        .bill-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+        }
+        
+        .bill-info h4 {
+            color: #333;
+            margin: 0 0 5px 0;
+            font-size: 18px;
+        }
+        
+        .bill-info .student-name {
+            color: #666;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .bill-amount {
+            text-align: right;
+        }
+        
+        .bill-amount .amount {
+            font-size: 24px;
+            font-weight: bold;
+            color: #e74c3c;
+            display: block;
+        }
+        
+        .bill-amount .currency {
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .bill-details {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        
+        .bill-detail-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        
+        .bill-detail-row:last-child {
+            margin-bottom: 0;
+        }
+        
+        .bill-detail-row .label {
+            color: #666;
+        }
+        
+        .bill-detail-row .value {
+            font-weight: 500;
+            color: #333;
+        }
+        
+        .bill-actions {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        
+        .pay-btn-primary {
+            flex: 1;
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .pay-btn-primary:hover {
+            background: linear-gradient(135deg, #218838, #1ea080);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+        }
+        
+        .pay-btn-primary:active {
+            transform: translateY(0);
+        }
+        
+        .no-bills {
+            text-align: center;
+            padding: 40px 20px;
+            color: #666;
+        }
+        
+        .no-bills i {
+            font-size: 48px;
+            margin-bottom: 15px;
+            color: #28a745;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px 20px;
+            color: #666;
+        }
+        
+        .loading i {
+            font-size: 36px;
+            margin-bottom: 15px;
+            color: #007bff;
+        }
     </style>
 
     <script>
@@ -693,6 +848,7 @@
         const parentData = <?= json_encode([
             'children' => $children ?? [],
             'payments' => $payments ?? [],
+            'bills' => $bills ?? [],
             'stats' => $stats ?? [],
             'notifications' => $notifications ?? [],
             'user_name' => $user_name ?? '',
