@@ -1755,3 +1755,268 @@ body {
     font-size: 0.9rem;
     margin-top: 10px;
 }
+
+/* Add Students To Course Modal Styles */
+.course-info-section {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    border-left: 4px solid #108AB1;
+}
+
+.course-info-section h4 {
+    color: #073A4B;
+    margin: 0 0 8px 0;
+    font-size: 1.1rem;
+}
+
+.course-info-section p {
+    margin: 4px 0;
+    color: #6c757d;
+    font-size: 0.95rem;
+}
+
+.search-section {
+    margin-bottom: 20px;
+}
+
+.search-box {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.search-box i {
+    position: absolute;
+    left: 12px;
+    color: #6c757d;
+    z-index: 2;
+}
+
+.search-box input {
+    width: 100%;
+    padding: 12px 40px 12px 40px;
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: border-color 0.3s ease;
+}
+
+.search-box input:focus {
+    outline: none;
+    border-color: #108AB1;
+    box-shadow: 0 0 0 3px rgba(16, 138, 177, 0.1);
+}
+
+.clear-search-btn {
+    position: absolute;
+    right: 8px;
+    background: none;
+    border: none;
+    padding: 8px;
+    cursor: pointer;
+    color: #6c757d;
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+    z-index: 2;
+}
+
+.clear-search-btn:hover {
+    background-color: #f8f9fa;
+    color: #dc3545;
+}
+
+.students-selection-section {
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.selection-header {
+    background: #f8f9fa;
+    padding: 15px 20px;
+    border-bottom: 1px solid #e9ecef;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.select-all-section {
+    display: flex;
+    align-items: center;
+}
+
+.checkbox-container {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    position: relative;
+}
+
+.checkbox-container input[type="checkbox"] {
+    opacity: 0;
+    position: absolute;
+    cursor: pointer;
+}
+
+.checkmark {
+    height: 18px;
+    width: 18px;
+    background-color: #fff;
+    border: 2px solid #e9ecef;
+    border-radius: 3px;
+    margin-right: 8px;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.checkbox-container:hover .checkmark {
+    border-color: #108AB1;
+}
+
+.checkbox-container input:checked ~ .checkmark {
+    background-color: #108AB1;
+    border-color: #108AB1;
+}
+
+.checkmark:after {
+    content: "\f00c";
+    font-family: "Font Awesome 6 Free";
+    font-weight: 900;
+    color: white;
+    font-size: 10px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.checkbox-container input:checked ~ .checkmark:after {
+    opacity: 1;
+}
+
+.checkbox-label {
+    font-weight: 500;
+    color: #073A4B;
+}
+
+.selected-count {
+    color: #6c757d;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.students-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.student-item {
+    padding: 15px 20px;
+    border-bottom: 1px solid #e9ecef;
+    transition: background-color 0.2s ease;
+    cursor: pointer;
+}
+
+.student-item:hover {
+    background-color: #f8f9fa;
+}
+
+.student-item:last-child {
+    border-bottom: none;
+}
+
+.student-item-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.student-info {
+    display: flex;
+    align-items: center;
+    flex: 1;
+}
+
+.student-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #108AB1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    margin-right: 15px;
+    font-size: 14px;
+}
+
+.student-details h5 {
+    margin: 0 0 4px 0;
+    color: #073A4B;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.student-details p {
+    margin: 0;
+    color: #6c757d;
+    font-size: 0.85rem;
+}
+
+.student-status {
+    margin-left: 15px;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.student-status.active {
+    background: #d4edda;
+    color: #155724;
+}
+
+.student-status.inactive {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.no-students-found {
+    text-align: center;
+    padding: 40px 20px;
+    color: #6c757d;
+}
+
+.no-students-found i {
+    font-size: 3rem;
+    margin-bottom: 15px;
+    color: #e9ecef;
+}
+
+.no-students-found h5 {
+    margin: 0 0 8px 0;
+    color: #6c757d;
+}
+
+.loading-students {
+    text-align: center;
+    padding: 40px 20px;
+    color: #6c757d;
+}
+
+.loading-students i {
+    font-size: 2rem;
+    margin-bottom: 15px;
+    animation: spin 1s linear infinite;
+}
+
+/* Search highlighting */
+.highlight {
+    background-color: #fff3cd;
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-weight: 600;
+}

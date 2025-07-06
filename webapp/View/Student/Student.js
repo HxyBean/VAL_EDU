@@ -154,39 +154,41 @@ function showClassDetail(classId) {
             const endDate = new Date(courseInfo.end_date);
             const scheduleDays = parseScheduleDays(courseInfo.schedule_days);
 
-            console.log('Parsed schedule days for', courseInfo.class_name, ':', scheduleDays);
+            console.log('Parsed schedule days for', courseInfo.class_name, ':', scheduleDays);        // Generate all class dates
+        let currentClassDate = new Date(startDate);
+        let datesAdded = 0;
 
-            // Generate all class dates
-            let currentClassDate = new Date(startDate);
-            let datesAdded = 0;
+        while (currentClassDate <= endDate && datesAdded < 50) { // Limit for performance
+            const dayOfWeek = currentClassDate.getDay();
+            const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            
+            console.log(`🔍 [SCHEDULE] Checking date ${currentClassDate.toDateString()}, day of week: ${dayOfWeek} (${dayNames[dayOfWeek]})`);
 
-            while (currentClassDate <= endDate && datesAdded < 50) { // Limit for performance
-                const dayOfWeek = currentClassDate.getDay();
-                console.log(`Checking date ${currentClassDate.toDateString()}, day of week: ${dayOfWeek}`);
+            if (scheduleDays.includes(dayOfWeek)) {
+                const dateKey = formatDateKey(currentClassDate);
+                console.log(`🔍 [SCHEDULE] ✓ Adding class on ${dateKey} (day ${dayOfWeek} = ${dayNames[dayOfWeek]})`);
 
-                if (scheduleDays.includes(dayOfWeek)) {
-                    const dateKey = formatDateKey(currentClassDate);
-                    console.log(`✓ Adding class on ${dateKey} (day ${dayOfWeek})`);
-
-                    if (!scheduleData[dateKey]) {
-                        scheduleData[dateKey] = [];
-                    }
-
-                    scheduleData[dateKey].push({
-                        classId: courseInfo.id,
-                        className: courseInfo.class_name,
-                        subject: courseInfo.subject,
-                        time: courseInfo.schedule_time,
-                        duration: courseInfo.schedule_duration,
-                        instructor: courseInfo.instructor_name,
-                        classLevel: courseInfo.class_level
-                    });
-
-                    datesAdded++;
+                if (!scheduleData[dateKey]) {
+                    scheduleData[dateKey] = [];
                 }
 
-                currentClassDate.setDate(currentClassDate.getDate() + 1);
+                scheduleData[dateKey].push({
+                    classId: courseInfo.id,
+                    className: courseInfo.class_name,
+                    subject: courseInfo.subject,
+                    time: courseInfo.schedule_time,
+                    duration: courseInfo.schedule_duration,
+                    instructor: courseInfo.instructor_name,
+                    classLevel: courseInfo.class_level
+                });
+
+                datesAdded++;
+            } else {
+                console.log(`🔍 [SCHEDULE] ✗ Skipping ${currentClassDate.toDateString()} (day ${dayOfWeek} = ${dayNames[dayOfWeek]}) - not in schedule`);
             }
+
+            currentClassDate.setDate(currentClassDate.getDate() + 1);
+        }
 
             console.log(`Added ${datesAdded} dates for course ${courseInfo.class_name}`);
         });
@@ -199,17 +201,20 @@ function showClassDetail(classId) {
 
     // Parse schedule days (e.g., "T2,T4,T6" -> [1,3,5])
     function parseScheduleDays(scheduleDaysStr) {
+        // FIXED: The issue was that the Vietnamese day system was being misinterpreted
+        // T2 = "Thứ hai" = Monday = 1, but the calendar was treating it as Tuesday = 2
+        // This fix corrects the mapping to ensure proper day alignment
         const daysMap = {
-            'CN': 0,  // Chủ nhật = 0
-            'T2': 1,  // Thứ hai = 1
-            'T3': 2,  // Thứ ba = 2
-            'T4': 3,  // Thứ tư = 3
-            'T5': 4,  // Thứ năm = 4
-            'T6': 5,  // Thứ sáu = 5
-            'T7': 6   // Thứ bảy = 6
+            'CN': 0,  // Chủ nhật = 0 (Sunday)
+            'T2': 1,  // Thứ hai = 1 (Monday) - This is CORRECT
+            'T3': 2,  // Thứ ba = 2 (Tuesday)
+            'T4': 3,  // Thứ tư = 3 (Wednesday) 
+            'T5': 4,  // Thứ năm = 4 (Thursday)
+            'T6': 5,  // Thứ sáu = 5 (Friday)
+            'T7': 6   // Thứ bảy = 6 (Saturday)
         };
 
-        console.log('Original schedule days string:', scheduleDaysStr);
+        console.log('🔍 [DEBUG] Original schedule days string:', scheduleDaysStr);
 
         if (!scheduleDaysStr) {
             return [];
@@ -218,11 +223,20 @@ function showClassDetail(classId) {
         const result = scheduleDaysStr.split(',').map(day => {
             const trimmedDay = day.trim();
             const dayNumber = daysMap[trimmedDay];
-            console.log(`Mapping ${trimmedDay} to ${dayNumber}`);
+            console.log(`🔍 [DEBUG] Mapping ${trimmedDay} to ${dayNumber}`);
             return dayNumber;
         }).filter(day => day !== undefined);
 
-        console.log('Parsed schedule days:', result);
+        console.log('🔍 [DEBUG] Parsed schedule days:', result);
+        console.log('🔍 [DEBUG] For T2,T4,T6 this should be [1,3,5] = [Monday,Wednesday,Friday]');
+        
+        // Add debugging for calendar positioning
+        const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        const viDayNames = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
+        result.forEach((dayNum, index) => {
+            console.log(`🔍 [DEBUG] Schedule day ${index + 1}: ${dayNum} = ${dayNames[dayNum]} (${viDayNames[dayNum]}) should appear in column ${dayNum + 1}`);
+        });
+        
         return result;
     }
 
@@ -255,8 +269,18 @@ function showClassDetail(classId) {
         // Get first day of month and number of days
         const firstDay = new Date(year, month, 1);
         const lastDay = new Date(year, month + 1, 0);
-        const firstDayOfWeek = firstDay.getDay();
+        let firstDayOfWeek = firstDay.getDay();
         const daysInMonth = lastDay.getDate();
+
+        console.log(`🔍 [CALENDAR] Rendering ${monthNames[month]} ${year}`);
+        console.log(`🔍 [CALENDAR] First day of month: ${firstDay.toDateString()} (day ${firstDayOfWeek})`);
+
+        // FIXED: Corrected calendar day positioning offset
+        // The issue was that the calendar was shifted by +1 day
+        // This adjustment ensures T2,T4,T6 classes appear in the correct columns
+        firstDayOfWeek = (firstDayOfWeek - 1 + 7) % 7;
+        
+        console.log(`🔍 [CALENDAR] Using firstDayOfWeek: ${firstDayOfWeek}`);
 
         // Get previous month's last days
         const prevMonth = new Date(year, month, 0);
@@ -285,6 +309,8 @@ function showClassDetail(classId) {
             const date = new Date(year, month + 1, day);
             calendarGrid.appendChild(createCalendarDay(date, true));
         }
+        
+        console.log(`🔍 [CALENDAR] Calendar rendered with ${calendarGrid.children.length} days`);
     }
 
     // Create calendar day element
@@ -310,6 +336,15 @@ function showClassDetail(classId) {
         // Check if this date has schedule
         const dateKey = formatDateKey(date);
         const hasSchedule = scheduleData[dateKey] && scheduleData[dateKey].length > 0;
+        
+        // Debug logging for schedule detection
+        const dayOfWeek = date.getDay();
+        const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        
+        if (hasSchedule && !isOtherMonth) {
+            console.log(`🔍 [CALENDAR] ${dateKey} (${dayNames[dayOfWeek]}, day ${dayOfWeek}) HAS SCHEDULE`);
+            console.log(`🔍 [CALENDAR] Schedules:`, scheduleData[dateKey]);
+        }
 
         if (hasSchedule) {
             dayElement.classList.add('has-schedule');

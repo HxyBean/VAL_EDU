@@ -930,6 +930,57 @@
         </div>
     </div>
 
+    <!-- Add Students To Course Modal (New) -->
+    <div id="add-students-to-course-modal" class="modal">
+        <div class="modal-content" style="max-width: 800px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-user-plus"></i> Thêm học viên vào khóa học</h3>
+                <span class="close" onclick="closeAddStudentsToCourseModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="course-info-section" id="selected-course-info">
+                    <!-- Course information will be displayed here -->
+                </div>
+                
+                <div class="search-section">
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="student-search-box" placeholder="Tìm kiếm học viên theo tên, email..." oninput="searchStudentsInModal()">
+                        <button type="button" class="clear-search-btn" onclick="clearStudentSearch()" title="Xóa tìm kiếm">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="students-selection-section">
+                    <div class="selection-header">
+                        <div class="select-all-section">
+                            <label class="checkbox-container">
+                                <input type="checkbox" id="select-all-students" onchange="toggleAllStudents()">
+                                <span class="checkmark"></span>
+                                <span class="checkbox-label">Chọn tất cả</span>
+                            </label>
+                        </div>
+                        <div class="selected-count">
+                            <span id="selected-students-count">0</span> học viên được chọn
+                        </div>
+                    </div>
+
+                    <div class="students-list" id="students-list">
+                        <!-- Students will be loaded here -->
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeAddStudentsToCourseModal()">Hủy</button>
+                    <button type="button" class="btn btn-primary" id="add-selected-students-btn" onclick="addSelectedStudentsToCourse()" disabled>
+                        <i class="fas fa-plus"></i> Thêm học viên đã chọn
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Student Detail Modal -->
     <div id="student-detail-modal" class="modal">
         <div class="modal-content">
