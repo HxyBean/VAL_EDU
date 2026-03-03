@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calendar Day Offset Fix Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 30px 0; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: #ddd; margin: 15px 0; }
+        .day-header { background: #333; color: white; padding: 15px 10px; text-align: center; font-weight: bold; }
+        .calendar-day { background: white; padding: 10px; min-height: 60px; border: 1px solid #ddd; position: relative; }
+        .day-number { font-weight: bold; font-size: 16px; }
+        .day-info { font-size: 11px; color: #666; margin-top: 5px; }
+        .has-schedule { background: #e3f2fd !important; border: 2px solid #108AB1 !important; }
+        .wrong-schedule { background: #ffebee !important; border: 2px solid #f44336 !important; }
+        .debug-info { background: #f0f0f0; padding: 15px; margin: 10px 0; border-radius: 4px; font-family: monospace; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <h1>Calendar Day Offset Diagnostic and Fix</h1>
+    
+    <div class="debug-info">
+        <strong>Problem:</strong> Classes scheduled for T2,T4,T6 (Monday, Wednesday, Friday) appear in T3,T5,T7 columns (Tuesday, Thursday, Saturday).
+        <br><strong>Expected:</strong> T2,T4,T6 should appear in columns 2,4,6 (Monday, Wednesday, Friday)
+        <br><strong>Observed:</strong> They appear in columns 3,5,7 (Tuesday, Thursday, Saturday) - shifted by +1
+    </div>
+
+    <div class="test-section">
+        <h2>❌ Current Broken Behavior</h2>
+        <p>This shows how the calendar is currently displaying incorrectly (shifted by +1 day)</p>
+        <div class="calendar-grid" id="broken-calendar"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>✅ Fixed Behavior</h2>
+        <p>This shows how the calendar should display correctly</p>
+        <div class="calendar-grid" id="fixed-calendar"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>🔧 Root Cause Analysis</h2>
+        <div id="analysis-output"></div>
+    </div>
+
+    <script>
+        function log(message) {
+            const output = document.getElementById('analysis-output');
+            output.innerHTML += '<div class="debug-info">' + message + '</div>';
+            console.log(message);
+        }
+
+        // Standard parsing function (correct)
+        function parseScheduleDays(scheduleDaysStr) {
+            const daysMap = {
+                'CN': 0, 'T2': 1, 'T3': 2, 'T4': 3, 'T5': 4, 'T6': 5, 'T7': 6
+            };
+            return scheduleDaysStr.split(',').map(day => daysMap[day.trim()]).filter(day => day !== undefined);
+        }
+
+        // Simulate the broken behavior (off by one)
+        function parseScheduleDaysBroken(scheduleDaysStr) {
+            const daysMap = {
+                'CN': 1, 'T2': 2, 'T3': 3, 'T4': 4, 'T5': 5, 'T6': 6, 'T7': 0  // Shifted by +1
+            };
+            return scheduleDaysStr.split(',').map(day => daysMap[day.trim()]).filter(day => day !== undefined);
+        }
+
+        function createCalendar(containerId, useBrokenLogic = false) {
+            const container = document.getElementById(containerId);
+            const headers = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
+            
+            // Add headers
+            headers.forEach((header, index) => {
+                const headerDiv = document.createElement('div');
+                headerDiv.className = 'day-header';
+                headerDiv.textContent = `${header} (${index})`;
+                container.appendChild(headerDiv);
+            });
+
+            // Test with July 2025
+            const testSchedule = "T2,T4,T6";
+            const scheduleDays = useBrokenLogic ? 
+                parseScheduleDaysBroken(testSchedule) : 
+                parseScheduleDays(testSchedule);
+            
+            log(`${useBrokenLogic ? 'BROKEN' : 'FIXED'}: T2,T4,T6 maps to [${scheduleDays.join(',')}]`);
+
+            // Create first week of July 2025
+            for (let day = 1; day <= 7; day++) {
+                const date = new Date(2025, 6, day); // July 2025
+                const dayOfWeek = date.getDay();
+                const hasSchedule = scheduleDays.includes(dayOfWeek);
+                
+                const dayDiv = document.createElement('div');
+                dayDiv.className = 'calendar-day';
+                if (hasSchedule) {
+                    dayDiv.classList.add(useBrokenLogic ? 'wrong-schedule' : 'has-schedule');
+                }
+                
+                dayDiv.innerHTML = `
+                    <div class="day-number">${day}</div>
+                    <div class="day-info">
+                        ${headers[dayOfWeek]}<br>
+                        Day: ${dayOfWeek}<br>
+                        ${hasSchedule ? (useBrokenLogic ? 'WRONG: Schedule' : 'CORRECT: Schedule') : 'No schedule'}
+                    </div>
+                `;
+                container.appendChild(dayDiv);
+            }
+        }
+
+        // Diagnose the issue
+        function diagnoseIssue() {
+            log('=== DIAGNOSIS ===');
+            log('Testing July 2025 first week:');
+            
+            const correctSchedule = parseScheduleDays("T2,T4,T6");
+            const brokenSchedule = parseScheduleDaysBroken("T2,T4,T6");
+            
+            log(`Correct mapping: T2,T4,T6 → [${correctSchedule.join(',')}] = [Monday,Wednesday,Friday]`);
+            log(`Broken mapping: T2,T4,T6 → [${brokenSchedule.join(',')}] = [Tuesday,Thursday,Saturday]`);
+            
+            // Check specific dates
+            for (let day = 1; day <= 7; day++) {
+                const date = new Date(2025, 6, day);
+                const dayOfWeek = date.getDay();
+                const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+                const hasCorrectSchedule = correctSchedule.includes(dayOfWeek);
+                const hasBrokenSchedule = brokenSchedule.includes(dayOfWeek);
+                
+                log(`July ${day}: ${dayNames[dayOfWeek]} (${dayOfWeek}) - Correct: ${hasCorrectSchedule}, Broken: ${hasBrokenSchedule}`);
+            }
+            
+            log('');
+            log('CONCLUSION: The issue is likely that somewhere in the system, the day mapping is shifted by +1.');
+            log('Possible causes:');
+            log('1. parseScheduleDays function is using wrong mapping');
+            log('2. Calendar rendering has off-by-one error');
+            log('3. Backend is storing days with wrong numbering');
+            log('4. Date calculation logic has timezone or indexing issues');
+        }
+
+        // Initialize
+        createCalendar('broken-calendar', true);
+        createCalendar('fixed-calendar', false);
+        diagnoseIssue();
+    </script>
+</body>
+</html>

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Payment API</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        button { padding: 10px; margin: 10px; }
+        .result { background: #f0f0f0; padding: 10px; margin: 10px; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <h1>Test Payment API</h1>
+    
+    <button onclick="testBillsAPI()">Test Bills API</button>
+    <button onclick="testProcessPayment()">Test Process Payment</button>
+    
+    <div id="result"></div>
+
+    <script>
+        async function testBillsAPI() {
+            try {
+                const response = await fetch('/webapp/api/parent/bills');
+                const data = await response.json();
+                document.getElementById('result').innerHTML = `
+                    <h3>Bills API Result:</h3>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                document.getElementById('result').innerHTML = `
+                    <h3>Error:</h3>
+                    <p>${error.message}</p>
+                `;
+            }
+        }
+        
+        async function testProcessPayment() {
+            try {
+                const formData = new FormData();
+                formData.append('payment_id', 'test_123');
+                
+                const response = await fetch('/webapp/api/parent/process-payment', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+                document.getElementById('result').innerHTML = `
+                    <h3>Process Payment Result:</h3>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                document.getElementById('result').innerHTML = `
+                    <h3>Error:</h3>
+                    <p>${error.message}</p>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

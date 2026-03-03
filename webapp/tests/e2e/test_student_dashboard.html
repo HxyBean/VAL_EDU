@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Dashboard Test</title>
+    <link rel="stylesheet" href="/webapp/View/Partial/Footer.css">
+    <link rel="stylesheet" href="/webapp/View/Partial/HomeHeader.css">
+    <link rel="stylesheet" href="/webapp/View/Partial/DashboardHeader.css">
+    <link rel="stylesheet" href="/webapp/View/Partial/DashboardNavbar.css">
+    <link rel="stylesheet" href="/webapp/View/Student/Student.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="debug-info" style="background: #f0f0f0; padding: 10px; margin: 10px; border-radius: 4px;">
+        <h3>Student Dashboard Debug Test</h3>
+        <p>This page simulates a logged-in student to test the calendar functionality.</p>
+        <div id="debug-output"></div>
+    </div>
+
+    <main class="main-content">
+        <section id="overview" class="content-section active">
+            <h2>Lớp đang theo học</h2>
+            <div class="cards-container">
+                <div class="class-card" onclick="showClassDetail('1')">
+                    <h3>IELTS_A1</h3>
+                    <div class="class-info">
+                        <p><i class="fas fa-code"></i> Mã lớp: IELTS_A1.2025</p>
+                        <p><i class="fas fa-user-tie"></i> Giảng viên: John Smith</p>
+                        <p><i class="fas fa-calendar-alt"></i> 09:00:00 - T2,T4,T6</p>
+                        <p><i class="fas fa-chart-line"></i> Tiến độ: 10/30 buổi</p>
+                    </div>
+                    <button>Xem Chi Tiết</button>
+                </div>
+                <div class="class-card" onclick="showClassDetail('3')">
+                    <h3>TOEIC_B1</h3>
+                    <div class="class-info">
+                        <p><i class="fas fa-code"></i> Mã lớp: TOEIC_B1.2025</p>
+                        <p><i class="fas fa-user-tie"></i> Giảng viên: John Smith</p>
+                        <p><i class="fas fa-calendar-alt"></i> 18:00:00 - T2,T4</p>
+                        <p><i class="fas fa-chart-line"></i> Tiến độ: 8/20 buổi</p>
+                    </div>
+                    <button>Xem Chi Tiết</button>
+                </div>
+            </div>
+        </section>
+
+        <section id="schedule" class="content-section">
+            <h2>Lịch học của tôi</h2>
+            <div class="schedule-section">
+                <div class="calendar-header">
+                    <button class="nav-btn" id="prev-month">‹</button>
+                    <span id="current-month-year">Tháng 7 2025</span>
+                    <button class="nav-btn" id="next-month">›</button>
+                </div>
+                <div class="calendar">
+                    <div class="calendar-weekdays">
+                        <div>CN</div>
+                        <div>T2</div>
+                        <div>T3</div>
+                        <div>T4</div>
+                        <div>T5</div>
+                        <div>T6</div>
+                        <div>T7</div>
+                    </div>
+                    <div class="calendar-grid" id="calendar-grid">
+                        <!-- Calendar days will be generated here -->
+                    </div>
+                </div>
+                <div class="schedule-details" id="schedule-details">
+                    <h4>Chi tiết lịch học</h4>
+                    <p>Chọn một ngày để xem lịch học chi tiết</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <nav class="sidebar">
+        <div class="nav-section">
+            <a href="#overview" class="nav-link active">
+                <i class="fas fa-home"></i>
+                <span>Tổng quan</span>
+            </a>
+            <a href="#schedule" class="nav-link">
+                <i class="fas fa-calendar-alt"></i>
+                <span>Lịch học</span>
+            </a>
+        </div>
+    </nav>
+
+    <script>
+        // Sample student data - with current dates
+        const studentData = {
+            courses: [
+                {
+                    id: 1,
+                    class_name: "IELTS_A1",
+                    class_year: 2025,
+                    class_level: "Beginner",
+                    subject: "IELTS",
+                    schedule_time: "09:00:00",
+                    schedule_duration: 120,
+                    schedule_days: "T2,T4,T6",
+                    start_date: "2025-07-01",
+                    end_date: "2025-12-15",
+                    instructor_name: "John Smith",
+                    sessions_total: 30,
+                    sessions_completed: 10
+                },
+                {
+                    id: 3,
+                    class_name: "TOEIC_B1",
+                    class_year: 2025,
+                    class_level: "Advanced",
+                    subject: "TOEIC",
+                    schedule_time: "18:00:00",
+                    schedule_duration: 90,
+                    schedule_days: "T2,T4",
+                    start_date: "2025-07-01",
+                    end_date: "2025-10-20",
+                    instructor_name: "John Smith",
+                    sessions_total: 20,
+                    sessions_completed: 8
+                }
+            ],
+            attendance: [],
+            stats: [],
+            payments: []
+        };
+
+        // Debug output
+        console.log('Student data loaded:', studentData);
+        document.getElementById('debug-output').innerHTML = '<pre>' + JSON.stringify(studentData, null, 2) + '</pre>';
+
+        // Simple navigation handler
+        document.addEventListener('DOMContentLoaded', function() {
+            const navLinks = document.querySelectorAll('.nav-link');
+            navLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const target = this.getAttribute('href').substring(1);
+                    
+                    // Update navigation
+                    navLinks.forEach(l => l.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // Update sections
+                    document.querySelectorAll('.content-section').forEach(sec => sec.classList.remove('active'));
+                    document.getElementById(target).classList.add('active');
+                });
+            });
+        });
+    </script>
+    
+    <script src="/webapp/View/Student/Student.js"></script>
+</body>
+</html>

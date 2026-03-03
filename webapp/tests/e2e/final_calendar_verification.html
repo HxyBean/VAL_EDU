@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Final Calendar Day Alignment Verification</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-section h3 {
+            color: #333;
+            margin-top: 0;
+        }
+        .calendar {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 1px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+        }
+        .calendar-header {
+            background: #f0f0f0;
+            padding: 8px;
+            text-align: center;
+            font-weight: bold;
+            border: 1px solid #ccc;
+        }
+        .calendar-day {
+            background: white;
+            padding: 8px;
+            text-align: center;
+            border: 1px solid #eee;
+            min-height: 40px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .calendar-day.has-class {
+            background: #e3f2fd;
+            color: #1976d2;
+            font-weight: bold;
+        }
+        .calendar-day.correct {
+            background: #e8f5e8;
+            color: #2e7d32;
+        }
+        .calendar-day.incorrect {
+            background: #ffebee;
+            color: #c62828;
+        }
+        .schedule-info {
+            font-size: 10px;
+            margin-top: 2px;
+        }
+        .result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Final Calendar Day Alignment Verification</h1>
+        <p>This test verifies that the calendar day offset bug has been fixed.</p>
+        
+        <div class="test-section">
+            <h3>Test: Schedule Day Mapping</h3>
+            <div id="mapping-test"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>Test: Calendar Rendering with Fixed Offset</h3>
+            <div id="calendar-container">
+                <div class="calendar" id="test-calendar">
+                    <div class="calendar-header">CN</div>
+                    <div class="calendar-header">T2</div>
+                    <div class="calendar-header">T3</div>
+                    <div class="calendar-header">T4</div>
+                    <div class="calendar-header">T5</div>
+                    <div class="calendar-header">T6</div>
+                    <div class="calendar-header">T7</div>
+                </div>
+            </div>
+            <div id="calendar-result"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>Test Results Summary</h3>
+            <div id="final-results"></div>
+        </div>
+    </div>
+
+    <script>
+        // Day mapping from the application
+        const dayMapping = {
+            'CN': 0, // Sunday
+            'T2': 1, // Monday  
+            'T3': 2, // Tuesday
+            'T4': 3, // Wednesday
+            'T5': 4, // Thursday
+            'T6': 5, // Friday
+            'T7': 6  // Saturday
+        };
+
+        // Test schedule days (the ones that were showing up incorrectly)
+        const testScheduleDays = ['T2', 'T4', 'T6']; // Monday, Wednesday, Friday
+
+        function parseScheduleDays(dayString) {
+            if (!dayString) return [];
+            return dayString.split(',').map(day => day.trim()).filter(day => day);
+        }
+
+        // Test 1: Verify day mapping
+        function testDayMapping() {
+            const results = [];
+            const testData = [
+                { schedule: 'T2,T4,T6', expected: [1, 3, 5], description: 'Monday, Wednesday, Friday' },
+                { schedule: 'T3,T5,T7', expected: [2, 4, 6], description: 'Tuesday, Thursday, Saturday' },
+                { schedule: 'CN', expected: [0], description: 'Sunday' }
+            ];
+
+            testData.forEach(test => {
+                const scheduleDays = parseScheduleDays(test.schedule);
+                const mappedDays = scheduleDays.map(day => dayMapping[day]);
+                const isCorrect = JSON.stringify(mappedDays) === JSON.stringify(test.expected);
+                
+                results.push({
+                    test: test.description,
+                    schedule: test.schedule,
+                    expected: test.expected,
+                    actual: mappedDays,
+                    passed: isCorrect
+                });
+            });
+
+            return results;
+        }
+
+        // Test 2: Verify calendar rendering with fixed offset
+        function testCalendarRendering() {
+            // Simulate the fixed calendar rendering logic
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = today.getMonth();
+            
+            // Get first day of month
+            const firstDay = new Date(year, month, 1);
+            let firstDayOfWeek = firstDay.getDay();
+            
+            // FIXED: Apply the correction that was made to the actual code
+            const originalFirstDay = firstDayOfWeek;
+            firstDayOfWeek = (firstDayOfWeek - 1 + 7) % 7;
+            
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            
+            // Test that T2,T4,T6 (1,3,5) classes appear in correct columns
+            const testResults = [];
+            
+            // Create a sample week to test
+            for (let day = 1; day <= Math.min(daysInMonth, 7); day++) {
+                const date = new Date(year, month, day);
+                const dayOfWeek = date.getDay();
+                
+                // Calculate which column this day should appear in
+                const daysSinceFirstDay = day - 1;
+                const calendarColumn = (firstDayOfWeek + daysSinceFirstDay) % 7;
+                
+                // Check if this matches the expected column for the day of week
+                const expectedColumn = dayOfWeek;
+                const isCorrect = calendarColumn === expectedColumn;
+                
+                testResults.push({
+                    day: day,
+                    date: date.toDateString(),
+                    dayOfWeek: dayOfWeek,
+                    expectedColumn: expectedColumn,
+                    actualColumn: calendarColumn,
+                    passed: isCorrect
+                });
+            }
+            
+            return {
+                originalFirstDay,
+                correctedFirstDay: firstDayOfWeek,
+                testResults
+            };
+        }
+
+        // Render results
+        function renderResults() {
+            // Test 1 Results
+            const mappingResults = testDayMapping();
+            let mappingHtml = '<h4>Day Mapping Test Results:</h4>';
+            
+            mappingResults.forEach(result => {
+                const status = result.passed ? 'success' : 'error';
+                mappingHtml += `
+                    <div class="result ${status}">
+                        <strong>${result.test}</strong><br>
+                        Schedule: ${result.schedule} → Expected: [${result.expected.join(',')}] → Actual: [${result.actual.join(',')}]
+                        <br><em>${result.passed ? '✅ PASSED' : '❌ FAILED'}</em>
+                    </div>
+                `;
+            });
+            
+            document.getElementById('mapping-test').innerHTML = mappingHtml;
+
+            // Test 2 Results
+            const calendarResults = testCalendarRendering();
+            let calendarHtml = `
+                <div class="result info">
+                    <strong>Calendar Offset Correction:</strong><br>
+                    Original firstDayOfWeek: ${calendarResults.originalFirstDay}<br>
+                    Corrected firstDayOfWeek: ${calendarResults.correctedFirstDay}<br>
+                    Offset applied: ${calendarResults.originalFirstDay !== calendarResults.correctedFirstDay ? '✅ YES' : '❌ NO'}
+                </div>
+                <h4>Calendar Column Alignment Test:</h4>
+            `;
+            
+            calendarResults.testResults.forEach(result => {
+                const status = result.passed ? 'success' : 'error';
+                calendarHtml += `
+                    <div class="result ${status}">
+                        Day ${result.day} (${result.date})<br>
+                        Day of week: ${result.dayOfWeek} → Expected column: ${result.expectedColumn} → Actual column: ${result.actualColumn}
+                        <br><em>${result.passed ? '✅ PASSED' : '❌ FAILED'}</em>
+                    </div>
+                `;
+            });
+            
+            document.getElementById('calendar-result').innerHTML = calendarHtml;
+
+            // Final summary
+            const allMappingPassed = mappingResults.every(r => r.passed);
+            const allCalendarPassed = calendarResults.testResults.every(r => r.passed);
+            const overallPassed = allMappingPassed && allCalendarPassed;
+            
+            const summaryHtml = `
+                <div class="result ${overallPassed ? 'success' : 'error'}">
+                    <h4>Overall Test Results:</h4>
+                    <p>Day Mapping Tests: ${allMappingPassed ? '✅ ALL PASSED' : '❌ SOME FAILED'}</p>
+                    <p>Calendar Rendering Tests: ${allCalendarPassed ? '✅ ALL PASSED' : '❌ SOME FAILED'}</p>
+                    <p><strong>Calendar Day Offset Bug Fix: ${overallPassed ? '✅ VERIFIED WORKING' : '❌ NEEDS ATTENTION'}</strong></p>
+                    ${overallPassed ? 
+                        '<p>🎉 The calendar day alignment issue has been successfully resolved! Classes scheduled for T2, T4, T6 should now appear in the correct columns.</p>' :
+                        '<p>⚠️ There may still be issues with the calendar day alignment. Please check the implementation.</p>'
+                    }
+                </div>
+            `;
+            
+            document.getElementById('final-results').innerHTML = summaryHtml;
+        }
+
+        // Run tests when page loads
+        document.addEventListener('DOMContentLoaded', renderResults);
+    </script>
+</body>
+</html>

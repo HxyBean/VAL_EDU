@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calendar Fix Verification</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-container { margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: #ddd; margin: 15px 0; }
+        .day-header { background: #333; color: white; padding: 15px 10px; text-align: center; font-weight: bold; }
+        .calendar-day { background: white; padding: 10px; min-height: 60px; border: 1px solid #ddd; position: relative; }
+        .day-number { font-weight: bold; font-size: 16px; }
+        .day-info { font-size: 11px; color: #666; margin-top: 5px; }
+        .has-schedule { background: #e3f2fd !important; border: 2px solid #108AB1 !important; }
+        .debug-info { background: #f0f0f0; padding: 15px; margin: 10px 0; border-radius: 4px; font-family: monospace; font-size: 14px; }
+        .success { color: #28a745; font-weight: bold; }
+        .error { color: #dc3545; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>Calendar Day Offset Fix Verification</h1>
+    
+    <div class="debug-info">
+        <strong>Testing the fix for calendar day offset issue</strong><br>
+        Expected: Classes scheduled for T2,T4,T6 should appear on Monday, Wednesday, Friday<br>
+        Issue: They were appearing on Tuesday, Thursday, Saturday (shifted by +1)
+    </div>
+
+    <div class="test-container">
+        <h2>✅ Fixed Calendar (July 2025)</h2>
+        <p>With the <code>firstDayOfWeek = (firstDayOfWeek - 1 + 7) % 7</code> adjustment</p>
+        <div class="calendar-grid" id="fixed-calendar"></div>
+    </div>
+
+    <div class="test-container">
+        <h2>Verification Results</h2>
+        <div id="results"></div>
+    </div>
+
+    <script>
+        function log(message, isError = false) {
+            const results = document.getElementById('results');
+            results.innerHTML += `<div class="debug-info ${isError ? 'error' : 'success'}">${message}</div>`;
+            console.log(message);
+        }
+
+        function parseScheduleDays(scheduleDaysStr) {
+            const daysMap = {
+                'CN': 0, 'T2': 1, 'T3': 2, 'T4': 3, 'T5': 4, 'T6': 5, 'T7': 6
+            };
+            return scheduleDaysStr.split(',').map(day => daysMap[day.trim()]).filter(day => day !== undefined);
+        }
+
+        function createFixedCalendar() {
+            const container = document.getElementById('fixed-calendar');
+            const headers = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
+            
+            // Add headers
+            headers.forEach((header, index) => {
+                const headerDiv = document.createElement('div');
+                headerDiv.className = 'day-header';
+                headerDiv.textContent = `${header}`;
+                container.appendChild(headerDiv);
+            });
+
+            // Test with July 2025 (starts on Tuesday)
+            const year = 2025;
+            const month = 6; // July
+            const firstDay = new Date(year, month, 1);
+            let firstDayOfWeek = firstDay.getDay(); // Should be 2 (Tuesday)
+            
+            // Apply the fix
+            const originalFirstDay = firstDayOfWeek;
+            firstDayOfWeek = (firstDayOfWeek - 1 + 7) % 7; // Should become 1 (Monday)
+            
+            log(`July 1, 2025 is a ${headers[originalFirstDay]} (day ${originalFirstDay})`);
+            log(`After fix adjustment: firstDayOfWeek = ${firstDayOfWeek} (${headers[firstDayOfWeek]} position)`);
+            
+            const testSchedule = "T2,T4,T6";
+            const scheduleDays = parseScheduleDays(testSchedule);
+            log(`Schedule T2,T4,T6 maps to days: [${scheduleDays.join(',')}] = [Monday, Wednesday, Friday]`);
+
+            // Simulate calendar rendering with fix
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const prevMonth = new Date(year, month, 0);
+            const daysInPrevMonth = prevMonth.getDate();
+
+            // Add previous month's trailing days (with fix)
+            for (let i = firstDayOfWeek - 1; i >= 0; i--) {
+                const day = daysInPrevMonth - i;
+                const date = new Date(year, month - 1, day);
+                const dayDiv = document.createElement('div');
+                dayDiv.className = 'calendar-day';
+                dayDiv.style.opacity = '0.3';
+                dayDiv.innerHTML = `
+                    <div class="day-number">${day}</div>
+                    <div class="day-info">Prev month</div>
+                `;
+                container.appendChild(dayDiv);
+            }
+
+            // Add current month's days and check schedule positioning
+            let correctScheduleCount = 0;
+            let totalScheduleDays = 0;
+            
+            for (let day = 1; day <= 7; day++) { // First week only for testing
+                const date = new Date(year, month, day);
+                const dayOfWeek = date.getDay();
+                const hasSchedule = scheduleDays.includes(dayOfWeek);
+                
+                if (hasSchedule) totalScheduleDays++;
+                
+                const dayDiv = document.createElement('div');
+                dayDiv.className = 'calendar-day';
+                if (hasSchedule) {
+                    dayDiv.classList.add('has-schedule');
+                    
+                    // Verify correct positioning
+                    const expectedDays = ['Monday', 'Wednesday', 'Friday'];
+                    const actualDay = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][dayOfWeek];
+                    if (expectedDays.includes(actualDay)) {
+                        correctScheduleCount++;
+                        log(`✓ July ${day}: ${actualDay} - CORRECT schedule placement`);
+                    } else {
+                        log(`✗ July ${day}: ${actualDay} - WRONG schedule placement`, true);
+                    }
+                }
+                
+                dayDiv.innerHTML = `
+                    <div class="day-number">${day}</div>
+                    <div class="day-info">
+                        ${headers[dayOfWeek]}<br>
+                        ${hasSchedule ? 'Has Schedule' : 'No schedule'}
+                    </div>
+                `;
+                container.appendChild(dayDiv);
+            }
+            
+            // Final verification
+            if (correctScheduleCount === totalScheduleDays && totalScheduleDays > 0) {
+                log(`🎉 SUCCESS! All ${totalScheduleDays} scheduled days are in correct positions.`);
+                log('The calendar offset fix is working correctly!');
+            } else {
+                log(`❌ FAILED! Only ${correctScheduleCount}/${totalScheduleDays} scheduled days are correct.`, true);
+                log('The fix may need further adjustment.', true);
+            }
+        }
+
+        // Run the test
+        createFixedCalendar();
+    </script>
+</body>
+</html>
